@@ -1,0 +1,44 @@
+include($QT_INSTALL_DOCS/global/qt-module-defaults.qdocconf)
+
+project                 = QtOrm
+description             = Qt ORM Reference Documentation
+version                 = $QT_VERSION
+
+examplesinstallpath     = orm
+
+qhp.projects            = QtOrm
+
+qhp.QtOrm.file                = qtorm.qhp
+qhp.QtOrm.namespace           = at.sequality.qtorm.$QT_VERSION_TAG
+qhp.QtOrm.virtualFolder       = qtorm
+qhp.QtOrm.indexTitle          = Qt ORM
+qhp.QtOrm.indexRoot           =
+
+qhp.QtOrm.filterAttributes    = qtorm $QT_VERSION qtrefdoc
+qhp.QtOrm.customFilters.Qt.name = QtOrm $QT_VERSION
+qhp.QtOrm.customFilters.Qt.filterAttributes = qtorm $QT_VERSION
+
+qhp.QtOrm.subprojects         = classes
+qhp.QtOrm.subprojects.classes.title = C++ Classes
+qhp.QtOrm.subprojects.classes.indexTitle = Qt ORM C++ Classes
+qhp.QtOrm.subprojects.classes.selectors = class fake:headerfile
+qhp.QtOrm.subprojects.classes.sortPages = true
+
+tagfile                 = ../../../doc/qtorm/qtorm.tags
+
+depends += \
+    qtcore \
+    qtdoc \
+    qtsql
+
+headerdirs  += ..
+
+sourcedirs  += ..
+
+exampledirs += ../../../examples/orm \
+               snippets/ 
+
+imagedirs   += images
+
+navigation.landingpage = "Qt ORM"
+navigation.cppclassespage = "Qt ORM C++ Classes"

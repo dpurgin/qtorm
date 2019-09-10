@@ -1,0 +1,9 @@
+{
+    "provider": "sql",
+    "verbose": true,
+    "sql": {
+        "databaseName": "navigationdb.db",
+        "verbose": true,
+        "schemaMode": "recreate"
+    }
+}
