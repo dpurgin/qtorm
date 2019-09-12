@@ -11,6 +11,7 @@
 QT_BEGIN_NAMESPACE
 
 class QOrmAbstractProvider;
+class QOrmError;
 class QOrmQuery;
 class QOrmSessionPrivate;
 class QOrmTransactionToken;
@@ -20,11 +21,9 @@ class Q_ORM_EXPORT QOrmSession
     Q_DECLARE_PRIVATE(QOrmSession)
 
 public:
-    QOrmSession(QOrmSessionConfiguration sessionConfiguration =
-                    QOrmSessionConfiguration::defaultConfiguration());
+    explicit QOrmSession(QOrmSessionConfiguration configuration =
+            QOrmSessionConfiguration::defaultConfiguration());
     ~QOrmSession();
-
-    QOrmQuery select(const QMetaObject& entityMeta);
 
     template<typename T>
     bool merge(T* entityInstance, QOrm::MergeMode mode = QOrm::MergeMode::Auto)
@@ -32,27 +31,32 @@ public:
         return merge(entityInstance, T::staticMetaObject, mode);
     }
 
-    void remove(QObject* entityInstance);
-
-    Q_REQUIRED_RESULT QOrmTransactionToken declareTransaction(QOrm::TransactionMode transactionMode);
-
-    Q_REQUIRED_RESULT QOrmEntityMetadata entityMetadata(QObject* entity);
-    Q_REQUIRED_RESULT QOrmEntityMetadata entityMetadata(const QMetaObject& instanceMeta);
-
     template<typename T>
-    Q_REQUIRED_RESULT QOrmEntityMetadata entityMetadata()
+    bool remove(T* entityInstance)
     {
-        return entityMetadata(T::staticMetaObject);
+        return remove(entityInstance, T::staticMetaObject);
     }
 
     template<typename T>
+    Q_REQUIRED_RESULT
     QOrmQuery select()
     {
         return select(T::staticMetaObject);
     }  
 
-protected:
+    Q_REQUIRED_RESULT
+    QOrmTransactionToken declareTransaction(QOrm::TransactionMode transactionMode);
+
+    Q_REQUIRED_RESULT
+    QOrmError lastError() const;
+
+    Q_REQUIRED_RESULT
+    QOrmSessionConfiguration configuration() const;
+
+private:
     bool merge(QObject* entityInstance, const QMetaObject& qMetaObject, QOrm::MergeMode mode);
+    bool remove(QObject* entityInstance, const QMetaObject& qMetaObject);
+    QOrmQuery select(const QMetaObject& qMetaObject);
 
 private:
     QOrmSessionPrivate* d_ptr{nullptr};

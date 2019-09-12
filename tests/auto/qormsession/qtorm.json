@@ -1,0 +1,7 @@
+{
+    "provider": "sql",
+    "sql": {
+        "databaseName": "testdb.db",
+        "schemaMode": "recreate"
+    }
+}

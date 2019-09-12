@@ -29,6 +29,9 @@ int main(int argc, char* argv[])
 
     session.merge(province, QOrm::MergeMode::Create);
 
+    province->setName(QString::fromUtf8("Oberoesterreich"));
+    session.merge(province, QOrm::MergeMode::Update);
+
 //    session.declareTransaction(QOrm::TransactionMode::Supports);
 
 //    auto d1 = session.select<Province>().toVector();

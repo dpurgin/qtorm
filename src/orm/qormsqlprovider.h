@@ -10,7 +10,7 @@ class QOrmSqlConfiguration;
 class QOrmSqlProviderPrivate;
 class QSqlDatabase;
 
-class QOrmSqlProvider : public QOrmAbstractProvider
+class Q_ORM_EXPORT QOrmSqlProvider : public QOrmAbstractProvider
 {
 public:
     explicit QOrmSqlProvider(const QOrmSqlConfiguration& sqlConfiguration);
@@ -28,6 +28,9 @@ public:
     QOrmError read(const QOrmQuery& query) override;
     QOrmError update(QObject* entityInstance, const QMetaObject& qMetaObject) override;
     QOrmError remove(QObject* entityInstance, const QMetaObject& qMetaObject) override;
+
+    QOrmSqlConfiguration configuration() const;
+    QSqlDatabase database() const;
 
 private:
     Q_DECLARE_PRIVATE(QOrmSqlProvider)

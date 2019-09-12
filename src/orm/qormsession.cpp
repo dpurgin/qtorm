@@ -15,11 +15,16 @@ class QOrmSessionPrivate
     Q_DECLARE_PUBLIC(QOrmSession)
     QOrmSession* q_ptr{nullptr};
     QOrmSessionConfiguration m_sessionConfiguration;
+    QSet<QObject*> m_entityInstanceCache;
+    QOrmError m_lastError{QOrm::Error::None, {}};
 
     explicit QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration, QOrmSession* parent);
     ~QOrmSessionPrivate();
 
     void ensureProviderConnected();
+
+    void clearLastError();
+    void setLastError(QOrmError lastError);
 };
 
 QOrmSessionPrivate::QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration,
@@ -32,12 +37,23 @@ QOrmSessionPrivate::QOrmSessionPrivate(QOrmSessionConfiguration sessionConfigura
 
 QOrmSessionPrivate::~QOrmSessionPrivate()
 {
+    qDeleteAll(m_entityInstanceCache);
 }
 
 void QOrmSessionPrivate::ensureProviderConnected()
 {
     if (!m_sessionConfiguration.provider()->isConnectedToBackend())
         m_sessionConfiguration.provider()->connectToBackend();
+}
+
+void QOrmSessionPrivate::clearLastError()
+{
+    m_lastError = QOrmError{QOrm::Error::None, {}};
+}
+
+void QOrmSessionPrivate::setLastError(QOrmError lastError)
+{
+    m_lastError = lastError;
 }
 
 QOrmSession::QOrmSession(QOrmSessionConfiguration sessionConfiguration)
@@ -64,31 +80,59 @@ bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject,
 {
     Q_D(QOrmSession);
 
+    d->clearLastError();
     d->ensureProviderConnected();
 
-    std::optional<QOrmError> error;
-
     if (mode == QOrm::MergeMode::Create)
-        error = d->m_sessionConfiguration.provider()->create(entityInstance, qMetaObject);
+    {
+        if (d->m_entityInstanceCache.contains(entityInstance))
+        {
+            d->setLastError({QOrm::Error::UnsynchronizedEntity,
+                             "Unable to merge with MergeMode::Create: entity instance seems to exist in the database. Use MergeMode::Auto or MergeMode::Update instead."});
+        }
+        else
+        {
+            d->setLastError(d->m_sessionConfiguration.provider()->create(entityInstance, qMetaObject));
+        }
+    }
     else if (mode == QOrm::MergeMode::Update)
-        error = d->m_sessionConfiguration.provider()->update(entityInstance, qMetaObject);
+    {
+        d->setLastError(d->m_sessionConfiguration.provider()->update(entityInstance, qMetaObject));
+    }
     else if (mode == QOrm::MergeMode::Auto)
     {
-
+        if (!d->m_entityInstanceCache.contains(entityInstance))
+        {
+            d->setLastError(d->m_sessionConfiguration.provider()->create(entityInstance, qMetaObject));
+        }
+        else
+        {
+            d->setLastError(d->m_sessionConfiguration.provider()->update(entityInstance, qMetaObject));
+        }
     }
 
-    if (d->m_sessionConfiguration.isVerbose() &&
-            error.has_value() && error->error() != QOrm::Error::None)
+    if (d->m_lastError.error() == QOrm::Error::None)
     {
-        qWarning() << "QtORM: unable to merge:" << error.value();
+        d->m_entityInstanceCache.insert(entityInstance);
     }
 
-    return error.has_value() && error->error() != QOrm::Error::None;
+    return d->m_lastError.error() == QOrm::Error::None;
 }
 
-void QOrmSession::remove(QObject* entityInstance)
+bool QOrmSession::remove(QObject* entityInstance, const QMetaObject& qMetaObject)
 {
-    Q_UNUSED(entityInstance);
+    Q_D(QOrmSession);
+
+    d->ensureProviderConnected();
+
+    d->setLastError(d->m_sessionConfiguration.provider()->remove(entityInstance, qMetaObject));
+
+    if (d->m_lastError.error() == QOrm::Error::None)
+    {
+        d->m_entityInstanceCache.remove(entityInstance);
+    }
+
+    return d->m_lastError.error() == QOrm::Error::None;
 }
 
 QOrmTransactionToken QOrmSession::declareTransaction(QOrm::TransactionMode transactionMode)
@@ -96,6 +140,19 @@ QOrmTransactionToken QOrmSession::declareTransaction(QOrm::TransactionMode trans
     return {};
 }
 
+QOrmError QOrmSession::lastError() const
+{
+    Q_D(const QOrmSession);
+
+    return d->m_lastError;
+}
+
+QOrmSessionConfiguration QOrmSession::configuration() const
+{
+    Q_D(const QOrmSession);
+
+    return d->m_sessionConfiguration;
+}
 
 
 QT_END_NAMESPACE
