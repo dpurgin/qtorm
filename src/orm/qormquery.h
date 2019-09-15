@@ -1,32 +1,44 @@
 #ifndef QORMQUERY_H
 #define QORMQUERY_H
 
-#include <QtOrm/qormglobal.h>
+#include <QtCore/qglobal.h>
+#include <QtCore/qshareddata.h>
 
-#include <QtCore/qobject.h>
-#include <QtCore/qvector.h>
+#include <QtOrm/qormglobal.h>
 
 QT_BEGIN_NAMESPACE
 
 class QOrmWhereClause;
 class QOrmOrderClause;
+class QOrmQueryPrivate;
 
 class Q_ORM_EXPORT QOrmQuery
 {
 public:
-    QOrmQuery();
+    QOrmQuery(const QMetaObject& projection,
+              int first,
+              int last,
+              QOrmWhereClause where,
+              QOrmOrderClause order);
+    QOrmQuery(const QOrmQuery&);
+    ~QOrmQuery();
 
-    QOrmQuery& first(int n);
-    QOrmQuery& last(int n);
+    QOrmQuery& operator=(const QOrmQuery&);
 
-    QOrmQuery& where(QOrmWhereClause whereClause);
-    QOrmQuery& order(QOrmOrderClause orderClause);
+#ifdef Q_COMPILER_RVALUE_REFS
+    QOrmQuery(QOrmQuery&&);
+    QOrmQuery& operator=(QOrmQuery&&);
+#endif
 
-    template<typename T = QObject>
-    Q_REQUIRED_RESULT QVector<T*> toVector()
-    {
-        return QVector<T*>{};
-    }
+    const QMetaObject& projection() const;
+
+    int first() const;
+    int last() const;
+    QOrmWhereClause where() const;
+    QOrmOrderClause order() const;
+
+private:
+    QSharedDataPointer<QOrmQueryPrivate> d;
 };
 
 QT_END_NAMESPACE

@@ -4,7 +4,7 @@
 #include <QtOrm/qormglobal.h>
 #include <QtOrm/qormentitymetadata.h>
 #include <QtOrm/qormsessionconfiguration.h>
-#include <QtOrm/qormquery.h>
+#include <QtOrm/qormquerybuilder.h>
 
 #include <QtCore/qobject.h>
 
@@ -13,6 +13,8 @@ QT_BEGIN_NAMESPACE
 class QOrmAbstractProvider;
 class QOrmError;
 class QOrmQuery;
+class QOrmQueryBuilder;
+class QOrmQueryResult;
 class QOrmSessionPrivate;
 class QOrmTransactionToken;
 
@@ -24,6 +26,9 @@ public:
     explicit QOrmSession(QOrmSessionConfiguration configuration =
             QOrmSessionConfiguration::defaultConfiguration());
     ~QOrmSession();
+
+    Q_REQUIRED_RESULT
+    QOrmQueryResult execute(const QOrmQuery& query);
 
     template<typename T>
     bool merge(T* entityInstance, QOrm::MergeMode mode = QOrm::MergeMode::Auto)
@@ -39,7 +44,7 @@ public:
 
     template<typename T>
     Q_REQUIRED_RESULT
-    QOrmQuery select()
+    QOrmQueryBuilder select()
     {
         return select(T::staticMetaObject);
     }  
@@ -56,7 +61,7 @@ public:
 private:
     bool merge(QObject* entityInstance, const QMetaObject& qMetaObject, QOrm::MergeMode mode);
     bool remove(QObject* entityInstance, const QMetaObject& qMetaObject);
-    QOrmQuery select(const QMetaObject& qMetaObject);
+    QOrmQueryBuilder select(const QMetaObject& projectionMetaObject);
 
 private:
     QOrmSessionPrivate* d_ptr{nullptr};

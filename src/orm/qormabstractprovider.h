@@ -8,6 +8,7 @@ QT_BEGIN_NAMESPACE
 class QObject;
 class QOrmError;
 class QOrmQuery;
+class QOrmQueryResult;
 class QMetaObject;
 
 class Q_ORM_EXPORT QOrmAbstractProvider
@@ -25,7 +26,7 @@ public:
     virtual QOrmError rollbackTransaction() = 0;
 
     virtual QOrmError create(QObject* entity, const QMetaObject& qMetaObject) = 0;
-    virtual QOrmError read(const QOrmQuery& query) = 0;
+    virtual QOrmQueryResult read(const QOrmQuery& query) = 0;
     virtual QOrmError update(QObject* entity, const QMetaObject& qMetaObject) = 0;
     virtual QOrmError remove(QObject* entity, const QMetaObject& qMetaObject) = 0;
 };

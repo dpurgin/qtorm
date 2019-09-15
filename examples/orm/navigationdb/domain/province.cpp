@@ -1,9 +1,24 @@
 #include "province.h"
 
+#include <QDebug>
+#include <QDebugStateSaver>
+
+QDebug operator<<(QDebug dbg, const Province& province)
+{
+    QDebugStateSaver saver{dbg};
+    dbg.noquote().nospace() << "Province(" << province.id() <<  ", \"" << province.name() << "\")";
+    return dbg;
+}
+
 Province::Province(QObject *parent)
     : QObject(parent)
 {
+}
 
+Province::Province(const QString& name, QObject* parent)
+    : QObject{parent},
+      m_name{name}
+{
 }
 
 int Province::id() const

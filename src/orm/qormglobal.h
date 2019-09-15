@@ -42,6 +42,24 @@ namespace QOrm
         Create,
         Update
     };
+
+    enum class Comparison
+    {
+        Equals,
+        NotEquals,
+        Less,
+        LessOrEquals,
+        Greater,
+        GreaterOrEquals,
+        Not
+    };
+
+    enum class LogicalOperator
+    {
+        And,
+        Or,
+        Not
+    };
 }
 
 extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::Error error);

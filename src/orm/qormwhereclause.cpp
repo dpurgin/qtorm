@@ -1,63 +1,52 @@
 #include "qormwhereclause.h"
 
-#include <QDebug>
+#include <QOrmField>
+#include <QVariant>
 
-QT_BEGIN_NAMESPACE
-
-QOrmWhereClause::QOrmWhereClause()
+class QOrmWhereClausePrivate : public QSharedData
 {
+    friend class QOrmWhereClause;
 
+    QOrmWhereClausePrivate(const QOrmField& field,
+                           QOrm::Comparison comparison,
+                           const QVariant& value)
+        : m_field{field},
+          m_comparison{comparison},
+          m_value{value}
+    {
+    }
+
+    QOrmField m_field;
+    QOrm::Comparison m_comparison;
+    QVariant m_value;
+};
+
+QOrmWhereClause::QOrmWhereClause(const QOrmField& field,
+                                 QOrm::Comparison comparison,
+                                 const QVariant& value)
+    : d{new QOrmWhereClausePrivate{field, comparison, value}}
+{
 }
 
-QOrmWhereClause operator==(const QOrmField& field, const QVariant& value)
+QOrmWhereClause::QOrmWhereClause(const QOrmWhereClause&) = default;
+
+QOrmWhereClause::QOrmWhereClause(QOrmWhereClause&&) = default;
+
+QOrmWhereClause& QOrmWhereClause::operator=(const QOrmWhereClause&) = default;
+
+QOrmWhereClause& QOrmWhereClause::operator=(QOrmWhereClause&&) = default;
+
+QOrmField QOrmWhereClause::field() const
 {
-    qDebug() << "Custom operator==...";
-    return QOrmWhereClause{};
+    return d->m_field;
 }
 
-QOrmWhereClause operator!=(const QOrmField& field, const QVariant& value)
+QOrm::Comparison QOrmWhereClause::comparison() const
 {
-    return QOrmWhereClause{};
+    return d->m_comparison;
 }
 
-QOrmWhereClause operator<(const QOrmField& field, const QVariant& value)
+QVariant QOrmWhereClause::value() const
 {
-    qDebug() << "Custom operator<...";
-    return QOrmWhereClause{};
+    return d->m_value;
 }
-
-QOrmWhereClause operator<=(const QOrmField& field, const QVariant& value)
-{
-
-    return QOrmWhereClause{};
-}
-
-QOrmWhereClause operator>(const QOrmField& field, const QVariant& value)
-{
-    qDebug() << "Custom operator>...";
-    return QOrmWhereClause{};
-}
-
-
-QOrmWhereClause operator>=(const QOrmField& field, const QVariant& value)
-{
-
-    return QOrmWhereClause{};
-}
-
-QOrmWhereClause operator!(const QOrmWhereClause& operand)
-{
-    return QOrmWhereClause{};
-}
-
-QOrmWhereClause operator||(const QOrmWhereClause& lhs, const QOrmWhereClause& rhs)
-{
-    return QOrmWhereClause{};
-}
-
-QOrmWhereClause operator&&(const QOrmWhereClause& lhs, const QOrmWhereClause& rhs)
-{
-    return QOrmWhereClause{};
-}
-
-QT_END_NAMESPACE

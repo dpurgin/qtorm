@@ -6,6 +6,7 @@
 
 QT_BEGIN_NAMESPACE
 
+class QOrmQueryResult;
 class QOrmSqlConfiguration;
 class QOrmSqlProviderPrivate;
 class QSqlDatabase;
@@ -25,7 +26,7 @@ public:
     QOrmError rollbackTransaction() override;
 
     QOrmError create(QObject* entityInstance, const QMetaObject& qMetaObject) override;
-    QOrmError read(const QOrmQuery& query) override;
+    QOrmQueryResult read(const QOrmQuery& query) override;
     QOrmError update(QObject* entityInstance, const QMetaObject& qMetaObject) override;
     QOrmError remove(QObject* entityInstance, const QMetaObject& qMetaObject) override;
 

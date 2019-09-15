@@ -3,6 +3,8 @@
 #include "qormerror.h"
 #include "qormentitymetadata.h"
 #include "qormpropertymapping.h"
+#include "qormquery.h"
+#include "qormqueryresult.h"
 #include "qormsqlconfiguration.h"
 
 #include <QDebug>
@@ -12,8 +14,21 @@
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QSqlRecord>
 
 QT_BEGIN_NAMESPACE
+
+namespace std
+{
+    template<>
+    struct hash<QString>
+    {
+        std::size_t operator()(const QString& str) const noexcept
+        {
+            return qHash(str);
+        }
+    };
+}
 
 class QOrmSqlProviderPrivate
 {
@@ -51,6 +66,9 @@ class QOrmSqlProviderPrivate
     {
         entityInstance->setProperty(property.toUtf8().data(), value);
     }
+
+    Q_REQUIRED_RESULT
+    QObject* makeEntityInstance(const QOrmEntityMetadata& entityMetadata, const QSqlRecord& record);
 
     QOrmError ensureSchemaSynchronized(const QOrmEntityMetadata& entityMetadata);
     QOrmError recreateSchema(const QOrmEntityMetadata& entityMetadata);
@@ -123,7 +141,7 @@ const QOrmEntityMetadata& QOrmSqlProviderPrivate::entityMetadata(const QMetaObje
 
     if (!m_entityMetadataCache.contains(className))
     {
-        QOrmEntityMetadata entityMetadata;
+        QOrmEntityMetadata entityMetadata{qMetaObject};
         entityMetadata.setClassName(QString::fromUtf8(qMetaObject.className()));
         entityMetadata.setTableName(QString::fromUtf8(qMetaObject.className()));
 
@@ -155,6 +173,21 @@ const QOrmEntityMetadata& QOrmSqlProviderPrivate::entityMetadata(const QMetaObje
     }
 
     return m_entityMetadataCache[className];
+}
+
+QObject* QOrmSqlProviderPrivate::makeEntityInstance(const QOrmEntityMetadata& entityMetadata,
+                                                    const QSqlRecord& record)
+{
+    QObject* entityInstance = entityMetadata.qMetaObject().newInstance();
+
+    for (const QOrmPropertyMapping& mapping: entityMetadata.propertyMappings())
+    {
+        setPropertyValue(entityInstance,
+                         mapping.classPropertyName(),
+                         record.value(mapping.tableFieldName()));
+    }
+
+    return entityInstance;
 }
 
 QOrmError QOrmSqlProviderPrivate::ensureSchemaSynchronized(const QOrmEntityMetadata& entityMetadata)
@@ -233,11 +266,13 @@ QOrmError QOrmSqlProviderPrivate::recreateSchema(const QOrmEntityMetadata& entit
 
 QOrmError QOrmSqlProviderPrivate::updateSchema(const QOrmEntityMetadata& entityMetadata)
 {
+    Q_UNUSED(entityMetadata)
     return QOrmError{QOrm::Error::UnsynchronizedSchema, "Not implemented"};
 }
 
-QOrmError QOrmSqlProviderPrivate::validateSchema(const QOrmEntityMetadata& validateSchema)
+QOrmError QOrmSqlProviderPrivate::validateSchema(const QOrmEntityMetadata& entityMetadata)
 {
+    Q_UNUSED(entityMetadata)
     return QOrmError{QOrm::Error::UnsynchronizedSchema, "Not implemented"};
 }
 
@@ -391,11 +426,30 @@ QOrmError QOrmSqlProvider::create(QObject* entityInstance, const QMetaObject& qM
     return QOrmError{QOrm::Error::None, {}};
 }
 
-QOrmError QOrmSqlProvider::read(const QOrmQuery& query)
+QOrmQueryResult QOrmSqlProvider::read(const QOrmQuery& ormQuery)
 {
-    Q_UNUSED(query)
+    Q_D(QOrmSqlProvider);
 
-    return QOrmError{QOrm::Error::Other, QStringLiteral("Not implemented")};
+    const QOrmEntityMetadata& projectionMeta = d->entityMetadata(ormQuery.projection());
+
+    QStringList statementParts{"SELECT * FROM", projectionMeta.tableName()};
+
+    QString statement = statementParts.join("\n");
+    QVariantMap parameters;
+
+    QSqlQuery sqlQuery = d->prepareAndExecute(statement, parameters);
+
+    if (sqlQuery.lastError().type() != QSqlError::NoError)
+        return QOrmQueryResult{QOrmError{QOrm::Error::Provider, sqlQuery.lastError().text()}};
+
+    QVector<QObject*> resultSet;
+
+    while (sqlQuery.next())
+    {
+        resultSet.push_back(d->makeEntityInstance(projectionMeta, sqlQuery.record()));
+    }
+
+    return QOrmQueryResult{resultSet};
 }
 
 QOrmError QOrmSqlProvider::update(QObject* entityInstance, const QMetaObject& qMetaObject)

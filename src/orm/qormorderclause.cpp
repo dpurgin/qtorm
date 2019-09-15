@@ -1,6 +1,5 @@
 #include "qormorderclause.h"
 
-QOrmOrderClause::QOrmOrderClause()
-{
+QT_BEGIN_NAMESPACE
 
-}
+QT_END_NAMESPACE

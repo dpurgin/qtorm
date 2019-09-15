@@ -24,13 +24,36 @@ int main(int argc, char* argv[])
 
     QOrmSession session;
 
-    Province* province = new Province();
-    province->setName(QString::fromUtf8("Oberösterreich"));
 
-    session.merge(province, QOrm::MergeMode::Create);
+    session.merge(new Province{QString::fromUtf8("Burgenland")});
+    session.merge(new Province{QString::fromUtf8("Kärnten")});
+    session.merge(new Province{QString::fromUtf8("Niederösterreich")});
+    session.merge(new Province{QString::fromUtf8("Oberösterreich")});
+    session.merge(new Province{QString::fromUtf8("Salzburg")});
+    session.merge(new Province{QString::fromUtf8("Steiermark")});
+    session.merge(new Province{QString::fromUtf8("Tirol")});
+    session.merge(new Province{QString::fromUtf8("Vorarlberg")});
+    session.merge(new Province{QString::fromUtf8("Wien")});
 
-    province->setName(QString::fromUtf8("Oberoesterreich"));
-    session.merge(province, QOrm::MergeMode::Update);
+    {
+        auto result = session.select<Province>().toVector();
+
+        for (QObject* entityInstance: result)
+        {
+            qDebug() << *qobject_cast<Province*>(entityInstance);
+        }
+    }
+
+    {
+        auto result = session.select<Province>()
+                             .where(Q_ORM_FIELD(id) < 5)
+                             .toVector();
+
+        for (QObject* entityInstance: result)
+        {
+            qDebug() << *qobject_cast<Province*>(entityInstance);
+        }
+    }
 
 //    session.declareTransaction(QOrm::TransactionMode::Supports);
 
