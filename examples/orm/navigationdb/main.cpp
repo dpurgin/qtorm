@@ -36,7 +36,9 @@ int main(int argc, char* argv[])
     session.merge(new Province{QString::fromUtf8("Wien")});
 
     {
-        auto result = session.select<Province>().toVector();
+        auto result = session.from<Province>()
+                             .select<Province>()
+                             .toVector();
 
         for (QObject* entityInstance: result)
         {
@@ -45,8 +47,9 @@ int main(int argc, char* argv[])
     }
 
     {
-        auto result = session.select<Province>()
+        auto result = session.from<Province>()
                              .where(Q_ORM_FIELD(id) < 5)
+                             .select<Province>()
                              .toVector();
 
         for (QObject* entityInstance: result)

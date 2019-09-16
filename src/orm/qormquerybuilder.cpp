@@ -71,18 +71,13 @@ QOrmQueryBuilder& QOrmQueryBuilder::order(QOrmOrderClauseBuilder orderClause)
     return *this;
 }
 
-QOrmQuery QOrmQueryBuilder::build() const
+QOrmQuery QOrmQueryBuilder::select(const QMetaObject& projection)
 {
     return QOrmQuery{d->m_projection,
                      d->m_firstN,
                      d->m_lastN,
                      d->m_whereClauseBuilder.build(),
                      d->m_orderClauseBuilder.build()};
-}
-
-QVector<QObject*> QOrmQueryBuilder::toVector()
-{        
-    return d->m_provider->read(build()).toVector();
 }
 
 QT_END_NAMESPACE

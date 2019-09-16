@@ -1,5 +1,5 @@
-#ifndef QORMORDERCLAUSE_H
-#define QORMORDERCLAUSE_H
+#ifndef QORMORDERCLAUSEBUILDER_H
+#define QORMORDERCLAUSEBUILDER_H
 
 #include <QtOrm/qormglobal.h>
 

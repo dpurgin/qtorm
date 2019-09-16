@@ -43,11 +43,10 @@ public:
     }
 
     template<typename T>
-    Q_REQUIRED_RESULT
-    QOrmQueryBuilder select()
+    QOrmQueryBuilder from()
     {
-        return select(T::staticMetaObject);
-    }  
+        return from(T::staticMetaObject);
+    }
 
     Q_REQUIRED_RESULT
     QOrmTransactionToken declareTransaction(QOrm::TransactionMode transactionMode);
@@ -61,7 +60,7 @@ public:
 private:
     bool merge(QObject* entityInstance, const QMetaObject& qMetaObject, QOrm::MergeMode mode);
     bool remove(QObject* entityInstance, const QMetaObject& qMetaObject);
-    QOrmQueryBuilder select(const QMetaObject& projectionMetaObject);
+    QOrmQueryBuilder from(const QMetaObject& relationMetaObject);
 
 private:
     QOrmSessionPrivate* d_ptr{nullptr};

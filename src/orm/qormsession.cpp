@@ -71,11 +71,11 @@ QOrmSession::~QOrmSession()
     delete d_ptr;
 }
 
-QOrmQueryBuilder QOrmSession::select(const QMetaObject& projectionMetaObject)
+QOrmQueryBuilder QOrmSession::from(const QMetaObject& relationMetaObject)
 {
     Q_D(QOrmSession);
 
-    return QOrmQueryBuilder{d->m_sessionConfiguration.provider(), projectionMetaObject};
+    return QOrmQueryBuilder{d->m_sessionConfiguration.provider(), relationMetaObject};
 }
 
 bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject, QOrm::MergeMode mode)

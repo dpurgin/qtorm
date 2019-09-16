@@ -2,6 +2,7 @@
 #define QORMQUERYBUILDER_H
 
 #include <QtOrm/qormglobal.h>
+#include <QtOrm/qormquery.h>
 
 #include <QtCore/qobject.h>
 #include <QtCore/qshareddata.h>
@@ -12,7 +13,6 @@ QT_BEGIN_NAMESPACE
 class QOrmAbstractProvider;
 class QOrmWhereClauseBuilder;
 class QOrmOrderClauseBuilder;
-class QOrmQuery;
 class QOrmQueryBuilderPrivate;
 
 class Q_ORM_EXPORT QOrmQueryBuilder
@@ -35,13 +35,15 @@ public:
     QOrmQueryBuilder& where(QOrmWhereClauseBuilder whereClause);
     QOrmQueryBuilder& order(QOrmOrderClauseBuilder orderClause);
 
-    Q_REQUIRED_RESULT
-    QOrmQuery build() const;
-
-    Q_REQUIRED_RESULT
-    QVector<QObject*> toVector();
+    template<typename T>
+    QOrmQuery select()
+    {
+        return select(T::staticMetaObject);
+    }
 
 private:
+    QOrmQuery select(const QMetaObject& projectionMetaObject);
+
     QSharedDataPointer<QOrmQueryBuilderPrivate> d;
 };
 
