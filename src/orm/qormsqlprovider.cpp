@@ -431,8 +431,9 @@ QOrmQueryResult QOrmSqlProvider::read(const QOrmQuery& ormQuery)
     Q_D(QOrmSqlProvider);
 
     const QOrmEntityMetadata& projectionMeta = d->entityMetadata(ormQuery.projection());
+    const QOrmEntityMetadata& relationMeta = d->entityMetadata(ormQuery.relation());
 
-    QStringList statementParts{"SELECT * FROM", projectionMeta.tableName()};
+    QStringList statementParts{"SELECT * FROM", relationMeta.tableName()};
 
     QString statement = statementParts.join("\n");
     QVariantMap parameters;

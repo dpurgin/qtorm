@@ -71,11 +71,16 @@ QOrmSession::~QOrmSession()
     delete d_ptr;
 }
 
-QOrmQueryBuilder QOrmSession::from(const QMetaObject& relationMetaObject)
+QOrmQueryResult QOrmSession::execute(const QOrmQuery& query)
 {
     Q_D(QOrmSession);
 
-    return QOrmQueryBuilder{d->m_sessionConfiguration.provider(), relationMetaObject};
+    return d->m_sessionConfiguration.provider()->read(query);
+}
+
+QOrmQueryBuilder QOrmSession::from(const QMetaObject& relationMetaObject)
+{
+    return QOrmQueryBuilder{this, relationMetaObject};
 }
 
 bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject, QOrm::MergeMode mode)

@@ -14,11 +14,12 @@ class QOrmAbstractProvider;
 class QOrmWhereClauseBuilder;
 class QOrmOrderClauseBuilder;
 class QOrmQueryBuilderPrivate;
+class QOrmSession;
 
 class Q_ORM_EXPORT QOrmQueryBuilder
 {
 public:
-    QOrmQueryBuilder(QOrmAbstractProvider* provider, const QMetaObject& projectionMetaObject);
+    QOrmQueryBuilder(QOrmSession* ormSession, const QMetaObject& relationMetaObject);
     QOrmQueryBuilder(const QOrmQueryBuilder&);
     ~QOrmQueryBuilder();
 
@@ -29,20 +30,29 @@ public:
     QOrmQueryBuilder& operator=(QOrmQueryBuilder&&);
 #endif
 
-    QOrmQueryBuilder& first(int n);
-    QOrmQueryBuilder& last(int n);
-
     QOrmQueryBuilder& where(QOrmWhereClauseBuilder whereClause);
     QOrmQueryBuilder& order(QOrmOrderClauseBuilder orderClause);
 
+    QOrmQuery build() const;
+
     template<typename T>
-    QOrmQuery select()
+    QOrmQueryBuilder& projection()
+    {
+        return projection(T::staticMetaObject);
+    }
+
+    QOrmQueryResult select();
+
+    template<typename T>
+    QOrmQueryResult select() const
     {
         return select(T::staticMetaObject);
     }
 
+
 private:
-    QOrmQuery select(const QMetaObject& projectionMetaObject);
+    QOrmQueryBuilder& projection(const QMetaObject& projectionMetaObject);
+    QOrmQueryResult select(const QMetaObject& projectionMetaObject) const;
 
     QSharedDataPointer<QOrmQueryBuilderPrivate> d;
 };

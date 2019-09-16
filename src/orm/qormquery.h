@@ -5,6 +5,7 @@
 #include <QtCore/qshareddata.h>
 
 #include <QtOrm/qormglobal.h>
+#include <QtOrm/qormqueryresult.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -15,27 +16,29 @@ class QOrmQueryPrivate;
 class Q_ORM_EXPORT QOrmQuery
 {
 public:
-    QOrmQuery(const QMetaObject& projection,
-              int first,
-              int last,
+    QOrmQuery(QOrm::Operation operation,
+              const QMetaObject& projection,
+              const QMetaObject& relation,
               QOrmWhereClause where,
               QOrmOrderClause order);
     QOrmQuery(const QOrmQuery&);
+    QOrmQuery(QOrmQuery&&);
     ~QOrmQuery();
 
     QOrmQuery& operator=(const QOrmQuery&);
-
-#ifdef Q_COMPILER_RVALUE_REFS
-    QOrmQuery(QOrmQuery&&);
     QOrmQuery& operator=(QOrmQuery&&);
-#endif
 
+    Q_REQUIRED_RESULT
+    QOrm::Operation operation() const;
+
+    Q_REQUIRED_RESULT
     const QMetaObject& projection() const;
-
-    int first() const;
-    int last() const;
+    Q_REQUIRED_RESULT
+    const QMetaObject& relation() const;
+    Q_REQUIRED_RESULT
     QOrmWhereClause where() const;
-    QOrmOrderClause order() const;
+    Q_REQUIRED_RESULT
+    QOrmOrderClause order() const;   
 
 private:
     QSharedDataPointer<QOrmQueryPrivate> d;

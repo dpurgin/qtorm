@@ -17,17 +17,14 @@ class Q_ORM_EXPORT QOrmQueryResult
 public:
     QOrmQueryResult();    
     QOrmQueryResult(const QOrmQueryResult&);
+    QOrmQueryResult(QOrmQueryResult&&);
     ~QOrmQueryResult();
 
-    explicit QOrmQueryResult(const QOrmError& error);
+    explicit QOrmQueryResult(const QOrmError& error);    
     explicit QOrmQueryResult(const QVector<QObject*>& resultSet);
 
-    QOrmQueryResult& operator=(const QOrmQueryResult&);
-
-#ifdef Q_COMPILER_RVALUE_REFS
-    QOrmQueryResult(QOrmQueryResult&&);
+    QOrmQueryResult& operator=(const QOrmQueryResult&); 
     QOrmQueryResult& operator=(QOrmQueryResult&&);
-#endif
 
     QOrmError error() const;
 

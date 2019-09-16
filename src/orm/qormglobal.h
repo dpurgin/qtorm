@@ -60,6 +60,14 @@ namespace QOrm
         Or,
         Not
     };
+
+    enum class Operation
+    {
+        Create,
+        Read,
+        Update,
+        Delete
+    };
 }
 
 extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::Error error);

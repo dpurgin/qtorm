@@ -8,62 +8,57 @@ class QOrmQueryPrivate : public QSharedData
 {
     friend class QOrmQuery;
 
-    QOrmQueryPrivate(const QMetaObject& projection,
-                     int first,
-                     int last,
+    QOrmQueryPrivate(QOrm::Operation operation,
+                     const QMetaObject& projection,
+                     const QMetaObject& relation,
                      QOrmWhereClause where,
                      QOrmOrderClause order)
         : m_projection{projection},
-          m_first{first},
-          m_last{last},
+          m_relation{relation},
           m_where{where},
           m_order{order}
     {
     }
 
-    const QMetaObject& m_projection;
-    int m_first{-1};
-    int m_last{-1};
+    QOrm::Operation m_operation;
+    QMetaObject m_projection;
+    QMetaObject m_relation;
     QOrmWhereClause m_where;
     QOrmOrderClause m_order;
 };
 
-QOrmQuery::QOrmQuery(const QMetaObject& projection,
-                     int first,
-                     int last,
+QOrmQuery::QOrmQuery(QOrm::Operation operation,
+                     const QMetaObject& projection,
+                     const QMetaObject& relation,
                      QOrmWhereClause where,
                      QOrmOrderClause order)
-    : d{new QOrmQueryPrivate{projection, first, last, where, order}}
+    : d{new QOrmQueryPrivate{operation, projection, relation, where, order}}
 {
 }
 
 QOrmQuery::QOrmQuery(const QOrmQuery&) = default;
 
-#ifdef Q_COMPILER_RVALUE_REFS
 QOrmQuery::QOrmQuery(QOrmQuery&&) = default;
-#endif
 
 QOrmQuery::~QOrmQuery() = default;
 
 QOrmQuery& QOrmQuery::operator=(const QOrmQuery&) = default;
 
-#ifdef Q_COMPILER_RVALUE_REFS
 QOrmQuery& QOrmQuery::operator=(QOrmQuery&&) = default;
-#endif
+
+QOrm::Operation QOrmQuery::operation() const
+{
+    return d->m_operation;
+}
 
 const QMetaObject& QOrmQuery::projection() const
 {
     return d->m_projection;
 }
 
-int QOrmQuery::first() const
+const QMetaObject& QOrmQuery::relation() const
 {
-    return d->m_first;
-}
-
-int QOrmQuery::last() const
-{
-    return d->m_last;
+    return d->m_relation;
 }
 
 QOrmWhereClause QOrmQuery::where() const

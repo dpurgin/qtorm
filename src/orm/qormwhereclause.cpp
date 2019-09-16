@@ -32,6 +32,8 @@ QOrmWhereClause::QOrmWhereClause(const QOrmWhereClause&) = default;
 
 QOrmWhereClause::QOrmWhereClause(QOrmWhereClause&&) = default;
 
+QOrmWhereClause::~QOrmWhereClause() = default;
+
 QOrmWhereClause& QOrmWhereClause::operator=(const QOrmWhereClause&) = default;
 
 QOrmWhereClause& QOrmWhereClause::operator=(QOrmWhereClause&&) = default;

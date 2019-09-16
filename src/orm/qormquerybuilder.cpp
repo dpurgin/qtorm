@@ -6,6 +6,7 @@
 #include "qormwhereclausebuilder.h"
 #include "qormorderclause.h"
 #include "qormorderclausebuilder.h"
+#include "qormsession.h"
 #include "qormqueryresult.h"
 #include "qormabstractprovider.h"
 
@@ -15,49 +16,38 @@ class QOrmQueryBuilderPrivate : public QSharedData
 {
     friend class QOrmQueryBuilder;
 
-    QOrmQueryBuilderPrivate(QOrmAbstractProvider* provider, const QMetaObject& resultMetaObject)
-        : m_provider{provider},
-          m_projection{resultMetaObject}
+    QOrmQueryBuilderPrivate(QOrmSession* ormSession, const QMetaObject& relationMetaObject)
+        : m_ormSession{ormSession},
+          m_relation{relationMetaObject},
+          m_projection{relationMetaObject}
     {
+        Q_ASSERT(ormSession != nullptr);
     }
 
-    QOrmAbstractProvider* m_provider{nullptr};
-    const QMetaObject& m_projection;
+    QOrmSession* m_ormSession{nullptr};
 
-    int m_firstN{-1};
-    int m_lastN{-1};
+    QMetaObject m_relation;
+    QMetaObject m_projection;
+
     QOrmWhereClauseBuilder m_whereClauseBuilder;
     QOrmOrderClauseBuilder m_orderClauseBuilder;
 };
 
-QOrmQueryBuilder::QOrmQueryBuilder(QOrmAbstractProvider* provider, const QMetaObject& resultMetaObject)
-    : d{new QOrmQueryBuilderPrivate{provider, resultMetaObject}}
+QOrmQueryBuilder::QOrmQueryBuilder(QOrmSession* ormSession,
+                                   const QMetaObject& relationMetaObject)
+    : d{new QOrmQueryBuilderPrivate{ormSession, relationMetaObject}}
 {
 }
 
 QOrmQueryBuilder::QOrmQueryBuilder(const QOrmQueryBuilder&) = default;
 
-#ifdef Q_COMPILER_RVALUE_REFS
 QOrmQueryBuilder::QOrmQueryBuilder(QOrmQueryBuilder&&) = default;
-#endif
 
 QOrmQueryBuilder::~QOrmQueryBuilder() = default;
 
-#ifdef Q_COMPILER_RVALUE_REFS
+QOrmQueryBuilder& QOrmQueryBuilder::operator=(const QOrmQueryBuilder&) = default;
+
 QOrmQueryBuilder& QOrmQueryBuilder::operator=(QOrmQueryBuilder&&) = default;
-#endif
-
-QOrmQueryBuilder& QOrmQueryBuilder::first(int n)
-{
-    d->m_firstN = n;
-    return *this;
-}
-
-QOrmQueryBuilder& QOrmQueryBuilder::last(int n)
-{
-    d->m_lastN = n;
-    return *this;
-}
 
 QOrmQueryBuilder& QOrmQueryBuilder::where(QOrmWhereClauseBuilder whereClause)
 {
@@ -71,13 +61,34 @@ QOrmQueryBuilder& QOrmQueryBuilder::order(QOrmOrderClauseBuilder orderClause)
     return *this;
 }
 
-QOrmQuery QOrmQueryBuilder::select(const QMetaObject& projection)
+QOrmQueryBuilder& QOrmQueryBuilder::projection(const QMetaObject& projectionMetaObject)
 {
-    return QOrmQuery{d->m_projection,
-                     d->m_firstN,
-                     d->m_lastN,
+    d->m_projection = projectionMetaObject;
+    return *this;
+}
+
+QOrmQuery QOrmQueryBuilder::build() const
+{
+    return QOrmQuery{QOrm::Operation::Read,
+                     d->m_projection,
+                     d->m_relation,
                      d->m_whereClauseBuilder.build(),
                      d->m_orderClauseBuilder.build()};
 }
 
+QOrmQueryResult QOrmQueryBuilder::select()
+{
+    return d->m_ormSession->execute(build());
+}
+
+QOrmQueryResult QOrmQueryBuilder::select(const QMetaObject& projectionMetaObject) const
+{
+    QOrmQuery query{QOrm::Operation::Read,
+                    projectionMetaObject,
+                    d->m_relation,
+                    d->m_whereClauseBuilder.build(),
+                    d->m_orderClauseBuilder.build()};
+
+    return d->m_ormSession->execute(query);
+}
 QT_END_NAMESPACE

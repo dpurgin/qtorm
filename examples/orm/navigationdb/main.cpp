@@ -36,26 +36,25 @@ int main(int argc, char* argv[])
     session.merge(new Province{QString::fromUtf8("Wien")});
 
     {
-        auto result = session.from<Province>()
-                             .select<Province>()
-                             .toVector();
+        QOrmQueryResult result = session.from<Province>()
+                                        .select();
 
-        for (QObject* entityInstance: result)
+        for (QObject* entityInstance: result.toVector())
         {
             qDebug() << *qobject_cast<Province*>(entityInstance);
         }
     }
 
     {
-        auto result = session.from<Province>()
-                             .where(Q_ORM_FIELD(id) < 5)
-                             .select<Province>()
-                             .toVector();
+//        auto result = session.from<Province>()
+//                             .where(Q_ORM_FIELD(id) < 5)
+//                             .select<Province>()
+//                             .toVector();
 
-        for (QObject* entityInstance: result)
-        {
-            qDebug() << *qobject_cast<Province*>(entityInstance);
-        }
+//        for (QObject* entityInstance: result)
+//        {
+//            qDebug() << *qobject_cast<Province*>(entityInstance);
+//        }
     }
 
 //    session.declareTransaction(QOrm::TransactionMode::Supports);

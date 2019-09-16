@@ -35,15 +35,11 @@ QOrmQueryResult::~QOrmQueryResult() = default;
 
 QOrmQueryResult::QOrmQueryResult(const QOrmQueryResult&) = default;
 
-#ifdef Q_COMPILER_RVALUE_REFS
 QOrmQueryResult::QOrmQueryResult(QOrmQueryResult&&) = default;
-#endif
 
 QOrmQueryResult& QOrmQueryResult::operator=(const QOrmQueryResult&) = default;
 
-#ifdef Q_COMPILER_RVALUE_REFS
 QOrmQueryResult& QOrmQueryResult::operator=(QOrmQueryResult&&) = default;
-#endif
 
 QOrmQueryResult::QOrmQueryResult(const QOrmError& error)
     : QOrmQueryResult{error, {}}
