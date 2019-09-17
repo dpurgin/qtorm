@@ -7,7 +7,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class QOrmField;
+class QOrmClassProperty;
 class QOrmWhereClause;
 class QOrmWhereClauseBuilderPrivate;
 class QVariant;
@@ -15,8 +15,7 @@ class QVariant;
 class Q_ORM_EXPORT QOrmWhereClauseBuilder
 {
 public:    
-    explicit QOrmWhereClauseBuilder();
-    explicit QOrmWhereClauseBuilder(const QOrmField& field,
+    explicit QOrmWhereClauseBuilder(const QOrmClassProperty& field,
                                     QOrm::Comparison comparison,
                                     const QVariant& value);
     QOrmWhereClauseBuilder(const QOrmWhereClauseBuilder&);
@@ -33,12 +32,12 @@ private:
     QSharedDataPointer<QOrmWhereClauseBuilderPrivate> d;
 };
 
-Q_ORM_EXPORT QOrmWhereClauseBuilder operator==(const QOrmField& field, const QVariant& value);
-Q_ORM_EXPORT QOrmWhereClauseBuilder operator!=(const QOrmField& field, const QVariant& value);
-Q_ORM_EXPORT QOrmWhereClauseBuilder operator<(const QOrmField& field, const QVariant& value);
-Q_ORM_EXPORT QOrmWhereClauseBuilder operator<=(const QOrmField& field, const QVariant& value);
-Q_ORM_EXPORT QOrmWhereClauseBuilder operator>(const QOrmField& field, const QVariant& value);
-Q_ORM_EXPORT QOrmWhereClauseBuilder operator>=(const QOrmField& field, const QVariant& value);
+Q_ORM_EXPORT QOrmWhereClauseBuilder operator==(const QOrmClassProperty& property, const QVariant& value);
+Q_ORM_EXPORT QOrmWhereClauseBuilder operator!=(const QOrmClassProperty& property, const QVariant& value);
+Q_ORM_EXPORT QOrmWhereClauseBuilder operator<(const QOrmClassProperty& property, const QVariant& value);
+Q_ORM_EXPORT QOrmWhereClauseBuilder operator<=(const QOrmClassProperty& property, const QVariant& value);
+Q_ORM_EXPORT QOrmWhereClauseBuilder operator>(const QOrmClassProperty& property, const QVariant& value);
+Q_ORM_EXPORT QOrmWhereClauseBuilder operator>=(const QOrmClassProperty& property, const QVariant& value);
 
 //Q_ORM_EXPORT QOrmWhereClause operator!(const QOrmWhereClause& operand);
 //Q_ORM_EXPORT QOrmWhereClause operator||(const QOrmWhereClause& lhs, const QOrmWhereClause& rhs);
@@ -46,4 +45,4 @@ Q_ORM_EXPORT QOrmWhereClauseBuilder operator>=(const QOrmField& field, const QVa
 
 QT_END_NAMESPACE
 
-#endif // QORMWHERECLAUSE_H
+#endif // QORMWHERECLAUSEBUILDER_H

@@ -3,9 +3,7 @@
 #include <QCoreApplication>
 #include <QOrmSession>
 #include <QOrmQuery>
-#include <QOrmWhereClause>
 #include <QOrmOrderClause>
-#include <QOrmField>
 #include <QOrmTransactionToken>
 #include <QVariant>
 
@@ -46,15 +44,14 @@ int main(int argc, char* argv[])
     }
 
     {
-//        auto result = session.from<Province>()
-//                             .where(Q_ORM_FIELD(id) < 5)
-//                             .select<Province>()
-//                             .toVector();
+        QOrmQueryResult result = session.from<Province>()
+                                        .where(Q_ORM_CLASS_PROPERTY(id) < 5)
+                                        .select();
 
-//        for (QObject* entityInstance: result)
-//        {
-//            qDebug() << *qobject_cast<Province*>(entityInstance);
-//        }
+        for (QObject* entityInstance: result.toVector())
+        {
+            qDebug() << *qobject_cast<Province*>(entityInstance);
+        }
     }
 
 //    session.declareTransaction(QOrm::TransactionMode::Supports);

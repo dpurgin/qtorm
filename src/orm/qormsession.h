@@ -5,6 +5,9 @@
 #include <QtOrm/qormentitymetadata.h>
 #include <QtOrm/qormsessionconfiguration.h>
 #include <QtOrm/qormquerybuilder.h>
+#include <QtOrm/qormwhereclausebuilder.h>
+#include <QtOrm/qormorderclausebuilder.h>
+#include <QtOrm/qormclassproperty.h>
 
 #include <QtCore/qobject.h>
 

@@ -4,6 +4,14 @@
 
 QT_BEGIN_NAMESPACE
 
+namespace QOrm
+{
+    uint qHash(QOrm::Comparison comparison) Q_DECL_NOTHROW
+    {
+        return ::qHash(static_cast<int>(comparison));
+    }
+}
+
 QDebug operator<<(QDebug dbg, QOrm::Error error)
 {
     QDebugStateSaver saver{dbg};
@@ -17,6 +25,7 @@ QDebug operator<<(QDebug dbg, QOrm::Error error)
         case QOrm::Error::Provider: dbg << "Provider"; break;
         case QOrm::Error::UnsynchronizedEntity: dbg << "UnsynchronizedEntity"; break;
         case QOrm::Error::UnsynchronizedSchema: dbg << "UnsynchronizedSchema"; break;
+        case QOrm::Error::InvalidMapping: dbg << "InvalidMapping"; break;
     }
 
     return dbg;

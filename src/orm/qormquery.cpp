@@ -11,8 +11,8 @@ class QOrmQueryPrivate : public QSharedData
     QOrmQueryPrivate(QOrm::Operation operation,
                      const QMetaObject& projection,
                      const QMetaObject& relation,
-                     QOrmWhereClause where,
-                     QOrmOrderClause order)
+                     std::optional<QOrmWhereClause> where,
+                     std::optional<QOrmOrderClause> order)
         : m_projection{projection},
           m_relation{relation},
           m_where{where},
@@ -23,15 +23,15 @@ class QOrmQueryPrivate : public QSharedData
     QOrm::Operation m_operation;
     QMetaObject m_projection;
     QMetaObject m_relation;
-    QOrmWhereClause m_where;
-    QOrmOrderClause m_order;
+    std::optional<QOrmWhereClause> m_where;
+    std::optional<QOrmOrderClause> m_order;
 };
 
 QOrmQuery::QOrmQuery(QOrm::Operation operation,
                      const QMetaObject& projection,
                      const QMetaObject& relation,
-                     QOrmWhereClause where,
-                     QOrmOrderClause order)
+                     std::optional<QOrmWhereClause> where,
+                     std::optional<QOrmOrderClause> order)
     : d{new QOrmQueryPrivate{operation, projection, relation, where, order}}
 {
 }
@@ -61,12 +61,12 @@ const QMetaObject& QOrmQuery::relation() const
     return d->m_relation;
 }
 
-QOrmWhereClause QOrmQuery::where() const
+std::optional<QOrmWhereClause> QOrmQuery::where() const
 {
     return d->m_where;
 }
 
-QOrmOrderClause QOrmQuery::order() const
+std::optional<QOrmOrderClause> QOrmQuery::order() const
 {
     return d->m_order;
 }

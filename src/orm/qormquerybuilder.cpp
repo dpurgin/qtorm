@@ -24,14 +24,32 @@ class QOrmQueryBuilderPrivate : public QSharedData
         Q_ASSERT(ormSession != nullptr);
     }
 
+    QOrmQuery build(const QMetaObject& projection) const;
+
     QOrmSession* m_ormSession{nullptr};
 
     QMetaObject m_relation;
     QMetaObject m_projection;
 
-    QOrmWhereClauseBuilder m_whereClauseBuilder;
-    QOrmOrderClauseBuilder m_orderClauseBuilder;
+    std::optional<QOrmWhereClauseBuilder> m_whereClauseBuilder;
+    std::optional<QOrmOrderClauseBuilder> m_orderClauseBuilder;
 };
+
+QOrmQuery QOrmQueryBuilderPrivate::build(const QMetaObject& projection) const
+{
+    std::optional<QOrmWhereClause> whereClause =
+            m_whereClauseBuilder.has_value()? std::make_optional(m_whereClauseBuilder->build())
+                                            : std::nullopt;
+    std::optional<QOrmOrderClause> orderClause =
+            m_orderClauseBuilder.has_value()? std::make_optional(m_orderClauseBuilder->build())
+                                            : std::nullopt;
+
+    return QOrmQuery{QOrm::Operation::Read,
+                     projection,
+                     m_relation,
+                     whereClause,
+                     orderClause};
+}
 
 QOrmQueryBuilder::QOrmQueryBuilder(QOrmSession* ormSession,
                                    const QMetaObject& relationMetaObject)
@@ -69,11 +87,7 @@ QOrmQueryBuilder& QOrmQueryBuilder::projection(const QMetaObject& projectionMeta
 
 QOrmQuery QOrmQueryBuilder::build() const
 {
-    return QOrmQuery{QOrm::Operation::Read,
-                     d->m_projection,
-                     d->m_relation,
-                     d->m_whereClauseBuilder.build(),
-                     d->m_orderClauseBuilder.build()};
+    return d->build(d->m_projection);
 }
 
 QOrmQueryResult QOrmQueryBuilder::select()
@@ -83,12 +97,9 @@ QOrmQueryResult QOrmQueryBuilder::select()
 
 QOrmQueryResult QOrmQueryBuilder::select(const QMetaObject& projectionMetaObject) const
 {
-    QOrmQuery query{QOrm::Operation::Read,
-                    projectionMetaObject,
-                    d->m_relation,
-                    d->m_whereClauseBuilder.build(),
-                    d->m_orderClauseBuilder.build()};
+    QOrmQuery query{d->build(projectionMetaObject)};
 
     return d->m_ormSession->execute(query);
 }
+
 QT_END_NAMESPACE

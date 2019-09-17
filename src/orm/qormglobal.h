@@ -2,6 +2,7 @@
 #define QORMGLOBAL_H
 
 #include <QtCore/qglobal.h>
+#include <QtCore/qhashfunctions.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -25,6 +26,7 @@ namespace QOrm
         Provider,
         UnsynchronizedEntity,
         UnsynchronizedSchema,
+        InvalidMapping,
         Other
     };
 
@@ -45,12 +47,13 @@ namespace QOrm
 
     enum class Comparison
     {
-        Equals,
-        NotEquals,
+        Invalid,
+        Equal,
+        NotEqual,
         Less,
-        LessOrEquals,
+        LessOrEqual,
         Greater,
-        GreaterOrEquals,
+        GreaterOrEqual,
         Not
     };
 
@@ -68,6 +71,8 @@ namespace QOrm
         Update,
         Delete
     };
+
+    extern Q_ORM_EXPORT uint qHash(Comparison comparison) Q_DECL_NOTHROW;
 }
 
 extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::Error error);

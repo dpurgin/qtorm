@@ -4,12 +4,16 @@
 #include <QtOrm/qormglobal.h>
 #include <QtOrm/qormpropertymapping.h>
 
-#include <QString>
-#include <QVariant>
-#include <QVector>
+#include <QtCore/qstring.h>
+#include <QtCore/qshareddata.h>
+#include <QtCore/qvariant.h>
+#include <QtCore/qvector.h>
+
+#include <optional>
 
 QT_BEGIN_NAMESPACE
 
+class QOrmEntityMetadataPrivate;
 
 class Q_ORM_EXPORT QOrmEntityMetadata
 {
@@ -40,20 +44,20 @@ public:
     Q_REQUIRED_RESULT
     const QVector<QOrmPropertyMapping>& propertyMappings() const;
 
-    void addPropertyMapping(const QOrmPropertyMapping& propertyMapping);
-    void addPropertyMapping(QOrmPropertyMapping&& propertyMapping);
+    Q_REQUIRED_RESULT
+    std::optional<QOrmPropertyMapping> tableFieldMapping(const QString& fieldName) const;
 
     Q_REQUIRED_RESULT
-    const QOrmPropertyMapping& objectIdPropertyMapping() const;
-    void setObjectIdPropertyMapping(const QOrmPropertyMapping& objectIdPropertyMapping);
+    std::optional<QOrmPropertyMapping> classPropertyMapping(const QString& classProperty) const;
+
+    void addPropertyMapping(const QOrmPropertyMapping& propertyMapping);
+
+    Q_REQUIRED_RESULT
+    std::optional<QOrmPropertyMapping> objectIdMapping() const;
+    void setObjectIdMapping(const QOrmPropertyMapping& objectIdMapping);
 
 private:
-    QMetaObject m_qMetaObject;
-
-    QString m_className;
-    QString m_tableName;
-    QVector<QOrmPropertyMapping> m_propertyMappings;
-    QOrmPropertyMapping m_objectIdPropertyMapping;    
+    QSharedDataPointer<QOrmEntityMetadataPrivate> d;
 };
 
 QT_END_NAMESPACE

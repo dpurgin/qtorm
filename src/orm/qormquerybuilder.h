@@ -21,14 +21,11 @@ class Q_ORM_EXPORT QOrmQueryBuilder
 public:
     QOrmQueryBuilder(QOrmSession* ormSession, const QMetaObject& relationMetaObject);
     QOrmQueryBuilder(const QOrmQueryBuilder&);
+    QOrmQueryBuilder(QOrmQueryBuilder&&);
     ~QOrmQueryBuilder();
 
     QOrmQueryBuilder& operator=(const QOrmQueryBuilder&);
-
-#ifdef Q_COMPILER_RVALUE_REFS
-    QOrmQueryBuilder(QOrmQueryBuilder&&);
     QOrmQueryBuilder& operator=(QOrmQueryBuilder&&);
-#endif
 
     QOrmQueryBuilder& where(QOrmWhereClauseBuilder whereClause);
     QOrmQueryBuilder& order(QOrmOrderClauseBuilder orderClause);

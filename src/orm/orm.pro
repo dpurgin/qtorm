@@ -2,15 +2,13 @@ TARGET = QtOrm
 
 QT = core sql
 
-CONFIG += c++11
-
 QMAKE_DOCS = $$PWD/doc/qtorm.qdocconf
 
 PUBLIC_HEADERS += \
     qormabstractprovider.h \
+    qormclassproperty.h \
     qormentitymetadata.h \
     qormerror.h \
-    qormfield.h \
     qormglobal.h \
     qormorderclause.h \
     qormorderclausebuilder.h \
@@ -30,9 +28,9 @@ PUBLIC_HEADERS += \
 
 SOURCES += \
     qormabstractprovider.cpp \
+    qormclassproperty.cpp \
     qormentitymetadata.cpp \
     qormerror.cpp \
-    qormfield.cpp \
     qormorderclause.cpp \
     qormorderclausebuilder.cpp \
     qormpropertymapping.cpp \
@@ -50,10 +48,8 @@ SOURCES += \
 
 HEADERS += $$PUBLIC_HEADERS \ \ \ \ \ \ \ #$$PRIVATE_HEADERS    
 
-
-
-
-
 load(qt_module)
+
+CONFIG += c++17
 
 DEFINES -= QT_ASCII_CAST_WARNINGS

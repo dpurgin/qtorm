@@ -19,8 +19,8 @@ public:
     QOrmQuery(QOrm::Operation operation,
               const QMetaObject& projection,
               const QMetaObject& relation,
-              QOrmWhereClause where,
-              QOrmOrderClause order);
+              std::optional<QOrmWhereClause> where,
+              std::optional<QOrmOrderClause> order);
     QOrmQuery(const QOrmQuery&);
     QOrmQuery(QOrmQuery&&);
     ~QOrmQuery();
@@ -36,9 +36,9 @@ public:
     Q_REQUIRED_RESULT
     const QMetaObject& relation() const;
     Q_REQUIRED_RESULT
-    QOrmWhereClause where() const;
+    std::optional<QOrmWhereClause> where() const;
     Q_REQUIRED_RESULT
-    QOrmOrderClause order() const;   
+    std::optional<QOrmOrderClause> order() const;
 
 private:
     QSharedDataPointer<QOrmQueryPrivate> d;

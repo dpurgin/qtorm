@@ -1,5 +1,7 @@
 QT += orm
 
+CONFIG += c++17
+
 TARGET = navigationdb
 TEMPLATE = app
 

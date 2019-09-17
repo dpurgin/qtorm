@@ -1,6 +1,6 @@
 #include "qormwhereclause.h"
 #include "qormwhereclausebuilder.h"
-#include "qormfield.h"
+#include "qormclassproperty.h"
 
 #include <QDebug>
 
@@ -10,25 +10,21 @@ class QOrmWhereClauseBuilderPrivate : public QSharedData
 {
     friend class QOrmWhereClauseBuilder;
 
-    QOrmWhereClauseBuilderPrivate(const QOrmField& field,
+    QOrmWhereClauseBuilderPrivate(const QOrmClassProperty& property,
                                   QOrm::Comparison comparison,
                                   const QVariant& value)
-        : m_field{field},
+        : m_classProperty{property},
           m_comparison{comparison},
           m_value{value}
     {
     }
 
-    QOrmField m_field;
-    QOrm::Comparison m_comparison{QOrm::Comparison::Equals};
+    QOrmClassProperty m_classProperty;
+    QOrm::Comparison m_comparison{QOrm::Comparison::Invalid};
     QVariant m_value;        
 };
 
-QOrmWhereClauseBuilder::QOrmWhereClauseBuilder()
-{
-}
-
-QOrmWhereClauseBuilder::QOrmWhereClauseBuilder(const QOrmField& field,
+QOrmWhereClauseBuilder::QOrmWhereClauseBuilder(const QOrmClassProperty& field,
                                  QOrm::Comparison comparison,
                                  const QVariant& value)
     : d{new QOrmWhereClauseBuilderPrivate{field, comparison, value}}
@@ -47,37 +43,37 @@ QOrmWhereClauseBuilder& QOrmWhereClauseBuilder::operator=(QOrmWhereClauseBuilder
 
 QOrmWhereClause QOrmWhereClauseBuilder::build() const
 {
-    return QOrmWhereClause{d->m_field, d->m_comparison, d->m_value};
+    return QOrmWhereClause{d->m_classProperty, d->m_comparison, d->m_value};
 }
 
-QOrmWhereClauseBuilder operator==(const QOrmField& field, const QVariant& value)
+QOrmWhereClauseBuilder operator==(const QOrmClassProperty& property, const QVariant& value)
 {
-    return QOrmWhereClauseBuilder{field, QOrm::Comparison::Equals, value};
+    return QOrmWhereClauseBuilder{property, QOrm::Comparison::Equal, value};
 }
 
-QOrmWhereClauseBuilder operator!=(const QOrmField& field, const QVariant& value)
+QOrmWhereClauseBuilder operator!=(const QOrmClassProperty& property, const QVariant& value)
 {
-    return QOrmWhereClauseBuilder{field, QOrm::Comparison::NotEquals, value};
+    return QOrmWhereClauseBuilder{property, QOrm::Comparison::NotEqual, value};
 }
 
-QOrmWhereClauseBuilder operator<(const QOrmField& field, const QVariant& value)
+QOrmWhereClauseBuilder operator<(const QOrmClassProperty& property, const QVariant& value)
 {
-    return QOrmWhereClauseBuilder{field, QOrm::Comparison::Less, value};
+    return QOrmWhereClauseBuilder{property, QOrm::Comparison::Less, value};
 }
 
-QOrmWhereClauseBuilder operator<=(const QOrmField& field, const QVariant& value)
+QOrmWhereClauseBuilder operator<=(const QOrmClassProperty& property, const QVariant& value)
 {
-    return QOrmWhereClauseBuilder{field, QOrm::Comparison::LessOrEquals, value};
+    return QOrmWhereClauseBuilder{property, QOrm::Comparison::LessOrEqual, value};
 }
 
-QOrmWhereClauseBuilder operator>(const QOrmField& field, const QVariant& value)
+QOrmWhereClauseBuilder operator>(const QOrmClassProperty& property, const QVariant& value)
 {    
-    return QOrmWhereClauseBuilder{field, QOrm::Comparison::Greater, value};
+    return QOrmWhereClauseBuilder{property, QOrm::Comparison::Greater, value};
 }
 
-QOrmWhereClauseBuilder operator>=(const QOrmField& field, const QVariant& value)
+QOrmWhereClauseBuilder operator>=(const QOrmClassProperty& property, const QVariant& value)
 {
-    return QOrmWhereClauseBuilder{field, QOrm::Comparison::GreaterOrEquals, value};
+    return QOrmWhereClauseBuilder{property, QOrm::Comparison::GreaterOrEqual, value};
 }
 
 //QOrmWhereClause operator||(const QOrmWhereClause& lhs, const QOrmWhereClause& rhs)

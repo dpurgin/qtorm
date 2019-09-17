@@ -2,11 +2,30 @@
 
 QT_BEGIN_NAMESPACE
 
-QOrmEntityMetadata::QOrmEntityMetadata() = default;
+class QOrmEntityMetadataPrivate : public QSharedData
+{
+    friend class QOrmEntityMetadata;
+
+    QMetaObject m_qMetaObject;
+
+    QString m_className;
+    QString m_tableName;
+    QVector<QOrmPropertyMapping> m_propertyMappings;
+    std::optional<QOrmPropertyMapping> m_objectIdMapping;
+
+    QHash<QString, int> m_tableFieldMappingIndex;
+    QHash<QString, int> m_classPropertyMappingIndex;
+};
+
+QOrmEntityMetadata::QOrmEntityMetadata()
+    : d{new QOrmEntityMetadataPrivate}
+{
+}
 
 QOrmEntityMetadata::QOrmEntityMetadata(const QMetaObject& qMetaObject)
-    : m_qMetaObject{qMetaObject}
+    : d{new QOrmEntityMetadataPrivate}
 {
+    d->m_qMetaObject = qMetaObject;
 }
 
 QOrmEntityMetadata::QOrmEntityMetadata(const QOrmEntityMetadata&) = default;
@@ -25,52 +44,71 @@ QOrmEntityMetadata& QOrmEntityMetadata::operator=(QOrmEntityMetadata&&) = defaul
 
 const QMetaObject& QOrmEntityMetadata::qMetaObject() const
 {
-    return m_qMetaObject;
+    return d->m_qMetaObject;
 }
 
 QString QOrmEntityMetadata::className() const
 {
-    return m_className;
+    return d->m_className;
 }
 
 void QOrmEntityMetadata::setClassName(const QString& className)
 {
-    m_className = className;
+    d->m_className = className;
 }
 
 QString QOrmEntityMetadata::tableName() const
 {
-    return m_tableName;
+    return d->m_tableName;
 }
 
 void QOrmEntityMetadata::setTableName(const QString& tableName)
 {
-    m_tableName = tableName;
+    d->m_tableName = tableName;
 }
 
 const QVector<QOrmPropertyMapping>& QOrmEntityMetadata::propertyMappings() const
 {
-    return m_propertyMappings;
+    return d->m_propertyMappings;
+}
+
+std::optional<QOrmPropertyMapping> QOrmEntityMetadata::tableFieldMapping(const QString& fieldName) const
+{
+    auto it = d->m_tableFieldMappingIndex.find(fieldName);
+
+    if (it == std::end(d->m_tableFieldMappingIndex))
+        return {};
+
+    return d->m_propertyMappings[it.value()];
+}
+
+std::optional<QOrmPropertyMapping> QOrmEntityMetadata::classPropertyMapping(const QString& classProperty) const
+{
+    auto it = d->m_classPropertyMappingIndex.find(classProperty);
+
+    if (it == std::end(d->m_classPropertyMappingIndex))
+        return {};
+
+    return d->m_propertyMappings[it.value()];
 }
 
 void QOrmEntityMetadata::addPropertyMapping(const QOrmPropertyMapping& propertyMapping)
 {
-    m_propertyMappings.push_back(propertyMapping);
+    d->m_propertyMappings.push_back(propertyMapping);
+    d->m_tableFieldMappingIndex.insert(propertyMapping.tableFieldName(),
+                                       d->m_propertyMappings.size());
+    d->m_classPropertyMappingIndex.insert(propertyMapping.classPropertyName(),
+                                          d->m_propertyMappings.size());
 }
 
-void QOrmEntityMetadata::addPropertyMapping(QOrmPropertyMapping&& propertyMapping)
+std::optional<QOrmPropertyMapping> QOrmEntityMetadata::objectIdMapping() const
 {
-    m_propertyMappings.push_back(propertyMapping);
+    return d->m_objectIdMapping;
 }
 
-const QOrmPropertyMapping& QOrmEntityMetadata::objectIdPropertyMapping() const
+void QOrmEntityMetadata::setObjectIdMapping(const QOrmPropertyMapping& objectIdMapping)
 {
-    return m_objectIdPropertyMapping;
-}
-
-void QOrmEntityMetadata::setObjectIdPropertyMapping(const QOrmPropertyMapping& objectIdPropertyMapping)
-{
-    m_objectIdPropertyMapping = objectIdPropertyMapping;
+    d->m_objectIdMapping = objectIdMapping;
 }
 
 QT_END_NAMESPACE
