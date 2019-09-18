@@ -9,9 +9,11 @@ PUBLIC_HEADERS += \
     qormclassproperty.h \
     qormentitymetadata.h \
     qormerror.h \
+    qormfilter.h \
+    qormfilterbuilder.h \
     qormglobal.h \
-    qormorderclause.h \
-    qormorderclausebuilder.h \
+    qormorder.h \
+    qormorderbuilder.h \
     qormpropertymapping.h \
     qormquery.h \
     qormquerybuilder.h \
@@ -21,8 +23,6 @@ PUBLIC_HEADERS += \
     qormsqlconfiguration.h \
     qormsqlprovider.h \
     qormtransactiontoken.h \
-    qormwhereclause.h \
-    qormwhereclausebuilder.h \
 
 #PRIVATE_HEADERS =
 
@@ -31,8 +31,10 @@ SOURCES += \
     qormclassproperty.cpp \
     qormentitymetadata.cpp \
     qormerror.cpp \
-    qormorderclause.cpp \
-    qormorderclausebuilder.cpp \
+    qormfilter.cpp \
+    qormfilterbuilder.cpp \
+    qormorder.cpp \
+    qormorderbuilder.cpp \
     qormpropertymapping.cpp \
     qormquery.cpp \
     qormquerybuilder.cpp \
@@ -42,8 +44,6 @@ SOURCES += \
     qormsqlconfiguration.cpp \
     qormsqlprovider.cpp \
     qormtransactiontoken.cpp \
-    qormwhereclause.cpp \
-    qormwhereclausebuilder.cpp \
     qormglobal.cpp \
 
 HEADERS += $$PUBLIC_HEADERS \ \ \ \ \ \ \ #$$PRIVATE_HEADERS    

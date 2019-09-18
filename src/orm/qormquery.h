@@ -9,8 +9,8 @@
 
 QT_BEGIN_NAMESPACE
 
-class QOrmWhereClause;
-class QOrmOrderClause;
+class QOrmFilter;
+class QOrmOrder;
 class QOrmQueryPrivate;
 
 class Q_ORM_EXPORT QOrmQuery
@@ -19,8 +19,8 @@ public:
     QOrmQuery(QOrm::Operation operation,
               const QMetaObject& projection,
               const QMetaObject& relation,
-              std::optional<QOrmWhereClause> where,
-              std::optional<QOrmOrderClause> order);
+              std::optional<QOrmFilter> filter,
+              std::optional<QOrmOrder> order);
     QOrmQuery(const QOrmQuery&);
     QOrmQuery(QOrmQuery&&);
     ~QOrmQuery();
@@ -36,9 +36,9 @@ public:
     Q_REQUIRED_RESULT
     const QMetaObject& relation() const;
     Q_REQUIRED_RESULT
-    std::optional<QOrmWhereClause> where() const;
+    std::optional<QOrmFilter> filter() const;
     Q_REQUIRED_RESULT
-    std::optional<QOrmOrderClause> order() const;
+    std::optional<QOrmOrder> order() const;
 
 private:
     QSharedDataPointer<QOrmQueryPrivate> d;

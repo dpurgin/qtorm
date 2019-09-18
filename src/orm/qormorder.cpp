@@ -1,4 +1,4 @@
-#include "qormorderclause.h"
+#include "qormorder.h"
 
 QT_BEGIN_NAMESPACE
 

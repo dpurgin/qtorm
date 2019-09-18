@@ -7,7 +7,7 @@
 #include "qormquery.h"
 #include "qormqueryresult.h"
 #include "qormsqlconfiguration.h"
-#include "qormwhereclause.h"
+#include "qormfilter.h"
 
 #include <QDebug>
 #include <QMetaObject>
@@ -437,7 +437,7 @@ QOrmQueryResult QOrmSqlProvider::read(const QOrmQuery& ormQuery)
 
     const QOrmEntityMetadata& projectionMeta = d->entityMetadata(ormQuery.projection());
     const QOrmEntityMetadata& relationMeta = d->entityMetadata(ormQuery.relation());
-    std::optional<QOrmWhereClause> whereClause = ormQuery.where();
+    std::optional<QOrmFilter> whereClause = ormQuery.filter();
 
     QStringList statementParts{"SELECT * FROM", relationMeta.tableName()};
     QVariantMap parameters;
@@ -455,6 +455,15 @@ QOrmQueryResult QOrmSqlProvider::read(const QOrmQuery& ormQuery)
 
         std::optional<QOrmPropertyMapping> propertyMapping =
                 relationMeta.classPropertyMapping(whereClause->property().descriptor());
+
+        QString tableFieldName = propertyMapping->tableFieldName();
+        QString comparisonOp = comparisonOps[whereClause->comparison()];
+        QString parameterPlaceholder = ":" + tableFieldName;
+
+        statementParts.push_back(
+                    QString{"(%1 %2 %3)"}.arg(tableFieldName, comparisonOp, parameterPlaceholder));
+
+        parameters.insert(parameterPlaceholder, whereClause->value());
     }
 
     QString statement = statementParts.join("\n");

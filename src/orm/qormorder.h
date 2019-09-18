@@ -5,7 +5,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class Q_ORM_EXPORT QOrmOrderClause
+class Q_ORM_EXPORT QOrmOrder
 {
 };
 

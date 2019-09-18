@@ -1,5 +1,5 @@
-#ifndef QORMWHERECLAUSE_H
-#define QORMWHERECLAUSE_H
+#ifndef QORMFILTER_H
+#define QORMFILTER_H
 
 #include <QtOrm/qormglobal.h>
 
@@ -8,21 +8,21 @@
 QT_BEGIN_NAMESPACE
 
 class QOrmClassProperty;
-class QOrmWhereClausePrivate;
+class QOrmFilterPrivate;
 class QVariant;
 
-class Q_ORM_EXPORT QOrmWhereClause
+class Q_ORM_EXPORT QOrmFilter
 {
 public:
-    explicit QOrmWhereClause(const QOrmClassProperty& property,
+    explicit QOrmFilter(const QOrmClassProperty& property,
                              QOrm::Comparison comparison,
                              const QVariant& value);
-    QOrmWhereClause(const QOrmWhereClause&);
-    QOrmWhereClause(QOrmWhereClause&&);
-    ~QOrmWhereClause();
+    QOrmFilter(const QOrmFilter&);
+    QOrmFilter(QOrmFilter&&);
+    ~QOrmFilter();
 
-    QOrmWhereClause& operator=(const QOrmWhereClause&);
-    QOrmWhereClause& operator=(QOrmWhereClause&&);
+    QOrmFilter& operator=(const QOrmFilter&);
+    QOrmFilter& operator=(QOrmFilter&&);
 
     Q_REQUIRED_RESULT
     QOrmClassProperty property() const;
@@ -32,7 +32,7 @@ public:
     QVariant value() const;
 
 private:
-    QSharedDataPointer<QOrmWhereClausePrivate> d;
+    QSharedDataPointer<QOrmFilterPrivate> d;
 };
 
 QT_END_NAMESPACE

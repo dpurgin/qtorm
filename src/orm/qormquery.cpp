@@ -1,6 +1,6 @@
 #include "qormquery.h"
-#include "qormwhereclause.h"
-#include "qormorderclause.h"
+#include "qormfilter.h"
+#include "qormorder.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -11,11 +11,11 @@ class QOrmQueryPrivate : public QSharedData
     QOrmQueryPrivate(QOrm::Operation operation,
                      const QMetaObject& projection,
                      const QMetaObject& relation,
-                     std::optional<QOrmWhereClause> where,
-                     std::optional<QOrmOrderClause> order)
+                     std::optional<QOrmFilter> filter,
+                     std::optional<QOrmOrder> order)
         : m_projection{projection},
           m_relation{relation},
-          m_where{where},
+          m_filter{filter},
           m_order{order}
     {
     }
@@ -23,16 +23,16 @@ class QOrmQueryPrivate : public QSharedData
     QOrm::Operation m_operation;
     QMetaObject m_projection;
     QMetaObject m_relation;
-    std::optional<QOrmWhereClause> m_where;
-    std::optional<QOrmOrderClause> m_order;
+    std::optional<QOrmFilter> m_filter;
+    std::optional<QOrmOrder> m_order;
 };
 
 QOrmQuery::QOrmQuery(QOrm::Operation operation,
                      const QMetaObject& projection,
                      const QMetaObject& relation,
-                     std::optional<QOrmWhereClause> where,
-                     std::optional<QOrmOrderClause> order)
-    : d{new QOrmQueryPrivate{operation, projection, relation, where, order}}
+                     std::optional<QOrmFilter> filter,
+                     std::optional<QOrmOrder> order)
+    : d{new QOrmQueryPrivate{operation, projection, relation, filter, order}}
 {
 }
 
@@ -61,12 +61,12 @@ const QMetaObject& QOrmQuery::relation() const
     return d->m_relation;
 }
 
-std::optional<QOrmWhereClause> QOrmQuery::where() const
+std::optional<QOrmFilter> QOrmQuery::filter() const
 {
-    return d->m_where;
+    return d->m_filter;
 }
 
-std::optional<QOrmOrderClause> QOrmQuery::order() const
+std::optional<QOrmOrder> QOrmQuery::order() const
 {
     return d->m_order;
 }

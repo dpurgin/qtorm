@@ -1,14 +1,12 @@
 #include "qormquerybuilder.h"
 
-#include "qormerror.h"
-#include "qormquery.h"
-#include "qormwhereclause.h"
-#include "qormwhereclausebuilder.h"
-#include "qormorderclause.h"
-#include "qormorderclausebuilder.h"
-#include "qormsession.h"
-#include "qormqueryresult.h"
 #include "qormabstractprovider.h"
+#include "qormerror.h"
+#include "qormfilter.h"
+#include "qormorder.h"
+#include "qormquery.h"
+#include "qormqueryresult.h"
+#include "qormsession.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -31,18 +29,18 @@ class QOrmQueryBuilderPrivate : public QSharedData
     QMetaObject m_relation;
     QMetaObject m_projection;
 
-    std::optional<QOrmWhereClauseBuilder> m_whereClauseBuilder;
-    std::optional<QOrmOrderClauseBuilder> m_orderClauseBuilder;
+    std::optional<QOrmFilterBuilder> m_filterBuilder;
+    std::optional<QOrmOrderBuilder> m_orderBuilder;
 };
 
 QOrmQuery QOrmQueryBuilderPrivate::build(const QMetaObject& projection) const
 {
-    std::optional<QOrmWhereClause> whereClause =
-            m_whereClauseBuilder.has_value()? std::make_optional(m_whereClauseBuilder->build())
-                                            : std::nullopt;
-    std::optional<QOrmOrderClause> orderClause =
-            m_orderClauseBuilder.has_value()? std::make_optional(m_orderClauseBuilder->build())
-                                            : std::nullopt;
+    std::optional<QOrmFilter> whereClause =
+            m_filterBuilder.has_value()? std::make_optional(m_filterBuilder->build())
+                                       : std::nullopt;
+    std::optional<QOrmOrder> orderClause =
+            m_orderBuilder.has_value()? std::make_optional(m_orderBuilder->build())
+                                      : std::nullopt;
 
     return QOrmQuery{QOrm::Operation::Read,
                      projection,
@@ -67,15 +65,15 @@ QOrmQueryBuilder& QOrmQueryBuilder::operator=(const QOrmQueryBuilder&) = default
 
 QOrmQueryBuilder& QOrmQueryBuilder::operator=(QOrmQueryBuilder&&) = default;
 
-QOrmQueryBuilder& QOrmQueryBuilder::where(QOrmWhereClauseBuilder whereClause)
+QOrmQueryBuilder& QOrmQueryBuilder::filter(QOrmFilterBuilder filterBuilder)
 {
-    d->m_whereClauseBuilder = whereClause;
+    d->m_filterBuilder = filterBuilder;
     return *this;
 }
 
-QOrmQueryBuilder& QOrmQueryBuilder::order(QOrmOrderClauseBuilder orderClause)
+QOrmQueryBuilder& QOrmQueryBuilder::order(QOrmOrderBuilder orderBuilder)
 {
-    d->m_orderClauseBuilder = orderClause;
+    d->m_orderBuilder = orderBuilder;
     return *this;
 }
 

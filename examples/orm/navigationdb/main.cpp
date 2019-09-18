@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 
     {
         QOrmQueryResult result = session.from<Province>()
-                                        .where(Q_ORM_CLASS_PROPERTY(id) < 5)
+                                        .filter(Q_ORM_CLASS_PROPERTY(id) < 5)
                                         .select();
 
         for (QObject* entityInstance: result.toVector())

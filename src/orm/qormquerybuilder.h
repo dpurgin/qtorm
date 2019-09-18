@@ -2,6 +2,8 @@
 #define QORMQUERYBUILDER_H
 
 #include <QtOrm/qormglobal.h>
+#include <QtOrm/qormfilterbuilder.h>
+#include <QtOrm/qormorderbuilder.h>
 #include <QtOrm/qormquery.h>
 
 #include <QtCore/qobject.h>
@@ -11,8 +13,8 @@
 QT_BEGIN_NAMESPACE
 
 class QOrmAbstractProvider;
-class QOrmWhereClauseBuilder;
-class QOrmOrderClauseBuilder;
+class QOrmFilterBuilder;
+class QOrmOrderBuilder;
 class QOrmQueryBuilderPrivate;
 class QOrmSession;
 
@@ -27,8 +29,8 @@ public:
     QOrmQueryBuilder& operator=(const QOrmQueryBuilder&);
     QOrmQueryBuilder& operator=(QOrmQueryBuilder&&);
 
-    QOrmQueryBuilder& where(QOrmWhereClauseBuilder whereClause);
-    QOrmQueryBuilder& order(QOrmOrderClauseBuilder orderClause);
+    QOrmQueryBuilder& filter(QOrmFilterBuilder filterBuilder);
+    QOrmQueryBuilder& order(QOrmOrderBuilder orderBuilder);
 
     QOrmQuery build() const;
 

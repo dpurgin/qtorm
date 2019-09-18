@@ -5,15 +5,15 @@
 
 QT_BEGIN_NAMESPACE
 
-class QOrmOrderClause;
+class QOrmOrder;
 
-class Q_ORM_EXPORT QOrmOrderClauseBuilder
+class Q_ORM_EXPORT QOrmOrderBuilder
 {
 public:
-    QOrmOrderClauseBuilder();
+    QOrmOrderBuilder();
 
     Q_REQUIRED_RESULT
-    QOrmOrderClause build() const;
+    QOrmOrder build() const;
 };
 
 QT_END_NAMESPACE
