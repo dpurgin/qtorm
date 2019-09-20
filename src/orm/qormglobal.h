@@ -47,20 +47,22 @@ namespace QOrm
 
     enum class Comparison
     {
-        Invalid,
         Equal,
         NotEqual,
         Less,
         LessOrEqual,
         Greater,
-        GreaterOrEqual,
-        Not
+        GreaterOrEqual
     };
 
-    enum class LogicalOperator
+    enum class BinaryLogicalOperator
     {
         And,
-        Or,
+        Or
+    };
+
+    enum class UnaryLogicalOperator
+    {
         Not
     };
 
@@ -70,6 +72,13 @@ namespace QOrm
         Read,
         Update,
         Delete
+    };
+
+    enum class FilterExpressionType
+    {
+        TerminalPredicate,
+        BinaryPredicate,
+        UnaryPredicate
     };
 
     extern Q_ORM_EXPORT uint qHash(Comparison comparison) Q_DECL_NOTHROW;

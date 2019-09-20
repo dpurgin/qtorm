@@ -2,7 +2,7 @@
 #define QORMQUERYBUILDER_H
 
 #include <QtOrm/qormglobal.h>
-#include <QtOrm/qormfilterbuilder.h>
+#include <QtOrm/qormfilterexpression.h>
 #include <QtOrm/qormorderbuilder.h>
 #include <QtOrm/qormquery.h>
 
@@ -13,7 +13,7 @@
 QT_BEGIN_NAMESPACE
 
 class QOrmAbstractProvider;
-class QOrmFilterBuilder;
+class QOrmFilterExpression;
 class QOrmOrderBuilder;
 class QOrmQueryBuilderPrivate;
 class QOrmSession;
@@ -29,7 +29,7 @@ public:
     QOrmQueryBuilder& operator=(const QOrmQueryBuilder&);
     QOrmQueryBuilder& operator=(QOrmQueryBuilder&&);
 
-    QOrmQueryBuilder& filter(QOrmFilterBuilder filterBuilder);
+    QOrmQueryBuilder& filter(QOrmFilterExpression filterBuilder);
     QOrmQueryBuilder& order(QOrmOrderBuilder orderBuilder);
 
     QOrmQuery build() const;

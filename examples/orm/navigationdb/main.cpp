@@ -2,10 +2,6 @@
 
 #include <QCoreApplication>
 #include <QOrmSession>
-#include <QOrmQuery>
-#include <QOrmOrderClause>
-#include <QOrmTransactionToken>
-#include <QVariant>
 
 #include "domain/province.h"
 
@@ -45,7 +41,8 @@ int main(int argc, char* argv[])
 
     {
         QOrmQueryResult result = session.from<Province>()
-                                        .filter(Q_ORM_CLASS_PROPERTY(id) < 5)
+                                        .filter(Q_ORM_CLASS_PROPERTY(id) == 0 ||
+                                                (Q_ORM_CLASS_PROPERTY(id) > 3 && Q_ORM_CLASS_PROPERTY(id) < 5))
                                         .select();
 
         for (QObject* entityInstance: result.toVector())

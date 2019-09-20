@@ -29,7 +29,7 @@ class QOrmQueryBuilderPrivate : public QSharedData
     QMetaObject m_relation;
     QMetaObject m_projection;
 
-    std::optional<QOrmFilterBuilder> m_filterBuilder;
+    std::optional<QOrmFilterExpression> m_filterBuilder;
     std::optional<QOrmOrderBuilder> m_orderBuilder;
 };
 
@@ -65,7 +65,7 @@ QOrmQueryBuilder& QOrmQueryBuilder::operator=(const QOrmQueryBuilder&) = default
 
 QOrmQueryBuilder& QOrmQueryBuilder::operator=(QOrmQueryBuilder&&) = default;
 
-QOrmQueryBuilder& QOrmQueryBuilder::filter(QOrmFilterBuilder filterBuilder)
+QOrmQueryBuilder& QOrmQueryBuilder::filter(QOrmFilterExpression filterBuilder)
 {
     d->m_filterBuilder = filterBuilder;
     return *this;

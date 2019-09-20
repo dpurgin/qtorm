@@ -10,7 +10,7 @@ PUBLIC_HEADERS += \
     qormentitymetadata.h \
     qormerror.h \
     qormfilter.h \
-    qormfilterbuilder.h \
+    qormfilterexpression.h \
     qormglobal.h \
     qormorder.h \
     qormorderbuilder.h \
@@ -32,7 +32,7 @@ SOURCES += \
     qormentitymetadata.cpp \
     qormerror.cpp \
     qormfilter.cpp \
-    qormfilterbuilder.cpp \
+    qormfilterexpression.cpp \
     qormorder.cpp \
     qormorderbuilder.cpp \
     qormpropertymapping.cpp \
