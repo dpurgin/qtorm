@@ -2,37 +2,37 @@
 #define QORMFILTER_H
 
 #include <QtOrm/qormglobal.h>
+#include <QtOrm/qormfilterexpression.h>
 
-#include <QtCore/qshareddata.h>
+#include <variant>
 
 QT_BEGIN_NAMESPACE
-
-class QOrmClassProperty;
-class QOrmFilterPrivate;
-class QVariant;
 
 class Q_ORM_EXPORT QOrmFilter
 {
 public:
-    explicit QOrmFilter(const QOrmClassProperty& property,
-                             QOrm::Comparison comparison,
-                             const QVariant& value);
-    QOrmFilter(const QOrmFilter&);
-    QOrmFilter(QOrmFilter&&);
-    ~QOrmFilter();
-
-    QOrmFilter& operator=(const QOrmFilter&);
-    QOrmFilter& operator=(QOrmFilter&&);
+    explicit QOrmFilter() = default;
+    explicit QOrmFilter(QOrmFilterExpression expression)
+        : m_type{QOrm::FilterType::Expression},
+          m_filter{expression}
+    {
+    }
 
     Q_REQUIRED_RESULT
-    QOrmClassProperty property() const;
+    QOrm::FilterType type() const
+    {
+        return m_type;
+    }
+
     Q_REQUIRED_RESULT
-    QOrm::Comparison comparison() const;
-    Q_REQUIRED_RESULT
-    QVariant value() const;
+    const QOrmFilterExpression* expression() const
+    {
+        return std::get_if<QOrmFilterExpression>(&m_filter);
+    }
 
 private:
-    QSharedDataPointer<QOrmFilterPrivate> d;
+    QOrm::FilterType m_type{QOrm::FilterType::Empty};
+    std::variant<QOrmFilterExpression, void*> m_filter{nullptr};
 };
 
 QT_END_NAMESPACE

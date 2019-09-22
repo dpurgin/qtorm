@@ -2,6 +2,7 @@
 
 #include "qormabstractprovider.h"
 #include "qormerror.h"
+#include "qormmetadatacache.h"
 #include "qormquery.h"
 #include "qormsessionconfiguration.h"
 #include "qormtransactiontoken.h"
@@ -17,6 +18,7 @@ class QOrmSessionPrivate
     QOrmSessionConfiguration m_sessionConfiguration;
     QSet<QObject*> m_entityInstanceCache;
     QOrmError m_lastError{QOrm::Error::None, {}};
+    QOrmMetadataCache m_metadataCache;
 
     explicit QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration, QOrmSession* parent);
     ~QOrmSessionPrivate();
@@ -75,12 +77,14 @@ QOrmQueryResult QOrmSession::execute(const QOrmQuery& query)
 {
     Q_D(QOrmSession);
 
-    return d->m_sessionConfiguration.provider()->read(query);
+    return d->m_sessionConfiguration.provider()->execute(query);
 }
 
 QOrmQueryBuilder QOrmSession::from(const QMetaObject& relationMetaObject)
 {
-    return QOrmQueryBuilder{this, relationMetaObject};
+    Q_D(QOrmSession);
+
+    return QOrmQueryBuilder{this, d->m_metadataCache[relationMetaObject]};
 }
 
 bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject, QOrm::MergeMode mode)
@@ -99,22 +103,22 @@ bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject,
         }
         else
         {
-            d->setLastError(d->m_sessionConfiguration.provider()->create(entityInstance, qMetaObject));
+//            d->setLastError(d->m_sessionConfiguration.provider()->create(entityInstance, qMetaObject));
         }
     }
     else if (mode == QOrm::MergeMode::Update)
     {
-        d->setLastError(d->m_sessionConfiguration.provider()->update(entityInstance, qMetaObject));
+//        d->setLastError(d->m_sessionConfiguration.provider()->update(entityInstance, qMetaObject));
     }
     else if (mode == QOrm::MergeMode::Auto)
     {
         if (!d->m_entityInstanceCache.contains(entityInstance))
         {
-            d->setLastError(d->m_sessionConfiguration.provider()->create(entityInstance, qMetaObject));
+//            d->setLastError(d->m_sessionConfiguration.provider()->create(entityInstance, qMetaObject));
         }
         else
         {
-            d->setLastError(d->m_sessionConfiguration.provider()->update(entityInstance, qMetaObject));
+//            d->setLastError(d->m_sessionConfiguration.provider()->update(entityInstance, qMetaObject));
         }
     }
 
@@ -132,7 +136,7 @@ bool QOrmSession::remove(QObject* entityInstance, const QMetaObject& qMetaObject
 
     d->ensureProviderConnected();
 
-    d->setLastError(d->m_sessionConfiguration.provider()->remove(entityInstance, qMetaObject));
+//    d->setLastError(d->m_sessionConfiguration.provider()->remove(entityInstance, qMetaObject));
 
     if (d->m_lastError.error() == QOrm::Error::None)
     {
@@ -159,6 +163,12 @@ QOrmSessionConfiguration QOrmSession::configuration() const
     Q_D(const QOrmSession);
 
     return d->m_sessionConfiguration;
+}
+
+QOrmMetadataCache* QOrmSession::metadataCache()
+{
+    Q_D(QOrmSession);
+    return &d->m_metadataCache;
 }
 
 

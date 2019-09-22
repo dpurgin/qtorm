@@ -1,4 +1,6 @@
 TEMPLATE = subdirs
 
 SUBDIRS += \
-    qormsession
+    qormsession \
+    qormfilterexpression \
+    qormsqlitestatementgenerator

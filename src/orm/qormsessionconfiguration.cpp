@@ -5,8 +5,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QCoreApplication>
+#include <QOrmMetadataCache>
 #include <QOrmSqlConfiguration>
-#include <QOrmSqlProvider>
+#include <QOrmSqliteProvider>
 
 QT_BEGIN_NAMESPACE
 
@@ -93,7 +94,7 @@ QOrmSessionConfiguration QOrmSessionConfiguration::defaultConfiguration()
                 {
                     QOrmSqlConfiguration sqlConfiguration =
                             _build_json_sql_configuration(rootObject["sql"].toObject());
-                    sessionConfiguration.setProvider(new QOrmSqlProvider{sqlConfiguration});
+                    sessionConfiguration.setProvider(new QOrmSqliteProvider{sqlConfiguration});
                 }
 
                 sessionConfiguration.setVerbose(rootObject["verbose"].toBool(false));

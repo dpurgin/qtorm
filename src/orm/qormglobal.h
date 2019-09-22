@@ -74,6 +74,13 @@ namespace QOrm
         Delete
     };
 
+    enum class FilterType
+    {
+        Empty,
+        Expression,
+        Invokable
+    };
+
     enum class FilterExpressionType
     {
         TerminalPredicate,

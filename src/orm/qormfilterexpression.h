@@ -7,10 +7,11 @@
 #include <QtCore/qshareddata.h>
 #include <QtCore/qvariant.h>
 
+#include <variant>
+
 QT_BEGIN_NAMESPACE
 
 class QOrmClassProperty;
-class QOrmFilter;
 class QOrmFilterExpressionPrivate;
 class QVariant;
 
@@ -24,13 +25,18 @@ public:
     QOrmFilterExpression(const QOrmFilterTerminalPredicate& terminalPredicate);
     QOrmFilterExpression(const QOrmFilterBinaryPredicate& binaryPredicate);
     QOrmFilterExpression(const QOrmFilterUnaryPredicate& unaryPredicate);
+    QOrmFilterExpression(const QOrmFilterExpression&);
+    QOrmFilterExpression(QOrmFilterExpression&&);
+    ~QOrmFilterExpression();
+
+    QOrmFilterExpression& operator=(const QOrmFilterExpression&);
+    QOrmFilterExpression& operator=(QOrmFilterExpression&&);
 
     Q_REQUIRED_RESULT QOrm::FilterExpressionType type() const;
+
     Q_REQUIRED_RESULT const QOrmFilterTerminalPredicate* terminalPredicate() const;
     Q_REQUIRED_RESULT const QOrmFilterBinaryPredicate* binaryPredicate() const;
     Q_REQUIRED_RESULT const QOrmFilterUnaryPredicate* unaryPredicate() const;
-
-    QOrmFilter build();
 
 private:
     QSharedDataPointer<QOrmFilterExpressionPrivate> d;

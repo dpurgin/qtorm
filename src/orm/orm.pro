@@ -7,7 +7,8 @@ QMAKE_DOCS = $$PWD/doc/qtorm.qdocconf
 PUBLIC_HEADERS += \
     qormabstractprovider.h \
     qormclassproperty.h \
-    qormentitymetadata.h \
+    qormmetadata.h \
+    qormmetadatacache.h \
     qormerror.h \
     qormfilter.h \
     qormfilterexpression.h \
@@ -21,18 +22,20 @@ PUBLIC_HEADERS += \
     qormsession.h \
     qormsessionconfiguration.h \
     qormsqlconfiguration.h \
-    qormsqlprovider.h \
+    qormsqliteprovider.h \
     qormtransactiontoken.h \
 
-#PRIVATE_HEADERS =
+PRIVATE_HEADERS = \
+    qormsqlitestatementgenerator_p.h \
 
 SOURCES += \
     qormabstractprovider.cpp \
     qormclassproperty.cpp \
-    qormentitymetadata.cpp \
     qormerror.cpp \
     qormfilter.cpp \
     qormfilterexpression.cpp \
+    qormmetadata.cpp \
+    qormmetadatacache.cpp \
     qormorder.cpp \
     qormorderbuilder.cpp \
     qormpropertymapping.cpp \
@@ -42,11 +45,12 @@ SOURCES += \
     qormsession.cpp \
     qormsessionconfiguration.cpp \
     qormsqlconfiguration.cpp \
-    qormsqlprovider.cpp \
+    qormsqlitestatementgenerator_p.cpp \
+    qormsqliteprovider.cpp \
     qormtransactiontoken.cpp \
     qormglobal.cpp \
 
-HEADERS += $$PUBLIC_HEADERS \ \ \ \ \ \ \ #$$PRIVATE_HEADERS    
+HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS
 
 load(qt_module)
 

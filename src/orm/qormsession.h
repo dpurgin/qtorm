@@ -58,6 +58,9 @@ public:
     Q_REQUIRED_RESULT
     QOrmSessionConfiguration configuration() const;
 
+    Q_REQUIRED_RESULT
+    QOrmMetadataCache* metadataCache();
+
 private:
     bool merge(QObject* entityInstance, const QMetaObject& qMetaObject, QOrm::MergeMode mode);
     bool remove(QObject* entityInstance, const QMetaObject& qMetaObject);

@@ -16,11 +16,9 @@ QT_BEGIN_NAMESPACE
  *
  */
 
-
 class QOrmFilterExpressionPrivate : public QSharedData
 {
-    friend class QOrmFilterExpression;
-
+public:
     using Predicate = std::variant<QOrmFilterTerminalPredicate,
                                    QOrmFilterBinaryPredicate,
                                    QOrmFilterUnaryPredicate>;
@@ -33,20 +31,30 @@ class QOrmFilterExpressionPrivate : public QSharedData
     Predicate m_predicate;
 };
 
-QOrmFilterExpression::QOrmFilterExpression(const QOrmFilterTerminalPredicate& predicate)
-    : d{new QOrmFilterExpressionPrivate{predicate}}
+QOrmFilterExpression::QOrmFilterExpression(const QOrmFilterTerminalPredicate& terminalPredicate)
+    : d{new QOrmFilterExpressionPrivate{terminalPredicate}}
 {
 }
 
-QOrmFilterExpression::QOrmFilterExpression(const QOrmFilterBinaryPredicate& predicate)
-    : d{new QOrmFilterExpressionPrivate{predicate}}
+QOrmFilterExpression::QOrmFilterExpression(const QOrmFilterBinaryPredicate& binaryPredicate)
+    : d{new QOrmFilterExpressionPrivate{binaryPredicate}}
 {
 }
 
-QOrmFilterExpression::QOrmFilterExpression(const QOrmFilterUnaryPredicate& predicate)
-    : d{new QOrmFilterExpressionPrivate{predicate}}
+QOrmFilterExpression::QOrmFilterExpression(const QOrmFilterUnaryPredicate& unaryPredicate)
+    : d{new QOrmFilterExpressionPrivate{unaryPredicate}}
 {
 }
+
+QOrmFilterExpression::QOrmFilterExpression(const QOrmFilterExpression&) = default;
+
+QOrmFilterExpression::QOrmFilterExpression(QOrmFilterExpression&&) = default;
+
+QOrmFilterExpression::~QOrmFilterExpression() = default;
+
+QOrmFilterExpression& QOrmFilterExpression::operator=(const QOrmFilterExpression&) = default;
+
+QOrmFilterExpression& QOrmFilterExpression::operator=(QOrmFilterExpression&&) = default;
 
 QOrm::FilterExpressionType QOrmFilterExpression::type() const
 {
@@ -96,7 +104,7 @@ QOrmFilterTerminalPredicate operator<=(const QOrmClassProperty& property, const 
 }
 
 QOrmFilterTerminalPredicate operator>(const QOrmClassProperty& property, const QVariant& value)
-{    
+{
     return {property, QOrm::Comparison::Greater, value};
 }
 

@@ -2,7 +2,7 @@
 
 #include <QOrmError>
 #include <QOrmSession>
-#include <QOrmSqlProvider>
+#include <QOrmSqliteProvider>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 
@@ -114,7 +114,7 @@ void QOrmSessionTest::testSuccessfulMergeWithExplicitCreate()
     QCOMPARE(province->name(), QString::fromUtf8("Oberösterreich"));
 
     // Check that the database contains the corresponding record
-    QOrmSqlProvider* provider = static_cast<QOrmSqlProvider*>(session.configuration().provider());
+    QOrmSqliteProvider* provider = static_cast<QOrmSqliteProvider*>(session.configuration().provider());
     QSqlQuery query{provider->database()};
     QVERIFY(query.exec("SELECT * FROM Province"));
     QVERIFY(query.next());
@@ -146,7 +146,7 @@ void QOrmSessionTest::testSuccessfulMergeWithExplicitUpdate()
     QCOMPARE(province->name(), QString::fromUtf8("Niederoesterreich"));
 
     // Check that the database contains the corresponding record
-    QOrmSqlProvider* provider = static_cast<QOrmSqlProvider*>(session.configuration().provider());
+    QOrmSqliteProvider* provider = static_cast<QOrmSqliteProvider*>(session.configuration().provider());
     QSqlQuery query{provider->database()};
     QVERIFY(query.exec("SELECT * FROM Province"));
     QVERIFY(query.next());

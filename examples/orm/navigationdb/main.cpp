@@ -2,13 +2,14 @@
 
 #include <QCoreApplication>
 #include <QOrmSession>
+#include <QOrmError>
 
 #include "domain/province.h"
 
 #include <QDebug>
 
 
-
+#include <QOrmFilterExpression>
 
 
 int main(int argc, char* argv[])
@@ -17,7 +18,6 @@ int main(int argc, char* argv[])
     QCoreApplication app{argc, argv};
 
     QOrmSession session;
-
 
     session.merge(new Province{QString::fromUtf8("Burgenland")});
     session.merge(new Province{QString::fromUtf8("Kärnten")});
@@ -29,15 +29,36 @@ int main(int argc, char* argv[])
     session.merge(new Province{QString::fromUtf8("Vorarlberg")});
     session.merge(new Province{QString::fromUtf8("Wien")});
 
+//    {
+//        QOrmQueryResult result = session.from<Province>()
+//                                        .select();
+
+//        for (QObject* entityInstance: result.toVector())
+//        {
+//            qDebug() << *qobject_cast<Province*>(entityInstance);
+//        }
+//    }
+
     {
         QOrmQueryResult result = session.from<Province>()
+                                        .filter(Q_ORM_CLASS_PROPERTY(id) > 3)
                                         .select();
 
-        for (QObject* entityInstance: result.toVector())
+        if (result.error().error() != QOrm::Error::None)
         {
-            qDebug() << *qobject_cast<Province*>(entityInstance);
+            qCritical() << result.error().errorText();
         }
+        else
+        {
+            for (QObject* entityInstance: result.toVector())
+            {
+                qDebug() << *qobject_cast<Province*>(entityInstance);
+            }
+        }
+
     }
+
+
 
     {
         QOrmQueryResult result = session.from<Province>()
@@ -49,6 +70,19 @@ int main(int argc, char* argv[])
         {
             qDebug() << *qobject_cast<Province*>(entityInstance);
         }
+    }
+
+    {
+        QOrmQueryResult result = session.from<Province>()
+                                        .filter(Q_ORM_CLASS_PROPERTY(id) > 3)
+                                        .filter(Q_ORM_CLASS_PROPERTY(id) < 5)
+                                        .select();
+
+        for (QObject* entityInstance: result.toVector())
+        {
+            qDebug() << *qobject_cast<Province*>(entityInstance);
+        }
+
     }
 
 //    session.declareTransaction(QOrm::TransactionMode::Supports);

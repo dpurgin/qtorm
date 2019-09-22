@@ -2,6 +2,7 @@
 #define QORMQUERYBUILDER_H
 
 #include <QtOrm/qormglobal.h>
+#include <QtOrm/qormfilter.h>
 #include <QtOrm/qormfilterexpression.h>
 #include <QtOrm/qormorderbuilder.h>
 #include <QtOrm/qormquery.h>
@@ -14,6 +15,7 @@ QT_BEGIN_NAMESPACE
 
 class QOrmAbstractProvider;
 class QOrmFilterExpression;
+class QOrmMetadataCache;
 class QOrmOrderBuilder;
 class QOrmQueryBuilderPrivate;
 class QOrmSession;
@@ -21,7 +23,8 @@ class QOrmSession;
 class Q_ORM_EXPORT QOrmQueryBuilder
 {
 public:
-    QOrmQueryBuilder(QOrmSession* ormSession, const QMetaObject& relationMetaObject);
+    QOrmQueryBuilder(QOrmSession* ormSession,
+                     const QOrmMetadata& relationMeta);
     QOrmQueryBuilder(const QOrmQueryBuilder&);
     QOrmQueryBuilder(QOrmQueryBuilder&&);
     ~QOrmQueryBuilder();
@@ -29,7 +32,7 @@ public:
     QOrmQueryBuilder& operator=(const QOrmQueryBuilder&);
     QOrmQueryBuilder& operator=(QOrmQueryBuilder&&);
 
-    QOrmQueryBuilder& filter(QOrmFilterExpression filterBuilder);
+    QOrmQueryBuilder& filter(QOrmFilterExpression expression);
     QOrmQueryBuilder& order(QOrmOrderBuilder orderBuilder);
 
     QOrmQuery build() const;

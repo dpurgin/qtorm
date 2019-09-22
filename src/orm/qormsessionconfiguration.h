@@ -19,14 +19,11 @@ public:
 public:
     QOrmSessionConfiguration();
     QOrmSessionConfiguration(const QOrmSessionConfiguration&);
+    QOrmSessionConfiguration(QOrmSessionConfiguration&&);
     ~QOrmSessionConfiguration();
 
     QOrmSessionConfiguration& operator=(const QOrmSessionConfiguration&);
-
-#ifdef Q_COMPILER_RVALUE_REFS
-    QOrmSessionConfiguration(QOrmSessionConfiguration&&);
     QOrmSessionConfiguration& operator=(QOrmSessionConfiguration&&);
-#endif
 
     Q_REQUIRED_RESULT
     QOrmAbstractProvider* provider() const;

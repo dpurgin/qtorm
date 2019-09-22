@@ -1,5 +1,5 @@
-#ifndef QORMENTITYMETADATA_H
-#define QORMENTITYMETADATA_H
+#ifndef QORMMETADATA_H
+#define QORMMETADATA_H
 
 #include <QtOrm/qormglobal.h>
 #include <QtOrm/qormpropertymapping.h>
@@ -13,23 +13,19 @@
 
 QT_BEGIN_NAMESPACE
 
-class QOrmEntityMetadataPrivate;
+class QOrmMetadataPrivate;
 
-class Q_ORM_EXPORT QOrmEntityMetadata
+class Q_ORM_EXPORT QOrmMetadata
 {
 public:
-    QOrmEntityMetadata();
-    QOrmEntityMetadata(const QMetaObject& qMetaObject);
-    QOrmEntityMetadata(const QOrmEntityMetadata&);
-    ~QOrmEntityMetadata();
+    QOrmMetadata();
+    QOrmMetadata(const QMetaObject& qMetaObject);
+    QOrmMetadata(const QOrmMetadata&);
+    QOrmMetadata(QOrmMetadata&&);
+    ~QOrmMetadata();
 
-    QOrmEntityMetadata& operator=(const QOrmEntityMetadata&);
-
-#ifdef Q_COMPILER_RVALUE_REFS
-    QOrmEntityMetadata(QOrmEntityMetadata&&);
-
-    QOrmEntityMetadata& operator=(QOrmEntityMetadata&&);
-#endif
+    QOrmMetadata& operator=(const QOrmMetadata&);
+    QOrmMetadata& operator=(QOrmMetadata&&);
 
     Q_REQUIRED_RESULT const QMetaObject& qMetaObject() const;
 
@@ -57,9 +53,9 @@ public:
     void setObjectIdMapping(const QOrmPropertyMapping& objectIdMapping);
 
 private:
-    QSharedDataPointer<QOrmEntityMetadataPrivate> d;
+    QSharedDataPointer<QOrmMetadataPrivate> d;
 };
 
 QT_END_NAMESPACE
 
-#endif // QORMENTITYMETADATA_H
+#endif // QORMMETADATA_H

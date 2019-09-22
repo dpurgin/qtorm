@@ -1,4 +1,5 @@
 #include "qormquery.h"
+#include "qormmetadata.h"
 #include "qormfilter.h"
 #include "qormorder.h"
 
@@ -6,14 +7,14 @@ QT_BEGIN_NAMESPACE
 
 class QOrmQueryPrivate : public QSharedData
 {
-    friend class QOrmQuery;
-
+public:
     QOrmQueryPrivate(QOrm::Operation operation,
-                     const QMetaObject& projection,
-                     const QMetaObject& relation,
-                     std::optional<QOrmFilter> filter,
-                     std::optional<QOrmOrder> order)
-        : m_projection{projection},
+                     const QOrmMetadata& projection,
+                     const QOrmMetadata& relation,
+                     QOrmFilter filter,
+                     QOrmOrder order)
+        : m_operation{operation},
+          m_projection{projection},
           m_relation{relation},
           m_filter{filter},
           m_order{order}
@@ -21,17 +22,17 @@ class QOrmQueryPrivate : public QSharedData
     }
 
     QOrm::Operation m_operation;
-    QMetaObject m_projection;
-    QMetaObject m_relation;
-    std::optional<QOrmFilter> m_filter;
-    std::optional<QOrmOrder> m_order;
+    QOrmMetadata m_projection;
+    QOrmMetadata m_relation;
+    QOrmFilter m_filter;
+    QOrmOrder m_order;
 };
 
 QOrmQuery::QOrmQuery(QOrm::Operation operation,
-                     const QMetaObject& projection,
-                     const QMetaObject& relation,
-                     std::optional<QOrmFilter> filter,
-                     std::optional<QOrmOrder> order)
+                     const QOrmMetadata& projection,
+                     const QOrmMetadata& relation,
+                     QOrmFilter filter,
+                     QOrmOrder order)
     : d{new QOrmQueryPrivate{operation, projection, relation, filter, order}}
 {
 }
@@ -51,22 +52,22 @@ QOrm::Operation QOrmQuery::operation() const
     return d->m_operation;
 }
 
-const QMetaObject& QOrmQuery::projection() const
+const QOrmMetadata& QOrmQuery::projection() const
 {
     return d->m_projection;
 }
 
-const QMetaObject& QOrmQuery::relation() const
+const QOrmMetadata& QOrmQuery::relation() const
 {
     return d->m_relation;
 }
 
-std::optional<QOrmFilter> QOrmQuery::filter() const
+QOrmFilter QOrmQuery::filter() const
 {
     return d->m_filter;
 }
 
-std::optional<QOrmOrder> QOrmQuery::order() const
+QOrmOrder QOrmQuery::order() const
 {
     return d->m_order;
 }

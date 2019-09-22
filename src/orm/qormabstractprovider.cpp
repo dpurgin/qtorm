@@ -1,11 +1,3 @@
 #include "qormabstractprovider.h"
 
-QOrmAbstractProvider::QOrmAbstractProvider()
-{
-
-}
-
-QOrmAbstractProvider::~QOrmAbstractProvider()
-{
-
-}
+QOrmAbstractProvider::~QOrmAbstractProvider() = default;
