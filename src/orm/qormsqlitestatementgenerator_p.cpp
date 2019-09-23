@@ -1,5 +1,6 @@
 #include "qormfilter.h"
 #include "qormmetadata.h"
+#include "qormmetadatacache.h"
 #include "qormquery.h"
 #include "qormsqlitestatementgenerator_p.h"
 
@@ -80,6 +81,8 @@ QString QOrmSqliteStatementGeneratorPrivate::generateCondition(const QOrmFilterE
 
 QString QOrmSqliteStatementGeneratorPrivate::generateCondition(const QOrmFilterTerminalPredicate& predicate)
 {
+    Q_ASSERT(predicate.isResolved());
+
     static const QHash<QOrm::Comparison, QString> comparisonOps = {
         { QOrm::Comparison::Less, "<" },
         { QOrm::Comparison::Equal, "=" },
@@ -89,12 +92,13 @@ QString QOrmSqliteStatementGeneratorPrivate::generateCondition(const QOrmFilterT
         { QOrm::Comparison::GreaterOrEqual, ">=" }
     };
 
-    Q_ASSERT(comparisonOps.contains(predicate.comparison));
+    Q_ASSERT(comparisonOps.contains(predicate.comparison()));
 
-    QString parameterKey = insertParameter(predicate.classProperty.descriptor(), predicate.value);
+    QString parameterKey = insertParameter(predicate.propertyMapping()->tableFieldName(),
+                                           predicate.value());
 
-    QString statement = QString{"%1 %2 %3"}.arg(predicate.classProperty.descriptor(),
-                                                comparisonOps[predicate.comparison],
+    QString statement = QString{"%1 %2 %3"}.arg(predicate.propertyMapping()->tableFieldName(),
+                                                comparisonOps[predicate.comparison()],
                                                 parameterKey);
 
     return statement;
@@ -102,12 +106,12 @@ QString QOrmSqliteStatementGeneratorPrivate::generateCondition(const QOrmFilterT
 
 QString QOrmSqliteStatementGeneratorPrivate::generateCondition(const QOrmFilterBinaryPredicate& predicate)
 {
-    QString lhsExpr = generateCondition(predicate.lhs);
-    QString rhsExpr = generateCondition(predicate.rhs);
+    QString lhsExpr = generateCondition(predicate.lhs());
+    QString rhsExpr = generateCondition(predicate.rhs());
 
     QString op;
 
-    switch (predicate.logicalOperator)
+    switch (predicate.logicalOperator())
     {
         case QOrm::BinaryLogicalOperator::Or: op = "OR"; break;
         case QOrm::BinaryLogicalOperator::And: op = "AND"; break;
@@ -120,8 +124,8 @@ QString QOrmSqliteStatementGeneratorPrivate::generateCondition(const QOrmFilterB
 
 QString QOrmSqliteStatementGeneratorPrivate::generateCondition(const QOrmFilterUnaryPredicate& predicate)
 {
-    QString rhsExpr = generateCondition(predicate.rhs);
-    Q_ASSERT(predicate.logicalOperator == QOrm::UnaryLogicalOperator::Not);
+    QString rhsExpr = generateCondition(predicate.rhs());
+    Q_ASSERT(predicate.logicalOperator() == QOrm::UnaryLogicalOperator::Not);
 
     return QString{"NOT (%1)"}.arg(rhsExpr);
 }

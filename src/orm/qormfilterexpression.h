@@ -3,6 +3,7 @@
 
 #include <QtOrm/qormglobal.h>
 #include <QtOrm/qormclassproperty.h>
+#include <QtOrm/qormpropertymapping.h>
 
 #include <QtCore/qshareddata.h>
 #include <QtCore/qvariant.h>
@@ -11,13 +12,12 @@
 
 QT_BEGIN_NAMESPACE
 
-class QOrmClassProperty;
 class QOrmFilterExpressionPrivate;
 class QVariant;
 
-struct QOrmFilterTerminalPredicate;
-struct QOrmFilterBinaryPredicate;
-struct QOrmFilterUnaryPredicate;
+class QOrmFilterTerminalPredicate;
+class QOrmFilterBinaryPredicate;
+class QOrmFilterUnaryPredicate;
 
 class Q_ORM_EXPORT QOrmFilterExpression
 {
@@ -42,49 +42,59 @@ private:
     QSharedDataPointer<QOrmFilterExpressionPrivate> d;
 };
 
-struct QOrmFilterTerminalPredicate
+class Q_ORM_EXPORT QOrmFilterTerminalPredicate
 {
-    QOrmFilterTerminalPredicate(const QOrmClassProperty& classProperty,
+public:
+    using FilterProperty = std::variant<QOrmClassProperty, QOrmPropertyMapping>;
+
+    QOrmFilterTerminalPredicate(FilterProperty filterProperty,
                                 QOrm::Comparison comparison,
-                                const QVariant& value)
-        : classProperty{classProperty},
-          comparison{comparison},
-          value{value}
-    {
-    }
+                                QVariant value);
 
-    QOrmClassProperty classProperty;
-    QOrm::Comparison comparison;
-    QVariant value;
+    Q_REQUIRED_RESULT bool isResolved() const;
+
+    Q_REQUIRED_RESULT const QOrmClassProperty* classProperty() const;
+    Q_REQUIRED_RESULT const QOrmPropertyMapping* propertyMapping() const;
+
+    Q_REQUIRED_RESULT QOrm::Comparison comparison() const;
+
+    Q_REQUIRED_RESULT QVariant value() const;
+
+private:
+    std::variant<QOrmClassProperty, QOrmPropertyMapping> m_filterProperty;
+    QOrm::Comparison m_comparison;
+    QVariant m_value;
 };
 
-struct QOrmFilterBinaryPredicate
+class Q_ORM_EXPORT QOrmFilterBinaryPredicate
 {
-    QOrmFilterBinaryPredicate(const QOrmFilterExpression& lhs,
+public:
+    QOrmFilterBinaryPredicate(QOrmFilterExpression lhs,
                               QOrm::BinaryLogicalOperator logicalOperator,
-                              const QOrmFilterExpression& rhs)
-        : lhs{lhs},
-          logicalOperator{logicalOperator},
-          rhs{rhs}
-    {
-    }
+                              QOrmFilterExpression rhs);
 
-    QOrmFilterExpression lhs;
-    QOrm::BinaryLogicalOperator logicalOperator;
-    QOrmFilterExpression rhs;
+    Q_REQUIRED_RESULT const QOrmFilterExpression& lhs() const;
+    Q_REQUIRED_RESULT QOrm::BinaryLogicalOperator logicalOperator() const;
+    Q_REQUIRED_RESULT const QOrmFilterExpression& rhs() const;
+
+private:
+    QOrmFilterExpression m_lhs;
+    QOrm::BinaryLogicalOperator m_logicalOperator;
+    QOrmFilterExpression m_rhs;
 };
 
-struct QOrmFilterUnaryPredicate
+class Q_ORM_EXPORT QOrmFilterUnaryPredicate
 {
+public:
     QOrmFilterUnaryPredicate(QOrm::UnaryLogicalOperator logicalOperator,
-                             const QOrmFilterExpression& rhs)
-        : logicalOperator{logicalOperator},
-          rhs{rhs}
-    {
-    }
+                             QOrmFilterExpression rhs);
 
-    QOrm::UnaryLogicalOperator logicalOperator;
-    QOrmFilterExpression rhs;
+    Q_REQUIRED_RESULT QOrm::UnaryLogicalOperator logicalOperator() const;
+    Q_REQUIRED_RESULT const QOrmFilterExpression& rhs() const;
+
+private:
+    QOrm::UnaryLogicalOperator m_logicalOperator;
+    QOrmFilterExpression m_rhs;
 };
 
 Q_REQUIRED_RESULT
@@ -117,11 +127,13 @@ QOrmFilterUnaryPredicate operator!(const QOrmFilterExpression& operand);
 
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
-QOrmFilterBinaryPredicate operator||(const QOrmFilterExpression& lhs, const QOrmFilterExpression& rhs);
+QOrmFilterBinaryPredicate operator||(const QOrmFilterExpression& lhs,
+                                     const QOrmFilterExpression& rhs);
 
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
-QOrmFilterBinaryPredicate operator&&(const QOrmFilterExpression& lhs, const QOrmFilterExpression& rhs);
+QOrmFilterBinaryPredicate operator&&(const QOrmFilterExpression& lhs,
+                                     const QOrmFilterExpression& rhs);
 
 QT_END_NAMESPACE
 

@@ -1,5 +1,7 @@
 #include "qormmetadata.h"
 
+#include <QDebug>
+
 QT_BEGIN_NAMESPACE
 
 class QOrmMetadataPrivate : public QSharedData
@@ -105,6 +107,15 @@ std::optional<QOrmPropertyMapping> QOrmMetadata::objectIdMapping() const
 void QOrmMetadata::setObjectIdMapping(const QOrmPropertyMapping& objectIdMapping)
 {
     d->m_objectIdMapping = objectIdMapping;
+}
+
+QDebug operator<<(QDebug dbg, const QOrmMetadata& metadata)
+{
+    QDebugStateSaver saver{dbg};
+    dbg.nospace().nospace() << "QOrmMetadata("
+                            << metadata.className() << " => " << metadata.tableName()
+                            << ")";
+    return dbg;
 }
 
 QT_END_NAMESPACE

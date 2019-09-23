@@ -13,6 +13,7 @@
 
 QT_BEGIN_NAMESPACE
 
+class QDebug;
 class QOrmMetadataPrivate;
 
 class Q_ORM_EXPORT QOrmMetadata
@@ -55,6 +56,8 @@ public:
 private:
     QSharedDataPointer<QOrmMetadataPrivate> d;
 };
+
+extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmMetadata& metadata);
 
 QT_END_NAMESPACE
 

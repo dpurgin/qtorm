@@ -68,6 +68,45 @@ QOrm::FilterExpressionType QOrmFilterExpression::type() const
     qFatal("Unexpected state of QOrmFilterExpression");
 }
 
+QOrmFilterTerminalPredicate::QOrmFilterTerminalPredicate(
+        QOrmFilterTerminalPredicate::FilterProperty filterProperty,
+        QOrm::Comparison comparison,
+        QVariant value)
+    : m_filterProperty{std::move(filterProperty)},
+      m_comparison{comparison},
+      m_value{std::move(value)}
+{
+}
+
+/*!
+ * \class QOrmFilterTerminalPredicate
+ */
+
+bool QOrmFilterTerminalPredicate::isResolved() const
+{
+    return std::holds_alternative<QOrmPropertyMapping>(m_filterProperty);
+}
+
+const QOrmClassProperty* QOrmFilterTerminalPredicate::classProperty() const
+{
+    return std::get_if<QOrmClassProperty>(&m_filterProperty);
+}
+
+const QOrmPropertyMapping* QOrmFilterTerminalPredicate::propertyMapping() const
+{
+    return std::get_if<QOrmPropertyMapping>(&m_filterProperty);
+}
+
+QOrm::Comparison QOrmFilterTerminalPredicate::comparison() const
+{
+    return m_comparison;
+}
+
+QVariant QOrmFilterTerminalPredicate::value() const
+{
+    return m_value;
+}
+
 const QOrmFilterTerminalPredicate* QOrmFilterExpression::terminalPredicate() const
 {
     return std::get_if<QOrmFilterTerminalPredicate>(&d->m_predicate);
@@ -81,6 +120,55 @@ const QOrmFilterBinaryPredicate* QOrmFilterExpression::binaryPredicate() const
 const QOrmFilterUnaryPredicate* QOrmFilterExpression::unaryPredicate() const
 {
     return std::get_if<QOrmFilterUnaryPredicate>(&d->m_predicate);
+}
+
+/*!
+ * \class QOrmFilterBinaryPredicate
+ */
+
+QOrmFilterBinaryPredicate::QOrmFilterBinaryPredicate(QOrmFilterExpression lhs,
+                                                     QOrm::BinaryLogicalOperator logicalOperator,
+                                                     QOrmFilterExpression rhs)
+    : m_lhs{std::move(lhs)},
+      m_logicalOperator{logicalOperator},
+      m_rhs{std::move(rhs)}
+{
+}
+
+const QOrmFilterExpression& QOrmFilterBinaryPredicate::lhs() const
+{
+    return m_lhs;
+}
+
+QOrm::BinaryLogicalOperator QOrmFilterBinaryPredicate::logicalOperator() const
+{
+    return m_logicalOperator;
+}
+
+const QOrmFilterExpression& QOrmFilterBinaryPredicate::rhs() const
+{
+    return m_rhs;
+}
+
+/*!
+ * \class QOrmFilterUnaryPredicate
+ */
+
+QOrmFilterUnaryPredicate::QOrmFilterUnaryPredicate(QOrm::UnaryLogicalOperator logicalOperator,
+                                                   QOrmFilterExpression rhs)
+    : m_logicalOperator{logicalOperator},
+      m_rhs{std::move(rhs)}
+{
+}
+
+QOrm::UnaryLogicalOperator QOrmFilterUnaryPredicate::logicalOperator() const
+{
+    return m_logicalOperator;
+}
+
+const QOrmFilterExpression& QOrmFilterUnaryPredicate::rhs() const
+{
+    return m_rhs;
 }
 
 QOrmFilterTerminalPredicate operator==(const QOrmClassProperty& property, const QVariant& value)
@@ -132,3 +220,4 @@ QOrmFilterBinaryPredicate operator&&(const QOrmFilterExpression& lhs,
 
 
 QT_END_NAMESPACE
+

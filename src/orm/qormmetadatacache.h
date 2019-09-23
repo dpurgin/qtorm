@@ -23,9 +23,11 @@ public:
 
     QOrmMetadataCache& operator=(QOrmMetadataCache&&);
 
+    Q_REQUIRED_RESULT
     const QOrmMetadata& operator[](const QMetaObject& qMetaObject);
 
     template<typename T>
+    Q_REQUIRED_RESULT
     const QOrmMetadata& get()
     {
         return operator[](T::staticMetaObject);
