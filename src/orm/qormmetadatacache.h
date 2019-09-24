@@ -17,7 +17,7 @@ class Q_ORM_EXPORT QOrmMetadataCache
     Q_DISABLE_COPY(QOrmMetadataCache)
 
 public:
-    QOrmMetadataCache();
+    QOrmMetadataCache();    
     QOrmMetadataCache(QOrmMetadataCache&&);
     ~QOrmMetadataCache();
 

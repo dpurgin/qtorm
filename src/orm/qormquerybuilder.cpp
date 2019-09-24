@@ -19,9 +19,7 @@ class QOrmQueryBuilderPrivate : public QSharedData
     friend class QOrmQueryBuilder;
 
     QOrmQueryBuilderPrivate(QOrmSession* ormSession, const QOrmMetadata& relationMeta)
-        : m_ormSession{ormSession},
-          m_relation{relationMeta},
-          m_projection{relationMeta}
+        : m_session{ormSession}, m_relation{relationMeta}, m_projection{relationMeta}
     {
         Q_ASSERT(ormSession != nullptr);
     }
@@ -33,7 +31,7 @@ class QOrmQueryBuilderPrivate : public QSharedData
     QOrmFilterExpression resolvedFilterExpression(const QOrmMetadata& relation,
                                                   const QOrmFilterExpression& expression) const;
 
-    QOrmSession* m_ormSession{nullptr};
+    QOrmSession* m_session{nullptr};
 
     QOrmMetadata m_relation;
     QOrmMetadata m_projection;
@@ -91,10 +89,10 @@ QOrmFilterExpression QOrmQueryBuilderPrivate::resolvedFilterExpression(
             if (predicate->isResolved())
                 return *predicate;
 
-            std::optional<QOrmPropertyMapping> propertyMapping =
+            const QOrmPropertyMapping* propertyMapping =
                 relation.classPropertyMapping(predicate->classProperty()->descriptor());
 
-            if (!propertyMapping.has_value())
+            if (propertyMapping == nullptr)
             {
                 qCritical() << "QtOrm: Unable to resolve filter expression for class property"
                             << predicate->classProperty()->descriptor()
@@ -102,9 +100,8 @@ QOrmFilterExpression QOrmQueryBuilderPrivate::resolvedFilterExpression(
                 qFatal("QtOrm: Malformed query filter");
             }
 
-            return QOrmFilterTerminalPredicate{propertyMapping.value(),
-                                               predicate->comparison(),
-                                               predicate->value()};
+            return QOrmFilterTerminalPredicate{
+                *propertyMapping, predicate->comparison(), predicate->value()};
         }
 
         case QOrm::FilterExpressionType::BinaryPredicate:
@@ -156,7 +153,7 @@ QOrmQueryBuilder& QOrmQueryBuilder::order(QOrmOrderBuilder orderBuilder)
 
 QOrmQueryBuilder& QOrmQueryBuilder::projection(const QMetaObject& projectionMetaObject)
 {
-    d->m_projection = (*d->m_ormSession->metadataCache())[projectionMetaObject];
+    d->m_projection = (*d->m_session->metadataCache())[projectionMetaObject];
     return *this;
 }
 
@@ -167,14 +164,16 @@ QOrmQuery QOrmQueryBuilder::build() const
 
 QOrmQueryResult QOrmQueryBuilder::select()
 {
-    return d->m_ormSession->execute(build());
+    return d->m_session->execute(build());
 }
 
 QOrmQueryResult QOrmQueryBuilder::select(const QMetaObject& projectionMetaObject) const
 {
-    QOrmQuery query{d->build(projectionMetaObject)};
+    const QOrmMetadata& meta = (*d->m_session->metadataCache())[projectionMetaObject];
 
-    return d->m_ormSession->execute(query);
+    QOrmQuery query{d->build(meta)};
+
+    return d->m_session->execute(query);
 }
 
 QT_END_NAMESPACE

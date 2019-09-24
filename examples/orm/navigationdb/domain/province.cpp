@@ -3,21 +3,20 @@
 #include <QDebug>
 #include <QDebugStateSaver>
 
-QDebug operator<<(QDebug dbg, const Province& province)
+QDebug operator<<(QDebug dbg, const Province &province)
 {
     QDebugStateSaver saver{dbg};
-    dbg.noquote().nospace() << "Province(" << province.id() <<  ", \"" << province.name() << "\")";
+    dbg.noquote().nospace()
+        << "Province(" << province.id() << ", \"" << province.name() << "\")";
     return dbg;
 }
 
-Province::Province(QObject *parent)
-    : QObject(parent)
+Province::Province(QObject *parent) : QObject(parent)
 {
 }
 
-Province::Province(const QString& name, QObject* parent)
-    : QObject{parent},
-      m_name{name}
+Province::Province(const QString &name, QObject *parent)
+    : QObject{parent}, m_name{name}
 {
 }
 
@@ -34,7 +33,9 @@ QString Province::name() const
 void Province::setId(int id)
 {
     if (m_id == id)
+    {
         return;
+    }
 
     m_id = id;
     emit idChanged(m_id);

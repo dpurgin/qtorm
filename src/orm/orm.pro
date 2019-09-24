@@ -27,6 +27,7 @@ PUBLIC_HEADERS += \
 
 PRIVATE_HEADERS = \
     qormsqlitestatementgenerator_p.h \
+    qormglobal_p.h
 
 SOURCES += \
     qormabstractprovider.cpp \
