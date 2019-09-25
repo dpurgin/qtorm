@@ -88,6 +88,12 @@ namespace QOrm
         UnaryPredicate
     };
 
+    enum class RemoveMode
+    {
+        PreventRemoveAll,
+        ForceRemoveAll
+    };
+
     extern Q_ORM_EXPORT uint qHash(Comparison comparison) Q_DECL_NOTHROW;
 }
 

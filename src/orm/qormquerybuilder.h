@@ -35,7 +35,7 @@ public:
     QOrmQueryBuilder& filter(QOrmFilterExpression expression);
     QOrmQueryBuilder& order(QOrmOrderBuilder orderBuilder);
 
-    QOrmQuery build() const;
+    QOrmQuery build(QOrm::Operation operation) const;
 
     template<typename T>
     QOrmQueryBuilder& projection()
@@ -51,6 +51,7 @@ public:
         return select(T::staticMetaObject);
     }
 
+    QOrmQueryResult remove(QOrm::RemoveMode removeMode = QOrm::RemoveMode::PreventRemoveAll) const;
 
 private:
     QOrmQueryBuilder& projection(const QMetaObject& projectionMetaObject);

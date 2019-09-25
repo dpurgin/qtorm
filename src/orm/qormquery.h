@@ -21,7 +21,7 @@ public:
               const QOrmMetadata& projection,
               const QOrmMetadata& relation,
               QOrmFilter filter,
-              QOrmOrder order);
+              QOrmOrder order);    
     QOrmQuery(const QOrmQuery&);
     QOrmQuery(QOrmQuery&&);
     ~QOrmQuery();

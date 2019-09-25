@@ -25,13 +25,15 @@ class QOrmQueryBuilderPrivate : public QSharedData
     }
 
     Q_REQUIRED_RESULT
-    QOrmQuery build(const QOrmMetadata& projection) const;
+    static QOrmFilter foldFilters(const QOrmMetadata& relation, const QVector<QOrmFilter>& filters);
 
     Q_REQUIRED_RESULT
-    QOrmFilterExpression resolvedFilterExpression(const QOrmMetadata& relation,
-                                                  const QOrmFilterExpression& expression) const;
+    static QOrmFilterExpression resolvedFilterExpression(const QOrmMetadata& relation,
+                                                         const QOrmFilterExpression& expression);
 
     QOrmSession* m_session{nullptr};
+
+    QOrm::Operation m_operation;
 
     QOrmMetadata m_relation;
     QOrmMetadata m_projection;
@@ -40,45 +42,40 @@ class QOrmQueryBuilderPrivate : public QSharedData
     std::optional<QOrmOrderBuilder> m_orderBuilder;
 };
 
-QOrmQuery QOrmQueryBuilderPrivate::build(const QOrmMetadata& projection) const
-{    
+QOrmFilter QOrmQueryBuilderPrivate::foldFilters(const QOrmMetadata& relation,
+                                                const QVector<QOrmFilter>& filters)
+{
     QOrmFilter filter;
 
     // Fold filter expressions
-    if (!m_filters.empty())
+    if (!filters.empty())
     {
-        decltype(m_filters)::const_iterator it = std::cbegin(m_filters);
+        auto it = std::cbegin(filters);
 
         // skip to first non-empty filter
-        while (it != std::cend(m_filters) && it->type() == QOrm::FilterType::Empty)
+        while (it != std::cend(filters) && it->type() == QOrm::FilterType::Empty)
             ++it;
 
         // currently only filter expressions are supported
         Q_ASSERT(it->type() == QOrm::FilterType::Expression);
         filter = *it;
 
-        for (it = it + 1; it != std::cend(m_filters); ++it)
+        for (it = it + 1; it != std::cend(filters); ++it)
         {
             Q_ASSERT(it->type() == QOrm::FilterType::Expression);
             filter = QOrmFilter{*filter.expression() && *it->expression()};
         }
 
         Q_ASSERT(filter.type() == QOrm::FilterType::Expression);
-        filter = QOrmFilter{resolvedFilterExpression(m_relation, *filter.expression())};
+        filter = QOrmFilter{resolvedFilterExpression(relation, *filter.expression())};
     }
 
-    QOrmOrder order;
-
-    return QOrmQuery{QOrm::Operation::Read,
-                     projection,
-                     m_relation,
-                     filter,
-                     order};
+    return filter;
 }
 
-QOrmFilterExpression QOrmQueryBuilderPrivate::resolvedFilterExpression(
-    const QOrmMetadata& relation,
-    const QOrmFilterExpression& expression) const
+QOrmFilterExpression
+QOrmQueryBuilderPrivate::resolvedFilterExpression(const QOrmMetadata& relation,
+                                                  const QOrmFilterExpression& expression)
 {
     switch (expression.type())
     {
@@ -157,21 +154,53 @@ QOrmQueryBuilder& QOrmQueryBuilder::projection(const QMetaObject& projectionMeta
     return *this;
 }
 
-QOrmQuery QOrmQueryBuilder::build() const
+QOrmQuery QOrmQueryBuilder::build(QOrm::Operation operation) const
 {
-    return d->build(d->m_projection);
+    return QOrmQuery{operation,
+                     d->m_projection,
+                     d->m_relation,
+                     d->foldFilters(d->m_relation, d->m_filters),
+                     d->m_orderBuilder->build()};
 }
 
 QOrmQueryResult QOrmQueryBuilder::select()
 {
-    return d->m_session->execute(build());
+    QOrmFilter filter = QOrmQueryBuilderPrivate::foldFilters(d->m_relation, d->m_filters);
+
+    QOrmQuery query{
+        QOrm::Operation::Read, d->m_projection, d->m_relation, filter, d->m_orderBuilder->build()};
+
+    return d->m_session->execute(query);
 }
 
 QOrmQueryResult QOrmQueryBuilder::select(const QMetaObject& projectionMetaObject) const
 {
-    const QOrmMetadata& meta = (*d->m_session->metadataCache())[projectionMetaObject];
+    const QOrmMetadata& projection = (*d->m_session->metadataCache())[projectionMetaObject];
 
-    QOrmQuery query{d->build(meta)};
+    QOrmFilter filter = QOrmQueryBuilderPrivate::foldFilters(d->m_relation, d->m_filters);
+
+    QOrmQuery query{
+        QOrm::Operation::Read, projection, d->m_relation, filter, d->m_orderBuilder->build()};
+
+    return d->m_session->execute(query);
+}
+
+QOrmQueryResult QOrmQueryBuilder::remove(QOrm::RemoveMode removeMode) const
+{
+    if (removeMode != QOrm::RemoveMode::ForceRemoveAll && d->m_filters.isEmpty())
+    {
+        qCritical() << "QtORM: Attempting to remove all entries in" << d->m_relation
+                    << ". Either provide a filter or pass QOrm::RemoveMode::ForceRemoveAll";
+        qFatal("QtORM: Security check failure");
+    }
+
+    QOrmFilter filter = QOrmQueryBuilderPrivate::foldFilters(d->m_relation, d->m_filters);
+
+    QOrmQuery query{QOrm::Operation::Delete,
+                    d->m_projection,
+                    d->m_relation,
+                    filter,
+                    d->m_orderBuilder->build()};
 
     return d->m_session->execute(query);
 }

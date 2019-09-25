@@ -2,6 +2,7 @@
 
 #include "qormabstractprovider.h"
 #include "qormerror.h"
+#include "qormglobal_p.h"
 #include "qormmetadatacache.h"
 #include "qormquery.h"
 #include "qormsessionconfiguration.h"
@@ -136,7 +137,30 @@ bool QOrmSession::remove(QObject* entityInstance, const QMetaObject& qMetaObject
 
     d->ensureProviderConnected();
 
-//    d->setLastError(d->m_sessionConfiguration.provider()->remove(entityInstance, qMetaObject));
+    const QOrmMetadata& relation = d->m_metadataCache[qMetaObject];
+
+    QOrmQueryBuilder queryBuilder = from(qMetaObject);
+
+    if (relation.objectIdMapping() != nullptr)
+    {
+        QOrmFilterTerminalPredicate predicate{
+            *relation.objectIdMapping(),
+            QOrm::Comparison::Equal,
+            QtOrmPrivate::propertyValue(entityInstance,
+                                        relation.objectIdMapping()->tableFieldName())};
+
+        queryBuilder.filter(predicate);
+    }
+    else
+    {
+        qCritical() << "QtORM: Unable to remove from" << relation << "without object ID property";
+        qFatal("QtORM: Consistency check failure");
+    }
+
+    QOrmQueryResult result =
+        d->m_sessionConfiguration.provider()->execute(queryBuilder.build(QOrm::Operation::Delete));
+
+    d->setLastError(result.error());
 
     if (d->m_lastError.error() == QOrm::Error::None)
     {

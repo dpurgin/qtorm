@@ -25,7 +25,7 @@ public:
     QOrmMetadata m_projection;
     QOrmMetadata m_relation;
     QOrmFilter m_filter;
-    QOrmOrder m_order;
+    QOrmOrder m_order;    
 };
 
 QOrmQuery::QOrmQuery(QOrm::Operation operation,
