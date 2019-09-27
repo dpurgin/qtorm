@@ -97,6 +97,11 @@ private:
     QOrmFilterExpression m_rhs;
 };
 
+extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterExpression& expression);
+extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterTerminalPredicate& predicate);
+extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterBinaryPredicate& predicate);
+extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterUnaryPredicate& predicate);
+
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
 QOrmFilterTerminalPredicate operator==(const QOrmClassProperty& property, const QVariant& value);

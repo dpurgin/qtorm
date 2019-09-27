@@ -46,4 +46,6 @@ private:
     QSharedDataPointer<QOrmPropertyMappingPrivate> d;
 };
 
+extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmPropertyMapping& propertyMapping);
+
 QT_END_NAMESPACE

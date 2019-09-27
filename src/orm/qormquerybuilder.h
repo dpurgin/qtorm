@@ -18,13 +18,13 @@ class QOrmFilterExpression;
 class QOrmMetadataCache;
 class QOrmOrderBuilder;
 class QOrmQueryBuilderPrivate;
+class QOrmRelation;
 class QOrmSession;
 
 class Q_ORM_EXPORT QOrmQueryBuilder
 {
 public:
-    QOrmQueryBuilder(QOrmSession* ormSession,
-                     const QOrmMetadata& relationMeta);
+    QOrmQueryBuilder(QOrmSession* ormSession, const QOrmRelation& relation);
     QOrmQueryBuilder(const QOrmQueryBuilder&);
     QOrmQueryBuilder(QOrmQueryBuilder&&);
     ~QOrmQueryBuilder();

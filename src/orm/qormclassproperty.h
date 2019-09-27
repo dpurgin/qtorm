@@ -18,6 +18,8 @@ private:
     QString m_descriptor;
 };
 
+extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmClassProperty& classProperty);
+
 #define Q_ORM_CLASS_PROPERTY(descriptor) (QOrmClassProperty{#descriptor})
 
 QT_END_NAMESPACE

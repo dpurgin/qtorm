@@ -8,6 +8,7 @@
 #include "qormorder.h"
 #include "qormquery.h"
 #include "qormqueryresult.h"
+#include "qormrelation.h"
 #include "qormsession.h"
 
 #include <QDebug>
@@ -18,31 +19,30 @@ class QOrmQueryBuilderPrivate : public QSharedData
 {
     friend class QOrmQueryBuilder;
 
-    QOrmQueryBuilderPrivate(QOrmSession* ormSession, const QOrmMetadata& relationMeta)
-        : m_session{ormSession}, m_relation{relationMeta}, m_projection{relationMeta}
+    QOrmQueryBuilderPrivate(QOrmSession* ormSession, const QOrmRelation& relation)
+        : m_session{ormSession}
+        , m_relation{relation}
     {
         Q_ASSERT(ormSession != nullptr);
     }
 
     Q_REQUIRED_RESULT
-    static QOrmFilter foldFilters(const QOrmMetadata& relation, const QVector<QOrmFilter>& filters);
+    static QOrmFilter foldFilters(const QOrmRelation& relation, const QVector<QOrmFilter>& filters);
 
     Q_REQUIRED_RESULT
-    static QOrmFilterExpression resolvedFilterExpression(const QOrmMetadata& relation,
+    static QOrmFilterExpression resolvedFilterExpression(const QOrmRelation& relation,
                                                          const QOrmFilterExpression& expression);
 
     QOrmSession* m_session{nullptr};
 
-    QOrm::Operation m_operation;
-
-    QOrmMetadata m_relation;
-    QOrmMetadata m_projection;
+    QOrmRelation m_relation;
+    std::optional<QOrmMetadata> m_projection;
 
     QVector<QOrmFilter> m_filters;
     std::optional<QOrmOrderBuilder> m_orderBuilder;
 };
 
-QOrmFilter QOrmQueryBuilderPrivate::foldFilters(const QOrmMetadata& relation,
+QOrmFilter QOrmQueryBuilderPrivate::foldFilters(const QOrmRelation& relation,
                                                 const QVector<QOrmFilter>& filters)
 {
     QOrmFilter filter;
@@ -120,9 +120,8 @@ QOrmQueryBuilderPrivate::resolvedFilterExpression(const QOrmMetadata& relation,
     qFatal("QtOrm: Unexpected state in %s", __PRETTY_FUNCTION__);
 }
 
-QOrmQueryBuilder::QOrmQueryBuilder(QOrmSession* ormSession,
-                                   const QOrmMetadata& relationMetaObject)
-    : d{new QOrmQueryBuilderPrivate{ormSession, relationMetaObject}}
+QOrmQueryBuilder::QOrmQueryBuilder(QOrmSession* ormSession, const QOrmRelation& relation)
+    : d{new QOrmQueryBuilderPrivate{ormSession, relation}}
 {
 }
 

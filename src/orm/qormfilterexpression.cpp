@@ -171,6 +171,46 @@ const QOrmFilterExpression& QOrmFilterUnaryPredicate::rhs() const
     return m_rhs;
 }
 
+QDebug operator<<(QDebug dbg, const QOrmFilterExpression& expression)
+{
+    QDebugStateSaver saver{dbg};
+    dbg << "QOrmFilterExpression(" << expression.type() << ", ";
+
+    switch (expression.type())
+    {
+        case QOrm::FilterExpressionType::TerminalPredicate:
+            dbg << *expression.terminalPredicate();
+            break;
+
+        case QOrm::FilterExpressionType::BinaryPredicate:
+            dbg << *expression.binaryPredicate();
+            break;
+
+        case QOrm::FilterExpressionType::UnaryPredicate:
+            dbg << *expression.unaryPredicate();
+            break;
+    }
+
+    dbg << ")";
+    return dbg;
+}
+
+QDebug operator<<(QDebug dbg, const QOrmFilterTerminalPredicate& predicate)
+{
+    QDebugStateSaver saver{dbg};
+
+    dbg << "QOrmFilterTerminalPredicate(";
+
+    if (predicate.isResolved())
+        dbg << *predicate.propertyMapping();
+    else
+        dbg << *predicate.classProperty();
+
+    dbg << ", " << predicate.comparison() << ", " << predicate.value() << ")";
+
+    return dbg;
+}
+
 QOrmFilterTerminalPredicate operator==(const QOrmClassProperty& property, const QVariant& value)
 {
     return {property, QOrm::Comparison::Equal, value};

@@ -5,6 +5,7 @@
 #include "qormglobal_p.h"
 #include "qormmetadatacache.h"
 #include "qormquery.h"
+#include "qormrelation.h"
 #include "qormsessionconfiguration.h"
 #include "qormtransactiontoken.h"
 
@@ -85,7 +86,7 @@ QOrmQueryBuilder QOrmSession::from(const QMetaObject& relationMetaObject)
 {
     Q_D(QOrmSession);
 
-    return QOrmQueryBuilder{this, d->m_metadataCache[relationMetaObject]};
+    return QOrmQueryBuilder{this, QOrmRelation{d->m_metadataCache[relationMetaObject]}};
 }
 
 bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject, QOrm::MergeMode mode)

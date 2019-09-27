@@ -2,7 +2,7 @@
 #define QORMSESSION_H
 
 #include <QtOrm/qormglobal.h>
-#include <QtOrm/qormentitymetadata.h>
+#include <QtOrm/qormmetadata.h>
 #include <QtOrm/qormsessionconfiguration.h>
 #include <QtOrm/qormquerybuilder.h>
 #include <QtOrm/qormclassproperty.h>

@@ -12,6 +12,7 @@ QT_BEGIN_NAMESPACE
 class QOrmFilter;
 class QOrmOrder;
 class QOrmQueryPrivate;
+class QOrmRelation;
 class QOrmMetadata;
 
 class Q_ORM_EXPORT QOrmQuery
@@ -19,9 +20,9 @@ class Q_ORM_EXPORT QOrmQuery
 public:
     QOrmQuery(QOrm::Operation operation,
               const QOrmMetadata& projection,
-              const QOrmMetadata& relation,
+              const QOrmRelation& relation,
               QOrmFilter filter,
-              QOrmOrder order);    
+              QOrmOrder order);
     QOrmQuery(const QOrmQuery&);
     QOrmQuery(QOrmQuery&&);
     ~QOrmQuery();
@@ -36,7 +37,7 @@ public:
     const QOrmMetadata& projection() const;
 
     Q_REQUIRED_RESULT
-    const QOrmMetadata& relation() const;
+    const QOrmRelation& relation() const;
 
     Q_REQUIRED_RESULT
     QOrmFilter filter() const;
@@ -47,6 +48,8 @@ public:
 private:
     QSharedDataPointer<QOrmQueryPrivate> d;
 };
+
+QDebug operator<<(QDebug dbg, const QOrmQuery& query);
 
 QT_END_NAMESPACE
 

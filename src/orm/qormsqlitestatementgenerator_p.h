@@ -17,29 +17,35 @@ class QOrmFilterExpression;
 class QOrmFilterUnaryPredicate;
 class QOrmFilterTerminalPredicate;
 class QOrmQuery;
-class QOrmSqliteStatementGeneratorPrivate;
+class QOrmRelation;
 
 class Q_ORM_EXPORT QOrmSqliteStatementGenerator
 {    
 public:
-    QOrmSqliteStatementGenerator();
-    QOrmSqliteStatementGenerator(const QOrmSqliteStatementGenerator&);
-    QOrmSqliteStatementGenerator(QOrmSqliteStatementGenerator&&);
-    ~QOrmSqliteStatementGenerator();
-
-    QOrmSqliteStatementGenerator& operator=(const QOrmSqliteStatementGenerator&);
-    QOrmSqliteStatementGenerator& operator=(QOrmSqliteStatementGenerator&&);
+    Q_REQUIRED_RESULT
+    static std::pair<QString, QVariantMap> generate(const QOrmQuery& query);
 
     Q_REQUIRED_RESULT
-    QString statement() const;
+    static QString generate(const QOrmQuery& query, QVariantMap& boundParameters);
 
     Q_REQUIRED_RESULT
-    QVariantMap parameters() const;
+    static QString generateFromClause(const QOrmRelation& relation, QVariantMap& boundParameters);
 
-    void process(const QOrmQuery& query);
+    Q_REQUIRED_RESULT
+    static QString generateWhereClause(const QOrmFilter& filter, QVariantMap& boundParameters);
 
-private:
-    QSharedDataPointer<QOrmSqliteStatementGeneratorPrivate> d;
+    Q_REQUIRED_RESULT
+    static QString generateCondition(const QOrmFilterExpression& expression,
+                                     QVariantMap& boundParameters);
+    Q_REQUIRED_RESULT
+    static QString generateCondition(const QOrmFilterTerminalPredicate& predicate,
+                                     QVariantMap& boundParameters);
+    Q_REQUIRED_RESULT
+    static QString generateCondition(const QOrmFilterBinaryPredicate& predicate,
+                                     QVariantMap& boundParameters);
+    Q_REQUIRED_RESULT
+    static QString generateCondition(const QOrmFilterUnaryPredicate& predicate,
+                                     QVariantMap& boundParameters);
 };
 
 QT_END_NAMESPACE

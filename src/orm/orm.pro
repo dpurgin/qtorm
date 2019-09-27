@@ -16,6 +16,7 @@ PUBLIC_HEADERS += \
     qormorder.h \
     qormorderbuilder.h \
     qormpropertymapping.h \
+    qormrelation.h \
     qormquery.h \
     qormquerybuilder.h \
     qormqueryresult.h \
@@ -40,6 +41,7 @@ SOURCES += \
     qormorder.cpp \
     qormorderbuilder.cpp \
     qormpropertymapping.cpp \
+    qormrelation.cpp \
     qormquery.cpp \
     qormquerybuilder.cpp \
     qormqueryresult.cpp \

@@ -29,6 +29,7 @@ namespace QOrm
         InvalidMapping,
         Other
     };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::Error error);
 
     enum class TransactionMode
     {
@@ -54,6 +55,8 @@ namespace QOrm
         Greater,
         GreaterOrEqual
     };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::Comparison comparison);
+    extern Q_ORM_EXPORT uint qHash(Comparison comparison) Q_DECL_NOTHROW;
 
     enum class BinaryLogicalOperator
     {
@@ -73,6 +76,7 @@ namespace QOrm
         Update,
         Delete
     };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, Operation operation);
 
     enum class FilterType
     {
@@ -80,6 +84,7 @@ namespace QOrm
         Expression,
         Invokable
     };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, FilterType filterType);
 
     enum class FilterExpressionType
     {
@@ -87,6 +92,7 @@ namespace QOrm
         BinaryPredicate,
         UnaryPredicate
     };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, FilterExpressionType expressionType);
 
     enum class RemoveMode
     {
@@ -94,10 +100,13 @@ namespace QOrm
         ForceRemoveAll
     };
 
-    extern Q_ORM_EXPORT uint qHash(Comparison comparison) Q_DECL_NOTHROW;
+    enum class RelationType
+    {
+        Query,
+        Mapping
+    };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::RelationType relationType);
 }
-
-extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::Error error);
 
 QT_END_NAMESPACE
 

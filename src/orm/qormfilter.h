@@ -35,6 +35,8 @@ private:
     std::variant<QOrmFilterExpression, void*> m_filter{nullptr};
 };
 
+extern Q_ORM_EXPORT QDebug operator<<(QDebug debug, const QOrmFilter& filter);
+
 QT_END_NAMESPACE
 
 #endif

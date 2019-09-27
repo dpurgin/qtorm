@@ -1,6 +1,5 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
----
 Language: Cpp
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align 
@@ -25,9 +24,9 @@ BreakBeforeBraces: Allman
 #   SplitEmptyFunction: true
 #   SplitEmptyRecord: true
 #   SplitEmptyNamespace: true
-BreakConstructorInitializers: BeforeColon
+BreakConstructorInitializers: BeforeComma
 ColumnLimit: 100
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
 IndentCaseLabels: true
 # IndentPPDirectives: BeforeHash
 NamespaceIndentation: All

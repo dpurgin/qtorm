@@ -85,6 +85,12 @@ int main(int argc, char* argv[])
 
     }
 
+    {
+        QOrmQueryResult result = session.from<Province>()
+                                        .filter(Q_ORM_CLASS_PROPERTY(id) > 3)
+                                        .remove();
+    }
+
 //    session.declareTransaction(QOrm::TransactionMode::Supports);
 
 //    auto d1 = session.select<Province>().toVector();
