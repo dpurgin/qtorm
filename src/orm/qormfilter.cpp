@@ -12,10 +12,6 @@ QDebug operator<<(QDebug dbg, const QOrmFilter& filter)
 
     switch (filter.type())
     {
-        case QOrm::FilterType::Empty:
-            dbg << "Empty";
-            break;
-
         case QOrm::FilterType::Invokable:
             dbg << "Invokable";
             break;

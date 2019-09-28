@@ -31,6 +31,7 @@ PRIVATE_HEADERS = \
     qormglobal_p.h
 
 SOURCES += \
+    qormglobal.cpp \
     qormabstractprovider.cpp \
     qormclassproperty.cpp \
     qormerror.cpp \
@@ -51,7 +52,6 @@ SOURCES += \
     qormsqlitestatementgenerator_p.cpp \
     qormsqliteprovider.cpp \
     qormtransactiontoken.cpp \
-    qormglobal.cpp \
 
 HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS
 

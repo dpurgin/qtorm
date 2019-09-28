@@ -1,13 +1,14 @@
 #include "qormsqliteprovider.h"
 
-#include "qormerror.h"
-#include "qormmetadatacache.h"
 #include "qormclassproperty.h"
+#include "qormerror.h"
+#include "qormfilter.h"
+#include "qormmetadatacache.h"
 #include "qormpropertymapping.h"
 #include "qormquery.h"
 #include "qormqueryresult.h"
+#include "qormrelation.h"
 #include "qormsqlconfiguration.h"
-#include "qormfilter.h"
 
 #include "qormsqlitestatementgenerator_p.h"
 
@@ -70,10 +71,10 @@ class QOrmSqliteProviderPrivate
     Q_REQUIRED_RESULT
     QObject* makeEntityInstance(const QOrmMetadata& entityMetadata, const QSqlRecord& record);
 
-    QOrmError ensureSchemaSynchronized(const QOrmMetadata& entityMetadata);
-    QOrmError recreateSchema(const QOrmMetadata& entityMetadata);
-    QOrmError updateSchema(const QOrmMetadata& entityMetadata);
-    QOrmError validateSchema(const QOrmMetadata& validateSchema);
+    QOrmError ensureSchemaSynchronized(const QOrmRelation& entityMetadata);
+    QOrmError recreateSchema(const QOrmRelation& entityMetadata);
+    QOrmError updateSchema(const QOrmRelation& entityMetadata);
+    QOrmError validateSchema(const QOrmRelation& validateSchema);
 
     QOrmQueryResult read(const QOrmQuery& query);
 };
@@ -109,7 +110,7 @@ QString QOrmSqliteProviderPrivate::toSqlType(QVariant::Type type)
 
 QOrmError QOrmSqliteProviderPrivate::lastDatabaseError() const
 {
-    return QOrmError{QOrm::Error::Provider, m_database.lastError().text()};
+    return QOrmError{QOrm::ErrorType::Provider, m_database.lastError().text()};
 }
 
 QSqlQuery QOrmSqliteProviderPrivate::prepareAndExecute(const QString& statement,
@@ -152,55 +153,73 @@ QObject* QOrmSqliteProviderPrivate::makeEntityInstance(const QOrmMetadata& entit
     return entityInstance;
 }
 
-QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmMetadata& entityMetadata)
+QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation& relation)
 {
-    QOrmError result{QOrm::Error::None, ""};
+    if (m_sqlConfiguration.schemaMode() == QOrmSqlConfiguration::SchemaMode::Bypass)
+        return {QOrm::ErrorType::None, ""};
 
-    if (m_sqlConfiguration.schemaMode() != QOrmSqlConfiguration::SchemaMode::Bypass &&
-            !m_schemaSyncCache.contains(entityMetadata.className()))
+    switch (relation.type())
     {
-        switch (m_sqlConfiguration.schemaMode())
+        case QOrm::RelationType::Mapping:
         {
-            case QOrmSqlConfiguration::SchemaMode::Recreate:
-                result = recreateSchema(entityMetadata);
-                break;
+            Q_ASSERT(relation.mapping() != nullptr);
 
-            case QOrmSqlConfiguration::SchemaMode::Update:
-                result = updateSchema(entityMetadata);
-                break;
+            if (m_schemaSyncCache.contains(relation.mapping()->className()))
+                return {QOrm::ErrorType::None, ""};
 
-            case QOrmSqlConfiguration::SchemaMode::Validate:
-                result = validateSchema(entityMetadata);
-                break;
+            std::optional<QOrmError> error;
 
-            case QOrmSqlConfiguration::SchemaMode::Bypass:
-                break;
+            switch (m_sqlConfiguration.schemaMode())
+            {
+                case QOrmSqlConfiguration::SchemaMode::Recreate:
+                    error = recreateSchema(relation);
+                    break;
+
+                case QOrmSqlConfiguration::SchemaMode::Update:
+                    error = updateSchema(relation);
+                    break;
+
+                case QOrmSqlConfiguration::SchemaMode::Validate:
+                    error = validateSchema(relation);
+                    break;
+
+                case QOrmSqlConfiguration::SchemaMode::Bypass:
+                    qFatal("QtORM: Unexpected state");
+            }
+
+            Q_ASSERT(error.has_value());
+
+            if (error->type() == QOrm::ErrorType::None)
+                m_schemaSyncCache.insert(relation.mapping()->className());
+
+            return *error;
         }
 
-        if (result.error() == QOrm::Error::None)
-            m_schemaSyncCache.insert(entityMetadata.className());
+        case QOrm::RelationType::Query:
+            Q_ASSERT(relation.query() != nullptr);
+            return ensureSchemaSynchronized(relation.query()->relation());
     }
-
-    return result;
 }
 
-QOrmError QOrmSqliteProviderPrivate::recreateSchema(const QOrmMetadata& entityMetadata)
+QOrmError QOrmSqliteProviderPrivate::recreateSchema(const QOrmRelation& relation)
 {
     Q_ASSERT(m_database.isOpen());
+    Q_ASSERT(relation.type() == QOrm::RelationType::Mapping);
+    Q_ASSERT(relation.mapping() != nullptr);
 
-    if (m_database.tables().contains(entityMetadata.tableName()))
+    if (m_database.tables().contains(relation.mapping()->tableName()))
     {
-        QString statement = QString{"DROP TABLE %1"}.arg(entityMetadata.tableName());
+        QString statement = QString{"DROP TABLE %1"}.arg(relation.mapping()->tableName());
 
         QSqlQuery query = prepareAndExecute(statement);
 
         if (query.lastError().type() != QSqlError::NoError)
-            return QOrmError{QOrm::Error::UnsynchronizedSchema, query.lastError().text()};
+            return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
     }
 
     QStringList fields;
 
-    for (const QOrmPropertyMapping& mapping: entityMetadata.propertyMappings())
+    for (const QOrmPropertyMapping& mapping : relation.mapping()->propertyMappings())
     {
         QStringList columnDefs = { mapping.tableFieldName(), toSqlType(mapping.dataType()) };
 
@@ -215,47 +234,46 @@ QOrmError QOrmSqliteProviderPrivate::recreateSchema(const QOrmMetadata& entityMe
 
     QString fieldsStr = fields.join(',');
 
-    QString statement = QString::fromUtf8("CREATE TABLE %1(%2)")
-                        .arg(entityMetadata.tableName(), fieldsStr);
+    QString statement =
+        QString::fromUtf8("CREATE TABLE %1(%2)").arg(relation.mapping()->tableName(), fieldsStr);
 
     QSqlQuery query = prepareAndExecute(statement);
 
     if (query.lastError().type() != QSqlError::NoError)
-        return QOrmError{QOrm::Error::UnsynchronizedSchema, query.lastError().text()};
+        return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
 
-    return QOrmError{QOrm::Error::None, ""};
+    return QOrmError{QOrm::ErrorType::None, ""};
 }
 
-QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmMetadata& entityMetadata)
+QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 {
-    Q_UNUSED(entityMetadata)
-    return QOrmError{QOrm::Error::UnsynchronizedSchema, "Not implemented"};
+    Q_UNUSED(relation)
+    return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, "Not implemented"};
 }
 
-QOrmError QOrmSqliteProviderPrivate::validateSchema(const QOrmMetadata& entityMetadata)
+QOrmError QOrmSqliteProviderPrivate::validateSchema(const QOrmRelation& relation)
 {
-    Q_UNUSED(entityMetadata)
-    return QOrmError{QOrm::Error::UnsynchronizedSchema, "Not implemented"};
+    Q_UNUSED(relation)
+    return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, "Not implemented"};
 }
 
 QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query)
 {
-    const QOrmMetadata& projectionMeta = query.projection();
+    std::optional<QOrmMetadata> projectionMeta = query.projection();
+    Q_ASSERT(projectionMeta.has_value());
 
-    QOrmSqliteStatementGenerator generator;
+    auto [statement, boundParameters] = QOrmSqliteStatementGenerator::generate(query);
 
-    generator.process(query);
-
-    QSqlQuery sqlQuery = prepareAndExecute(generator.statement(), generator.parameters());
+    QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
 
     if (sqlQuery.lastError().type() != QSqlError::NoError)
-        return QOrmQueryResult{QOrmError{QOrm::Error::Provider, sqlQuery.lastError().text()}};
+        return QOrmQueryResult{QOrmError{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
 
     QVector<QObject*> resultSet;
 
     while (sqlQuery.next())
     {
-        resultSet.push_back(makeEntityInstance(projectionMeta, sqlQuery.record()));
+        resultSet.push_back(makeEntityInstance(*projectionMeta, sqlQuery.record()));
     }
 
     return QOrmQueryResult{resultSet};
@@ -290,7 +308,7 @@ QOrmError QOrmSqliteProvider::connectToBackend()
             return d->lastDatabaseError();
     }
 
-    return QOrmError{QOrm::Error::None, {}};
+    return QOrmError{QOrm::ErrorType::None, {}};
 }
 
 QOrmError QOrmSqliteProvider::disconnectFromBackend()
@@ -299,7 +317,7 @@ QOrmError QOrmSqliteProvider::disconnectFromBackend()
 
     d->m_database.close();
 
-    return QOrmError{QOrm::Error::None, {}};
+    return QOrmError{QOrm::ErrorType::None, {}};
 }
 
 bool QOrmSqliteProvider::isConnectedToBackend()
@@ -320,10 +338,10 @@ QOrmError QOrmSqliteProvider::beginTransaction()
         if (error.type() != QSqlError::NoError)
             return d->lastDatabaseError();
         else
-            return QOrmError{QOrm::Error::Other, QStringLiteral("Unable to start transaction")};
+            return QOrmError{QOrm::ErrorType::Other, QStringLiteral("Unable to start transaction")};
     }
 
-    return QOrmError{QOrm::Error::None, {}};
+    return QOrmError{QOrm::ErrorType::None, {}};
 }
 
 QOrmError QOrmSqliteProvider::commitTransaction()
@@ -337,10 +355,11 @@ QOrmError QOrmSqliteProvider::commitTransaction()
         if (error.type() != QSqlError::NoError)
             return d->lastDatabaseError();
         else
-            return QOrmError{QOrm::Error::Other, QStringLiteral("Unable to commit transaction")};
+            return QOrmError{QOrm::ErrorType::Other,
+                             QStringLiteral("Unable to commit transaction")};
     }
 
-    return QOrmError{QOrm::Error::None, {}};
+    return QOrmError{QOrm::ErrorType::None, {}};
 }
 
 QOrmError QOrmSqliteProvider::rollbackTransaction()
@@ -354,10 +373,11 @@ QOrmError QOrmSqliteProvider::rollbackTransaction()
         if (error.type() != QSqlError::NoError)
             return d->lastDatabaseError();
         else
-            return QOrmError{QOrm::Error::Other, QStringLiteral("Unable to rollback transaction")};
+            return QOrmError{QOrm::ErrorType::Other,
+                             QStringLiteral("Unable to rollback transaction")};
     }
 
-    return QOrmError{QOrm::Error::None, {}};
+    return QOrmError{QOrm::ErrorType::None, {}};
 }
 
 QOrmQueryResult QOrmSqliteProvider::execute(const QOrmQuery& query)

@@ -38,29 +38,29 @@ namespace QOrm
         return dbg;
     }
 
-    QDebug operator<<(QDebug dbg, Error error)
+    QDebug operator<<(QDebug dbg, ErrorType error)
     {
         QDebugStateSaver saver{dbg};
-        dbg.nospace() << "QOrm::Error::";
+        dbg.nospace() << "QOrm::ErrorType::";
 
         switch (error)
         {
-            case Error::None:
+            case ErrorType::None:
                 dbg << "None";
                 break;
-            case Error::Other:
+            case ErrorType::Other:
                 dbg << "Other";
                 break;
-            case Error::Provider:
+            case ErrorType::Provider:
                 dbg << "Provider";
                 break;
-            case Error::UnsynchronizedEntity:
+            case ErrorType::UnsynchronizedEntity:
                 dbg << "UnsynchronizedEntity";
                 break;
-            case Error::UnsynchronizedSchema:
+            case ErrorType::UnsynchronizedSchema:
                 dbg << "UnsynchronizedSchema";
                 break;
-            case Error::InvalidMapping:
+            case ErrorType::InvalidMapping:
                 dbg << "InvalidMapping";
                 break;
         }
@@ -154,16 +154,48 @@ namespace QOrm
 
         switch (filterType)
         {
-            case FilterType::Empty:
-                dbg << "Empty";
-                break;
-
             case FilterType::Invokable:
                 dbg << "Invokable";
                 break;
 
             case FilterType::Expression:
                 dbg << "Expression";
+                break;
+        }
+
+        return dbg;
+    }
+
+    QDebug operator<<(QDebug dbg, BinaryLogicalOperator logicalOperator)
+    {
+        QDebugStateSaver saver{dbg};
+
+        dbg.noquote().nospace() << "QOrm::BinaryLogicalOperator::";
+
+        switch (logicalOperator)
+        {
+            case BinaryLogicalOperator::Or:
+                dbg << "Or";
+                break;
+
+            case BinaryLogicalOperator::And:
+                dbg << "And";
+                break;
+        }
+
+        return dbg;
+    }
+
+    QDebug operator<<(QDebug dbg, UnaryLogicalOperator logicalOperator)
+    {
+        QDebugStateSaver saver{dbg};
+
+        dbg.noquote().nospace() << "QOrm::UnaryLogicalOperator::";
+
+        switch (logicalOperator)
+        {
+            case UnaryLogicalOperator::Not:
+                dbg << "Not";
                 break;
         }
 

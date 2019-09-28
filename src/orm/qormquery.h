@@ -19,10 +19,10 @@ class Q_ORM_EXPORT QOrmQuery
 {
 public:
     QOrmQuery(QOrm::Operation operation,
-              const QOrmMetadata& projection,
               const QOrmRelation& relation,
-              QOrmFilter filter,
-              QOrmOrder order);
+              std::optional<QOrmMetadata> projection,
+              std::optional<QOrmFilter> filter,
+              std::optional<QOrmOrder> order);
     QOrmQuery(const QOrmQuery&);
     QOrmQuery(QOrmQuery&&);
     ~QOrmQuery();
@@ -34,16 +34,16 @@ public:
     QOrm::Operation operation() const;
 
     Q_REQUIRED_RESULT
-    const QOrmMetadata& projection() const;
-
-    Q_REQUIRED_RESULT
     const QOrmRelation& relation() const;
 
     Q_REQUIRED_RESULT
-    QOrmFilter filter() const;
+    std::optional<QOrmMetadata> projection() const;
 
     Q_REQUIRED_RESULT
-    QOrmOrder order() const;
+    std::optional<QOrmFilter> filter() const;
+
+    Q_REQUIRED_RESULT
+    std::optional<QOrmOrder> order() const;
 
 private:
     QSharedDataPointer<QOrmQueryPrivate> d;

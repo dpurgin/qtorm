@@ -5,7 +5,7 @@ AccessModifierOffset: -4
 AlignAfterOpenBracket: Align 
 AlignOperands: true
 # AllowAllConstructorInitializersOnNextLine: false
-AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortFunctionsOnASingleLine: InlineOnly
 #AllowShortIfStatementsOnASingleLine: Never
 BreakBeforeBraces: Allman

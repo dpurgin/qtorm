@@ -4,30 +4,28 @@
 
 QT_BEGIN_NAMESPACE
 
-QOrmError::QOrmError(QOrm::Error error, const QString& errorText)
-    : m_error{error},
-      m_errorText{errorText}
+QOrmError::QOrmError(QOrm::ErrorType error, const QString& text)
+    : m_type{error}
+    , m_text{text}
 {
 }
 
-QOrm::Error QOrmError::error() const
+QOrm::ErrorType QOrmError::type() const
 {
-    return m_error;
+    return m_type;
 }
 
-QString QOrmError::errorText() const
+QString QOrmError::text() const
 {
-    return m_errorText;
+    return m_text;
 }
 
 QDebug operator<<(QDebug dbg, const QOrmError& error)
 {
     QDebugStateSaver saver{dbg};
 
-    dbg.nospace().noquote() << "QOrmError("
-                            << error.error()
-                            << QStringLiteral(", ")
-                            << error.errorText() << QStringLiteral(")");
+    dbg.nospace().noquote() << "QOrmError(" << error.type() << QStringLiteral(", ") << error.text()
+                            << QStringLiteral(")");
 
     return dbg;
 }

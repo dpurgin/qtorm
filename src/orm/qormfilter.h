@@ -11,7 +11,6 @@ QT_BEGIN_NAMESPACE
 class Q_ORM_EXPORT QOrmFilter
 {
 public:
-    explicit QOrmFilter() = default;
     explicit QOrmFilter(QOrmFilterExpression expression)
         : m_type{QOrm::FilterType::Expression},
           m_filter{expression}
@@ -31,7 +30,7 @@ public:
     }
 
 private:
-    QOrm::FilterType m_type{QOrm::FilterType::Empty};
+    QOrm::FilterType m_type;
     std::variant<QOrmFilterExpression, void*> m_filter{nullptr};
 };
 

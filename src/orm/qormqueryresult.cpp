@@ -27,7 +27,7 @@ QOrmQueryResult::QOrmQueryResult(const QOrmError& error,
 }
 
 QOrmQueryResult::QOrmQueryResult()
-    : QOrmQueryResult{QOrmError{QOrm::Error::None, ""}}
+    : QOrmQueryResult{QOrmError{QOrm::ErrorType::None, ""}}
 {
 }
 
@@ -47,7 +47,7 @@ QOrmQueryResult::QOrmQueryResult(const QOrmError& error)
 }
 
 QOrmQueryResult::QOrmQueryResult(const QVector<QObject*>& resultSet)
-    : QOrmQueryResult{QOrmError{QOrm::Error::None, ""}, resultSet}
+    : QOrmQueryResult{QOrmError{QOrm::ErrorType::None, ""}, resultSet}
 {
 }
 

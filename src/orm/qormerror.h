@@ -12,14 +12,14 @@ class QDebug;
 class Q_ORM_EXPORT QOrmError
 {
 public:
-    QOrmError(QOrm::Error error, const QString& errorText);
+    QOrmError(QOrm::ErrorType type, const QString& text);
 
-    Q_REQUIRED_RESULT QOrm::Error error() const;
-    Q_REQUIRED_RESULT QString errorText() const;
+    Q_REQUIRED_RESULT QOrm::ErrorType type() const;
+    Q_REQUIRED_RESULT QString text() const;
 
 private:
-    QOrm::Error m_error{QOrm::Error::None};
-    QString m_errorText;
+    QOrm::ErrorType m_type{QOrm::ErrorType::None};
+    QString m_text;
 };
 
 extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmError& error);

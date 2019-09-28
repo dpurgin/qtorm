@@ -16,7 +16,20 @@ static QString insertParameter(QVariantMap& boundParameters, QString name, QVari
 
     boundParameters.insert(key, value);
 
-    return key;
+    return key;    
+}
+
+std::pair<QString, QVariantMap> QOrmSqliteStatementGenerator::generate(const QOrmQuery& query)
+{
+    QVariantMap boundParameters;
+    QString statement = generate(query, boundParameters);
+
+    return std::make_pair(statement, boundParameters);
+}
+
+QString QOrmSqliteStatementGenerator::generate(const QOrmQuery& query, QVariantMap& boundParameters)
+{
+    return {};
 }
 
 QString QOrmSqliteStatementGenerator::generateFromClause(const QOrmRelation& relation,

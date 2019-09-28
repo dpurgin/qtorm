@@ -211,6 +211,26 @@ QDebug operator<<(QDebug dbg, const QOrmFilterTerminalPredicate& predicate)
     return dbg;
 }
 
+QDebug operator<<(QDebug dbg, const QOrmFilterUnaryPredicate& predicate)
+{
+    QDebugStateSaver saver{dbg};
+
+    dbg.nospace().noquote() << "QOrmFilterUnaryPredicate(" << predicate.logicalOperator() << ", "
+                            << predicate.rhs() << ")";
+
+    return dbg;
+}
+
+QDebug operator<<(QDebug dbg, const QOrmFilterBinaryPredicate& predicate)
+{
+    QDebugStateSaver saver{dbg};
+
+    dbg.nospace().noquote() << "QOrmFilterBinaryPredicate(" << predicate.lhs() << ", "
+                            << predicate.logicalOperator() << ", " << predicate.rhs() << ")";
+
+    return dbg;
+}
+
 QOrmFilterTerminalPredicate operator==(const QOrmClassProperty& property, const QVariant& value)
 {
     return {property, QOrm::Comparison::Equal, value};

@@ -19,7 +19,7 @@ class QOrmSessionPrivate
     QOrmSession* q_ptr{nullptr};
     QOrmSessionConfiguration m_sessionConfiguration;
     QSet<QObject*> m_entityInstanceCache;
-    QOrmError m_lastError{QOrm::Error::None, {}};
+    QOrmError m_lastError{QOrm::ErrorType::None, {}};
     QOrmMetadataCache m_metadataCache;
 
     explicit QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration, QOrmSession* parent);
@@ -52,7 +52,7 @@ void QOrmSessionPrivate::ensureProviderConnected()
 
 void QOrmSessionPrivate::clearLastError()
 {
-    m_lastError = QOrmError{QOrm::Error::None, {}};
+    m_lastError = QOrmError{QOrm::ErrorType::None, {}};
 }
 
 void QOrmSessionPrivate::setLastError(QOrmError lastError)
@@ -100,8 +100,10 @@ bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject,
     {
         if (d->m_entityInstanceCache.contains(entityInstance))
         {
-            d->setLastError({QOrm::Error::UnsynchronizedEntity,
-                             "Unable to merge with MergeMode::Create: entity instance seems to exist in the database. Use MergeMode::Auto or MergeMode::Update instead."});
+            d->setLastError(
+                {QOrm::ErrorType::UnsynchronizedEntity,
+                 "Unable to merge with MergeMode::Create: entity instance seems to exist in the "
+                 "database. Use MergeMode::Auto or MergeMode::Update instead."});
         }
         else
         {
@@ -124,12 +126,12 @@ bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject,
         }
     }
 
-    if (d->m_lastError.error() == QOrm::Error::None)
+    if (d->m_lastError.type() == QOrm::ErrorType::None)
     {
         d->m_entityInstanceCache.insert(entityInstance);
     }
 
-    return d->m_lastError.error() == QOrm::Error::None;
+    return d->m_lastError.type() == QOrm::ErrorType::None;
 }
 
 bool QOrmSession::remove(QObject* entityInstance, const QMetaObject& qMetaObject)
@@ -163,12 +165,12 @@ bool QOrmSession::remove(QObject* entityInstance, const QMetaObject& qMetaObject
 
     d->setLastError(result.error());
 
-    if (d->m_lastError.error() == QOrm::Error::None)
+    if (d->m_lastError.type() == QOrm::ErrorType::None)
     {
         d->m_entityInstanceCache.remove(entityInstance);
     }
 
-    return d->m_lastError.error() == QOrm::Error::None;
+    return d->m_lastError.type() == QOrm::ErrorType::None;
 }
 
 QOrmTransactionToken QOrmSession::declareTransaction(QOrm::TransactionMode transactionMode)

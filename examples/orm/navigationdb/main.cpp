@@ -44,9 +44,9 @@ int main(int argc, char* argv[])
                                         .filter(Q_ORM_CLASS_PROPERTY(id) > 3)
                                         .select();
 
-        if (result.error().error() != QOrm::Error::None)
+        if (result.error().type() != QOrm::ErrorType::None)
         {
-            qCritical() << result.error().errorText();
+            qCritical() << result.error().text();
         }
         else
         {

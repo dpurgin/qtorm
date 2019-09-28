@@ -20,7 +20,7 @@ class QDebug;
 
 namespace QOrm
 {
-    enum class Error
+    enum class ErrorType
     {
         None,
         Provider,
@@ -29,7 +29,7 @@ namespace QOrm
         InvalidMapping,
         Other
     };
-    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::Error error);
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::ErrorType error);
 
     enum class TransactionMode
     {
@@ -63,11 +63,13 @@ namespace QOrm
         And,
         Or
     };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::BinaryLogicalOperator logicalOperator);
 
     enum class UnaryLogicalOperator
     {
         Not
     };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::UnaryLogicalOperator logicalOperator);
 
     enum class Operation
     {
@@ -80,7 +82,6 @@ namespace QOrm
 
     enum class FilterType
     {
-        Empty,
         Expression,
         Invokable
     };
