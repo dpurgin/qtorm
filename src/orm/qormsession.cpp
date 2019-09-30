@@ -1,6 +1,7 @@
 #include "qormsession.h"
 
 #include "qormabstractprovider.h"
+#include "qormentityinstancecache.h"
 #include "qormerror.h"
 #include "qormglobal_p.h"
 #include "qormmetadatacache.h"
@@ -18,7 +19,7 @@ class QOrmSessionPrivate
     Q_DECLARE_PUBLIC(QOrmSession)
     QOrmSession* q_ptr{nullptr};
     QOrmSessionConfiguration m_sessionConfiguration;
-    QSet<QObject*> m_entityInstanceCache;
+    QOrmEntityInstanceCache m_entityInstanceCache;
     QOrmError m_lastError{QOrm::ErrorType::None, {}};
     QOrmMetadataCache m_metadataCache;
 
@@ -82,59 +83,31 @@ QOrmQueryResult QOrmSession::execute(const QOrmQuery& query)
     return d->m_sessionConfiguration.provider()->execute(query);
 }
 
-QOrmQueryBuilder QOrmSession::from(const QMetaObject& relationMetaObject)
+QOrmQueryBuilder QOrmSession::queryBuilderFor(const QMetaObject& relationMetaObject)
 {
     Q_D(QOrmSession);
 
     return QOrmQueryBuilder{this, QOrmRelation{d->m_metadataCache[relationMetaObject]}};
 }
 
-bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject, QOrm::MergeMode mode)
+bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject)
 {
     Q_D(QOrmSession);
 
     d->clearLastError();
     d->ensureProviderConnected();
 
-    if (mode == QOrm::MergeMode::Create)
-    {
-        if (d->m_entityInstanceCache.contains(entityInstance))
-        {
-            d->setLastError(
-                {QOrm::ErrorType::UnsynchronizedEntity,
-                 "Unable to merge with MergeMode::Create: entity instance seems to exist in the "
-                 "database. Use MergeMode::Auto or MergeMode::Update instead."});
-        }
-        else
-        {
-//            d->setLastError(d->m_sessionConfiguration.provider()->create(entityInstance, qMetaObject));
-        }
-    }
-    else if (mode == QOrm::MergeMode::Update)
-    {
-//        d->setLastError(d->m_sessionConfiguration.provider()->update(entityInstance, qMetaObject));
-    }
-    else if (mode == QOrm::MergeMode::Auto)
-    {
-        if (!d->m_entityInstanceCache.contains(entityInstance))
-        {
-//            d->setLastError(d->m_sessionConfiguration.provider()->create(entityInstance, qMetaObject));
-        }
-        else
-        {
-//            d->setLastError(d->m_sessionConfiguration.provider()->update(entityInstance, qMetaObject));
-        }
-    }
+    QOrmQueryResult result =
+        d->m_sessionConfiguration.provider()->execute(queryBuilderFor(qMetaObject)
+                                                          .instance(qMetaObject, entityInstance)
+                                                          .build(QOrm::Operation::Merge));
 
-    if (d->m_lastError.type() == QOrm::ErrorType::None)
-    {
-        d->m_entityInstanceCache.insert(entityInstance);
-    }
+    d->setLastError(result.error());
 
     return d->m_lastError.type() == QOrm::ErrorType::None;
 }
 
-bool QOrmSession::remove(QObject* entityInstance, const QMetaObject& qMetaObject)
+bool QOrmSession::remove(QObject*& entityInstance, const QMetaObject& qMetaObject)
 {
     Q_D(QOrmSession);
 
@@ -142,15 +115,15 @@ bool QOrmSession::remove(QObject* entityInstance, const QMetaObject& qMetaObject
 
     const QOrmMetadata& relation = d->m_metadataCache[qMetaObject];
 
-    QOrmQueryBuilder queryBuilder = from(qMetaObject);
+    QOrmQueryBuilder queryBuilder = queryBuilderFor(qMetaObject);
 
     if (relation.objectIdMapping() != nullptr)
     {
         QOrmFilterTerminalPredicate predicate{
             *relation.objectIdMapping(),
             QOrm::Comparison::Equal,
-            QtOrmPrivate::propertyValue(entityInstance,
-                                        relation.objectIdMapping()->tableFieldName())};
+            QOrmPrivate::propertyValue(entityInstance,
+                                       relation.objectIdMapping()->tableFieldName())};
 
         queryBuilder.filter(predicate);
     }
@@ -167,7 +140,8 @@ bool QOrmSession::remove(QObject* entityInstance, const QMetaObject& qMetaObject
 
     if (d->m_lastError.type() == QOrm::ErrorType::None)
     {
-        d->m_entityInstanceCache.remove(entityInstance);
+        delete d->m_entityInstanceCache.take(entityInstance);
+        entityInstance = nullptr;
     }
 
     return d->m_lastError.type() == QOrm::ErrorType::None;

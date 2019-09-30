@@ -7,19 +7,20 @@ QMAKE_DOCS = $$PWD/doc/qtorm.qdocconf
 PUBLIC_HEADERS += \
     qormabstractprovider.h \
     qormclassproperty.h \
-    qormmetadata.h \
-    qormmetadatacache.h \
+    qormentityinstancecache.h \
     qormerror.h \
     qormfilter.h \
     qormfilterexpression.h \
     qormglobal.h \
+    qormmetadata.h \
+    qormmetadatacache.h \
     qormorder.h \
     qormorderbuilder.h \
     qormpropertymapping.h \
-    qormrelation.h \
     qormquery.h \
     qormquerybuilder.h \
     qormqueryresult.h \
+    qormrelation.h \
     qormsession.h \
     qormsessionconfiguration.h \
     qormsqlconfiguration.h \
@@ -31,26 +32,27 @@ PRIVATE_HEADERS = \
     qormglobal_p.h
 
 SOURCES += \
-    qormglobal.cpp \
     qormabstractprovider.cpp \
     qormclassproperty.cpp \
+    qormentityinstancecache.cpp \
     qormerror.cpp \
     qormfilter.cpp \
     qormfilterexpression.cpp \
+    qormglobal.cpp \
     qormmetadata.cpp \
     qormmetadatacache.cpp \
     qormorder.cpp \
     qormorderbuilder.cpp \
     qormpropertymapping.cpp \
-    qormrelation.cpp \
     qormquery.cpp \
     qormquerybuilder.cpp \
     qormqueryresult.cpp \
+    qormrelation.cpp \
     qormsession.cpp \
     qormsessionconfiguration.cpp \
     qormsqlconfiguration.cpp \
-    qormsqlitestatementgenerator_p.cpp \
     qormsqliteprovider.cpp \
+    qormsqlitestatementgenerator_p.cpp \
     qormtransactiontoken.cpp \
 
 HEADERS += $$PUBLIC_HEADERS $$PRIVATE_HEADERS

@@ -33,6 +33,9 @@ public:
         return operator[](T::staticMetaObject);
     }
 
+    Q_REQUIRED_RESULT
+    const QOrmMetadata& get(const QMetaObject& qMetaObject) { return operator[](qMetaObject); }
+
 private:
     std::unique_ptr<QOrmMetadataCachePrivate> d;
 };

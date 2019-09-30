@@ -14,8 +14,9 @@ QT_BEGIN_NAMESPACE
 class QOrmFilter;
 class QOrmFilterBinaryPredicate;
 class QOrmFilterExpression;
-class QOrmFilterUnaryPredicate;
 class QOrmFilterTerminalPredicate;
+class QOrmFilterUnaryPredicate;
+class QOrmMetadata;
 class QOrmQuery;
 class QOrmRelation;
 
@@ -27,6 +28,13 @@ public:
 
     Q_REQUIRED_RESULT
     static QString generate(const QOrmQuery& query, QVariantMap& boundParameters);
+
+    Q_REQUIRED_RESULT
+    static std::pair<QString, QVariantMap> generateInsertStatement(const QOrmMetadata& relation,
+                                                                   const QObject* instance);
+
+    Q_REQUIRED_RESULT
+    static std::pair<QString, QVariantMap> generateUpdateStatement(const QOrmQuery& query);
 
     Q_REQUIRED_RESULT
     static QString generateFromClause(const QOrmRelation& relation, QVariantMap& boundParameters);

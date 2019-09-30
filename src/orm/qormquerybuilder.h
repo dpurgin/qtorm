@@ -34,6 +34,13 @@ public:
 
     QOrmQueryBuilder& filter(QOrmFilterExpression expression);
     QOrmQueryBuilder& order(QOrmOrderBuilder orderBuilder);
+    QOrmQueryBuilder& instance(const QMetaObject& qMetaObject, QObject* instance);
+
+    template<typename T>
+    QOrmQueryBuilder& instance(T* entityInstance)
+    {
+        return instance(T::staticMetaObject, entityInstance);
+    }
 
     QOrmQuery build(QOrm::Operation operation) const;
 
@@ -53,9 +60,16 @@ public:
 
     QOrmQueryResult remove(QOrm::RemoveMode removeMode = QOrm::RemoveMode::PreventRemoveAll) const;
 
+    template<typename T>
+    QOrmQueryResult merge(T* entityInstance)
+    {
+        return merge(T::staticMetaObject, entityInstance);
+    }
+
 private:
     QOrmQueryBuilder& projection(const QMetaObject& projectionMetaObject);
     QOrmQueryResult select(const QMetaObject& projectionMetaObject) const;
+    QOrmQueryResult merge(const QMetaObject& qMetaObject, QObject* entityInstance);
 
     QSharedDataPointer<QOrmQueryBuilderPrivate> d;
 };

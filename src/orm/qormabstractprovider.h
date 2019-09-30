@@ -25,11 +25,6 @@ public:
     virtual QOrmError rollbackTransaction() = 0;
 
     virtual QOrmQueryResult execute(const QOrmQuery& query) = 0;
-
-//    virtual QOrmError create(QObject* entity, const QOrmMetadata& qMetaObject) = 0;
-//    virtual QOrmQueryResult read(const QOrmQuery& query) = 0;
-//    virtual QOrmError update(QObject* entity, const QOrmMetadata& qMetaObject) = 0;
-//    virtual QOrmError remove(QObject* entity, const QOrmMetadata& qMetaObject) = 0;
 };
 
 QT_END_NAMESPACE

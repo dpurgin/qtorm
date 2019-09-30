@@ -37,3 +37,6 @@ BinPackArguments: false
 BinPackParameters: false
 AlwaysBreakTemplateDeclarations: Yes
 SpaceAfterTemplateKeyword: false
+ReflowComments: true
+PenaltyBreakBeforeFirstCallParameter: 100
+PenaltyReturnTypeOnItsOwnLine: 100

@@ -1,6 +1,7 @@
 #include "qormsqliteprovider.h"
 
 #include "qormclassproperty.h"
+#include "qormentityinstancecache.h"
 #include "qormerror.h"
 #include "qormfilter.h"
 #include "qormmetadatacache.h"
@@ -10,6 +11,7 @@
 #include "qormrelation.h"
 #include "qormsqlconfiguration.h"
 
+#include "qormglobal_p.h"
 #include "qormsqlitestatementgenerator_p.h"
 
 #include <QDebug>
@@ -23,30 +25,21 @@
 
 QT_BEGIN_NAMESPACE
 
-namespace std
-{
-    template<>
-    struct hash<QString>
-    {
-        std::size_t operator()(const QString& str) const noexcept
-        {
-            return qHash(str);
-        }
-    };
-}
-
 class QOrmSqliteProviderPrivate
 {
     friend class QOrmSqliteProvider;
 
-    explicit QOrmSqliteProviderPrivate(const QOrmSqlConfiguration& configuration)
+    explicit QOrmSqliteProviderPrivate(const QOrmSqlConfiguration& configuration,
+                                       QOrmEntityInstanceCache& entityInstanceCache)
         : m_sqlConfiguration{configuration}
+        , m_entityInstanceCache{entityInstanceCache}
     {
     }
 
     QSqlDatabase m_database;
     QOrmSqlConfiguration m_sqlConfiguration;
     QSet<QString> m_schemaSyncCache;
+    QOrmEntityInstanceCache& m_entityInstanceCache;
 
     Q_REQUIRED_RESULT
     QString toSqlType(QVariant::Type type);
@@ -58,17 +51,6 @@ class QOrmSqliteProviderPrivate
     QSqlQuery prepareAndExecute(const QString& statement, const QVariantMap& parameters);
 
     Q_REQUIRED_RESULT
-    QVariant propertyValue(QObject* entityInstance, const QString& value)
-    {
-        return entityInstance->property(value.toUtf8().data());
-    }
-
-    void setPropertyValue(QObject* entityInstance, const QString& property, const QVariant& value)
-    {
-        entityInstance->setProperty(property.toUtf8().data(), value);
-    }
-
-    Q_REQUIRED_RESULT
     QObject* makeEntityInstance(const QOrmMetadata& entityMetadata, const QSqlRecord& record);
 
     QOrmError ensureSchemaSynchronized(const QOrmRelation& entityMetadata);
@@ -77,6 +59,7 @@ class QOrmSqliteProviderPrivate
     QOrmError validateSchema(const QOrmRelation& validateSchema);
 
     QOrmQueryResult read(const QOrmQuery& query);
+    QOrmQueryResult merge(const QOrmQuery& query);
 };
 
 QString QOrmSqliteProviderPrivate::toSqlType(QVariant::Type type)
@@ -139,15 +122,15 @@ QSqlQuery QOrmSqliteProviderPrivate::prepareAndExecute(const QString& statement,
 }
 
 QObject* QOrmSqliteProviderPrivate::makeEntityInstance(const QOrmMetadata& entityMetadata,
-                                                    const QSqlRecord& record)
+                                                       const QSqlRecord& record)
 {
     QObject* entityInstance = entityMetadata.qMetaObject().newInstance();
 
-    for (const QOrmPropertyMapping& mapping: entityMetadata.propertyMappings())
+    for (const QOrmPropertyMapping& mapping : entityMetadata.propertyMappings())
     {
-        setPropertyValue(entityInstance,
-                         mapping.classPropertyName(),
-                         record.value(mapping.tableFieldName()));
+        QOrmPrivate::setPropertyValue(entityInstance,
+                                      mapping.classPropertyName(),
+                                      record.value(mapping.tableFieldName()));
     }
 
     return entityInstance;
@@ -199,6 +182,8 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
             Q_ASSERT(relation.query() != nullptr);
             return ensureSchemaSynchronized(relation.query()->relation());
     }
+
+    qFatal("QtORM: Unexpected state");
 }
 
 QOrmError QOrmSqliteProviderPrivate::recreateSchema(const QOrmRelation& relation)
@@ -279,9 +264,44 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query)
     return QOrmQueryResult{resultSet};
 }
 
-QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration)
-    : QOrmAbstractProvider{},
-      d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration}}
+QOrmQueryResult QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)
+{
+    Q_ASSERT(query.relation().type() == QOrm::RelationType::Mapping);
+    Q_ASSERT(query.entityInstance() != nullptr);
+
+    QString statement;
+    QVariantMap boundParameters;
+
+    if (m_entityInstanceCache.contains(query.entityInstance()))
+    {
+        std::tie(statement, boundParameters) =
+            QOrmSqliteStatementGenerator::generateUpdateStatement(query);
+    }
+    else
+    {
+        std::tie(statement, boundParameters) =
+            QOrmSqliteStatementGenerator::generateInsertStatement(*query.relation().mapping(),
+                                                                  query.entityInstance());
+    }
+
+    QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
+
+    if (sqlQuery.lastError().type() != QSqlError::NoError)
+        return QOrmQueryResult{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
+
+    if (sqlQuery.numRowsAffected() != 1)
+    {
+        return QOrmQueryResult{
+            {QOrm::ErrorType::UnsynchronizedEntity, "Unexpected number of rows affected"}};
+    }
+
+    return QOrmQueryResult{};
+}
+
+QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration,
+                                       QOrmEntityInstanceCache& entityInstanceCache)
+    : QOrmAbstractProvider{}
+    , d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration, entityInstanceCache}}
 {
 }
 
@@ -384,11 +404,15 @@ QOrmQueryResult QOrmSqliteProvider::execute(const QOrmQuery& query)
 {
     Q_D(QOrmSqliteProvider);
 
+    d->ensureSchemaSynchronized(query.relation());
+
     switch (query.operation())
     {
         case QOrm::Operation::Read:
-            d->ensureSchemaSynchronized(query.relation());
             return d->read(query);
+
+        case QOrm::Operation::Merge:
+            return d->merge(query);
 
         default:
             qFatal("Not implemented");

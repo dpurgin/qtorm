@@ -108,7 +108,7 @@ void QOrmSessionTest::testSuccessfulMergeWithExplicitCreate()
     Province* province = new Province();
     province->setName(QString::fromUtf8("Oberösterreich"));
 
-    QVERIFY(session.merge(province, QOrm::MergeMode::Create));
+    QVERIFY(session.merge(province));
     QCOMPARE(session.lastError().type(), QOrm::ErrorType::None);
     QCOMPARE(province->id(), 1);
     QCOMPARE(province->name(), QString::fromUtf8("Oberösterreich"));
@@ -131,7 +131,7 @@ void QOrmSessionTest::testSuccessfulMergeWithExplicitUpdate()
     Province* province = new Province();
     province->setName(QString::fromUtf8("Oberösterreich"));
 
-    QVERIFY(session.merge(province, QOrm::MergeMode::Create));
+    QVERIFY(session.merge(province));
 
     QCOMPARE(session.lastError().type(), QOrm::ErrorType::None);
     QCOMPARE(province->id(), 1);
@@ -139,7 +139,7 @@ void QOrmSessionTest::testSuccessfulMergeWithExplicitUpdate()
 
     province->setName(QString::fromUtf8("Niederoesterreich"));
 
-    QVERIFY(session.merge(province, QOrm::MergeMode::Update));
+    QVERIFY(session.merge(province));
 
     QCOMPARE(session.lastError().type(), QOrm::ErrorType::None);
     QCOMPARE(province->id(), 1);

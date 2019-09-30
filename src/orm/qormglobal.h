@@ -39,13 +39,6 @@ namespace QOrm
         DoesntSupport
     };
 
-    enum class MergeMode
-    {
-        Auto,
-        Create,
-        Update
-    };
-
     enum class Comparison
     {
         Equal,
@@ -76,7 +69,8 @@ namespace QOrm
         Create,
         Read,
         Update,
-        Delete
+        Delete,
+        Merge
     };
     extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, Operation operation);
 

@@ -41,6 +41,8 @@ class QOrmQueryBuilderPrivate : public QSharedData
 
     std::vector<QOrmFilter> m_filters;
     std::optional<QOrmOrderBuilder> m_orderBuilder;
+
+    QObject* m_entityInstance{nullptr};
 };
 
 template<typename ForwardIterable>
@@ -158,6 +160,15 @@ QOrmQueryBuilder& QOrmQueryBuilder::order(QOrmOrderBuilder orderBuilder)
     return *this;
 }
 
+QOrmQueryBuilder& QOrmQueryBuilder::instance(const QMetaObject& qMetaObject, QObject* instance)
+{
+    Q_ASSERT(d->m_relation.type() == QOrm::RelationType::Mapping);
+    Q_ASSERT(d->m_relation.mapping()->className() == QString::fromUtf8(qMetaObject.className()));
+
+    d->m_entityInstance = instance;
+    return *this;
+}
+
 QOrmQueryBuilder& QOrmQueryBuilder::projection(const QMetaObject& projectionMetaObject)
 {
     d->m_projection = (*d->m_session->metadataCache())[projectionMetaObject];
@@ -166,11 +177,21 @@ QOrmQueryBuilder& QOrmQueryBuilder::projection(const QMetaObject& projectionMeta
 
 QOrmQuery QOrmQueryBuilder::build(QOrm::Operation operation) const
 {
-    return QOrmQuery{operation,
-                     d->m_relation,
-                     d->m_projection,
-                     d->foldFilters(d->m_relation, d->m_filters),
-                     d->m_orderBuilder->build()};
+    switch (operation)
+    {
+        case QOrm::Operation::Merge:
+            Q_ASSERT(d->m_relation.type() == QOrm::RelationType::Mapping);
+            Q_ASSERT(d->m_entityInstance != nullptr);
+
+            return QOrmQuery{operation, *d->m_relation.mapping(), d->m_entityInstance};
+
+        default:
+            return QOrmQuery{operation,
+                             d->m_relation,
+                             d->m_projection,
+                             d->foldFilters(d->m_relation, d->m_filters),
+                             d->m_orderBuilder->build()};
+    }
 }
 
 QOrmQueryResult QOrmQueryBuilder::select()
@@ -214,6 +235,14 @@ QOrmQueryResult QOrmQueryBuilder::remove(QOrm::RemoveMode removeMode) const
                     d->m_projection,
                     filter,
                     d->m_orderBuilder->build()};
+
+    return d->m_session->execute(query);
+}
+
+QOrmQueryResult QOrmQueryBuilder::merge(const QMetaObject& qMetaObject, QObject* entityInstance)
+{
+    QOrmQuery query{
+        QOrm::Operation::Merge, d->m_session->metadataCache()->get(qMetaObject), entityInstance};
 
     return d->m_session->execute(query);
 }

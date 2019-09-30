@@ -6,6 +6,7 @@
 
 QT_BEGIN_NAMESPACE
 
+class QOrmEntityInstanceCache;
 class QOrmQueryResult;
 class QOrmSqlConfiguration;
 class QOrmSqliteProviderPrivate;
@@ -14,7 +15,8 @@ class QSqlDatabase;
 class Q_ORM_EXPORT QOrmSqliteProvider : public QOrmAbstractProvider
 {
 public:
-    explicit QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration);
+    explicit QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration,
+                                QOrmEntityInstanceCache& entityInstanceCache);
     ~QOrmSqliteProvider() override;
 
     QOrmError connectToBackend() override;
@@ -26,11 +28,6 @@ public:
     QOrmError rollbackTransaction() override;
 
     QOrmQueryResult execute(const QOrmQuery& query) override;
-
-//    QOrmError create(QObject* entityInstance, const QMetaObject& qMetaObject) override;
-//    QOrmQueryResult read(const QOrmQuery& query) override;
-//    QOrmError update(QObject* entityInstance, const QMetaObject& qMetaObject) override;
-//    QOrmError remove(QObject* entityInstance, const QMetaObject& qMetaObject) override;
 
     QOrmSqlConfiguration configuration() const;
     QSqlDatabase database() const;
