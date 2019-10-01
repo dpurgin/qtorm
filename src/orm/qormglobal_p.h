@@ -33,12 +33,15 @@ namespace QOrmPrivate
     }
 
     Q_REQUIRED_RESULT
-    QVariant objectIdPropertyValue(const QObject* entityInstance, const QOrmMetadata& meta)
+    inline QVariant objectIdPropertyValue(const QObject* entityInstance, const QOrmMetadata& meta)
     {
         Q_ASSERT(meta.objectIdMapping() != nullptr);
         return propertyValue(entityInstance, meta.objectIdMapping()->classPropertyName());
     }
 } // namespace QOrmPrivate
+
+#define Q_ORM_UNEXPECTED_STATE (qFatal("QtORM: %s: unexpected state", __PRETTY_FUNCTION__))
+#define Q_ORM_NOT_IMPLEMENTED (qFatal("QtORM: %s: not implemented", __PRETTY_FUNCTION__))
 
 QT_END_NAMESPACE
 

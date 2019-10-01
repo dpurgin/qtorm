@@ -20,19 +20,23 @@ public:
     QOrmQueryResult(QOrmQueryResult&&);
     ~QOrmQueryResult();
 
-    explicit QOrmQueryResult(const QOrmError& error);    
-    explicit QOrmQueryResult(const QVector<QObject*>& resultSet);
+    explicit QOrmQueryResult(QOrmError error);
+    explicit QOrmQueryResult(QVector<QObject*> resultSet);
+    explicit QOrmQueryResult(QVariant lastInsertedId);
 
-    QOrmQueryResult& operator=(const QOrmQueryResult&); 
+    QOrmQueryResult& operator=(const QOrmQueryResult&);
     QOrmQueryResult& operator=(QOrmQueryResult&&);
 
-    QOrmError error() const;
+    Q_REQUIRED_RESULT
+    const QOrmError& error() const;
+    Q_REQUIRED_RESULT
+    const QVariant& lastInsertedId() const;
 
-    QVector<QObject*> toVector() const;
+    Q_REQUIRED_RESULT
+    const QVector<QObject*>& toVector() const;
 
 private:
-    explicit QOrmQueryResult(const QOrmError& error,
-                             const QVector<QObject*>& resultSet);
+    explicit QOrmQueryResult(QOrmError error, QVector<QObject*> resultSet, QVariant lastInsertedId);
 
     QSharedDataPointer<QOrmQueryResultPrivate> d;
 };

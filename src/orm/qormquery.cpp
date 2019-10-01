@@ -96,7 +96,7 @@ const std::optional<QOrmOrder>& QOrmQuery::order() const
     return d->m_order;
 }
 
-QObject* QOrmQuery::entityInstance() const
+const QObject* QOrmQuery::entityInstance() const
 {
     return d->m_entityInstance;
 }

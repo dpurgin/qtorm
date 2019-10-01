@@ -2,26 +2,33 @@
 
 #include "qormerror.h"
 
+#include <QVariant>
+
 QT_BEGIN_NAMESPACE
 
 class QOrmQueryResultPrivate : public QSharedData
 {
     friend class QOrmQueryResult;
 
-    QOrmQueryResultPrivate(const QOrmError& error, const QVector<QObject*>& resultSet)
-        : m_error{error},
-          m_resultSet{resultSet}
+    QOrmQueryResultPrivate(QOrmError error, QVector<QObject*> resultSet, QVariant lastInsertedId)
+        : m_error{std::move(error)}
+        , m_resultSet{std::move(resultSet)}
+        , m_lastInsertedId{std::move(lastInsertedId)}
     {
     }
 
     QOrmError m_error;
     QVector<QObject*> m_resultSet;
+    QVariant m_lastInsertedId;
 };
 
 // Primary ctor
-QOrmQueryResult::QOrmQueryResult(const QOrmError& error,
-                                 const QVector<QObject*>& resultSet)
-    : d{new QOrmQueryResultPrivate{error, resultSet}}
+QOrmQueryResult::QOrmQueryResult(QOrmError error,
+                                 QVector<QObject*> resultSet,
+                                 QVariant lastInsertedId)
+    : d{new QOrmQueryResultPrivate{std::move(error),
+                                   std::move(resultSet),
+                                   std::move(lastInsertedId)}}
 {
 
 }
@@ -41,22 +48,32 @@ QOrmQueryResult& QOrmQueryResult::operator=(const QOrmQueryResult&) = default;
 
 QOrmQueryResult& QOrmQueryResult::operator=(QOrmQueryResult&&) = default;
 
-QOrmQueryResult::QOrmQueryResult(const QOrmError& error)
-    : QOrmQueryResult{error, {}}
+QOrmQueryResult::QOrmQueryResult(QOrmError error)
+    : QOrmQueryResult{std::move(error), {}, {}}
 {
 }
 
-QOrmQueryResult::QOrmQueryResult(const QVector<QObject*>& resultSet)
-    : QOrmQueryResult{QOrmError{QOrm::ErrorType::None, ""}, resultSet}
+QOrmQueryResult::QOrmQueryResult(QVector<QObject*> resultSet)
+    : QOrmQueryResult{{QOrm::ErrorType::None, ""}, std::move(resultSet), {}}
+{    
+}
+
+QOrmQueryResult::QOrmQueryResult(QVariant lastInsertedId)
+    : QOrmQueryResult{{QOrm::ErrorType::None, ""}, {}, std::move(lastInsertedId)}
 {
 }
 
-QOrmError QOrmQueryResult::error() const
+const QOrmError& QOrmQueryResult::error() const
 {
     return d->m_error;
 }
 
-QVector<QObject*> QOrmQueryResult::toVector() const
+const QVariant& QOrmQueryResult::lastInsertedId() const
+{
+    return d->m_lastInsertedId;
+}
+
+const QVector<QObject*>& QOrmQueryResult::toVector() const
 {
     return d->m_resultSet;
 }

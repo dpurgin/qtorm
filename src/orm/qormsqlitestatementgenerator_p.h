@@ -30,11 +30,17 @@ public:
     static QString generate(const QOrmQuery& query, QVariantMap& boundParameters);
 
     Q_REQUIRED_RESULT
-    static std::pair<QString, QVariantMap> generateInsertStatement(const QOrmMetadata& relation,
-                                                                   const QObject* instance);
+    static QString generateInsertStatement(const QOrmMetadata& relation,
+                                           const QObject* instance,
+                                           QVariantMap& boundParameters);
 
     Q_REQUIRED_RESULT
-    static std::pair<QString, QVariantMap> generateUpdateStatement(const QOrmQuery& query);
+    static QString generateUpdateStatement(const QOrmMetadata& relation,
+                                           const QObject* instance,
+                                           QVariantMap& boundParameters);
+
+    Q_REQUIRED_RESULT
+    static QString generateSelectStatement(const QOrmQuery& query, QVariantMap& boundParameters);
 
     Q_REQUIRED_RESULT
     static QString generateFromClause(const QOrmRelation& relation, QVariantMap& boundParameters);

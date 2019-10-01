@@ -47,7 +47,7 @@ public:
     const std::optional<QOrmOrder>& order() const;
 
     Q_REQUIRED_RESULT
-    QObject* entityInstance() const;
+    const QObject* entityInstance() const;
 
 private:
     QSharedDataPointer<QOrmQueryPrivate> d;

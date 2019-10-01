@@ -29,17 +29,14 @@ class QOrmSqliteProviderPrivate
 {
     friend class QOrmSqliteProvider;
 
-    explicit QOrmSqliteProviderPrivate(const QOrmSqlConfiguration& configuration,
-                                       QOrmEntityInstanceCache& entityInstanceCache)
+    explicit QOrmSqliteProviderPrivate(const QOrmSqlConfiguration& configuration)
         : m_sqlConfiguration{configuration}
-        , m_entityInstanceCache{entityInstanceCache}
     {
     }
 
     QSqlDatabase m_database;
     QOrmSqlConfiguration m_sqlConfiguration;
     QSet<QString> m_schemaSyncCache;
-    QOrmEntityInstanceCache& m_entityInstanceCache;
 
     Q_REQUIRED_RESULT
     QString toSqlType(QVariant::Type type);
@@ -269,20 +266,7 @@ QOrmQueryResult QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)
     Q_ASSERT(query.relation().type() == QOrm::RelationType::Mapping);
     Q_ASSERT(query.entityInstance() != nullptr);
 
-    QString statement;
-    QVariantMap boundParameters;
-
-    if (m_entityInstanceCache.contains(query.entityInstance()))
-    {
-        std::tie(statement, boundParameters) =
-            QOrmSqliteStatementGenerator::generateUpdateStatement(query);
-    }
-    else
-    {
-        std::tie(statement, boundParameters) =
-            QOrmSqliteStatementGenerator::generateInsertStatement(*query.relation().mapping(),
-                                                                  query.entityInstance());
-    }
+    auto [statement, boundParameters] = QOrmSqliteStatementGenerator::generate(query);
 
     QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
 
@@ -295,13 +279,12 @@ QOrmQueryResult QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)
             {QOrm::ErrorType::UnsynchronizedEntity, "Unexpected number of rows affected"}};
     }
 
-    return QOrmQueryResult{};
+    return QOrmQueryResult{sqlQuery.lastInsertId()};
 }
 
-QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration,
-                                       QOrmEntityInstanceCache& entityInstanceCache)
+QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration)
     : QOrmAbstractProvider{}
-    , d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration, entityInstanceCache}}
+    , d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration}}
 {
 }
 
@@ -411,7 +394,8 @@ QOrmQueryResult QOrmSqliteProvider::execute(const QOrmQuery& query)
         case QOrm::Operation::Read:
             return d->read(query);
 
-        case QOrm::Operation::Merge:
+        case QOrm::Operation::Create:
+        case QOrm::Operation::Update:
             return d->merge(query);
 
         default:

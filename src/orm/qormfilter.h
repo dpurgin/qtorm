@@ -12,8 +12,8 @@ class Q_ORM_EXPORT QOrmFilter
 {
 public:
     explicit QOrmFilter(QOrmFilterExpression expression)
-        : m_type{QOrm::FilterType::Expression},
-          m_filter{expression}
+        : m_type{QOrm::FilterType::Expression}
+        , m_filter{expression}
     {
     }
 

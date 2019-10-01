@@ -15,8 +15,7 @@ class QSqlDatabase;
 class Q_ORM_EXPORT QOrmSqliteProvider : public QOrmAbstractProvider
 {
 public:
-    explicit QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration,
-                                QOrmEntityInstanceCache& entityInstanceCache);
+    explicit QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration);
     ~QOrmSqliteProvider() override;
 
     QOrmError connectToBackend() override;
