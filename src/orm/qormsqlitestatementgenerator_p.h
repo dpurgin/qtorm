@@ -43,6 +43,11 @@ public:
     static QString generateSelectStatement(const QOrmQuery& query, QVariantMap& boundParameters);
 
     Q_REQUIRED_RESULT
+    static QString generateDeleteStatement(const QOrmMetadata& relation,
+                                           const QOrmFilter& filter,
+                                           QVariantMap& boundParameters);
+
+    Q_REQUIRED_RESULT
     static QString generateFromClause(const QOrmRelation& relation, QVariantMap& boundParameters);
 
     Q_REQUIRED_RESULT

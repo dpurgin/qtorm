@@ -57,6 +57,7 @@ class QOrmSqliteProviderPrivate
 
     QOrmQueryResult read(const QOrmQuery& query);
     QOrmQueryResult merge(const QOrmQuery& query);
+    QOrmQueryResult remove(const QOrmQuery& query);
 };
 
 QString QOrmSqliteProviderPrivate::toSqlType(QVariant::Type type)
@@ -282,6 +283,18 @@ QOrmQueryResult QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)
     return QOrmQueryResult{sqlQuery.lastInsertId()};
 }
 
+QOrmQueryResult QOrmSqliteProviderPrivate::remove(const QOrmQuery& query)
+{
+    auto [statement, boundParameters] = QOrmSqliteStatementGenerator::generate(query);
+
+    QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
+
+    if (sqlQuery.lastError().type() != QSqlError::NoError)
+        return QOrmQueryResult{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
+
+    return QOrmQueryResult{sqlQuery.numRowsAffected()};
+}
+
 QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration)
     : QOrmAbstractProvider{}
     , d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration}}
@@ -398,9 +411,14 @@ QOrmQueryResult QOrmSqliteProvider::execute(const QOrmQuery& query)
         case QOrm::Operation::Update:
             return d->merge(query);
 
-        default:
-            qFatal("Not implemented");
+        case QOrm::Operation::Delete:
+            return d->remove(query);
+
+        case QOrm::Operation::Merge:
+            Q_ORM_UNEXPECTED_STATE;
     }
+
+    Q_ORM_UNEXPECTED_STATE;
 }
 
 //QOrmError QOrmSqlProvider::create(QObject* entityInstance, const QMetaObject& qMetaObject)

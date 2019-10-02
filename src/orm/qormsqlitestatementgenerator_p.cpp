@@ -45,6 +45,14 @@ QString QOrmSqliteStatementGenerator::generate(const QOrmQuery& query, QVariantM
         case QOrm::Operation::Read:
             return generateSelectStatement(query, boundParameters);
 
+        case QOrm::Operation::Delete:
+            Q_ASSERT(query.relation().type() == QOrm::RelationType::Mapping);
+            Q_ASSERT(query.filter().has_value());
+
+            return generateDeleteStatement(*query.relation().mapping(),
+                                           *query.filter(),
+                                           boundParameters);
+
         default:
             qFatal("QtORM: %s: not implemented", __PRETTY_FUNCTION__);
     }
@@ -97,7 +105,18 @@ QString QOrmSqliteStatementGenerator::generateSelectStatement(const QOrmQuery& q
     if (query.filter().has_value())
         parts += generateWhereClause(*query.filter(), boundParameters);
 
-    return parts.join("\n");
+    return parts.join(QChar{' '});
+}
+
+QString QOrmSqliteStatementGenerator::generateDeleteStatement(const QOrmMetadata& relation,
+                                                              const QOrmFilter& filter,
+                                                              QVariantMap& boundParameters)
+{
+    QStringList parts = {"DELETE",
+                         generateFromClause(QOrmRelation{relation}, boundParameters),
+                         generateWhereClause(filter, boundParameters)};
+
+    return parts.join(QChar{' '});
 }
 
 QString QOrmSqliteStatementGenerator::generateFromClause(const QOrmRelation& relation,
