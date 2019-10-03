@@ -57,6 +57,20 @@ QOrmMetadataPrivate::QOrmMetadataPrivate(const QMetaObject& qMetaObject, QOrmMet
 
         if (isObjectId)
             m_objectIdPropertyMappingIdx = idx;
+
+        if (property.type() == QVariant::UserType)
+        {
+            if (property.userType() == QMetaType::UnknownType)
+            {
+                qFatal("QtORM: The type %s is used in an ORM entity but was not registered using "
+                       "qRegisterMetaType<%s>()",
+                       property.typeName());
+            }
+
+            const QMetaObject* referencedMeta = QMetaType::metaObjectForType(property.userType());
+
+            Q_ASSERT(referencedMeta != nullptr);
+        }
     }
 }
 
