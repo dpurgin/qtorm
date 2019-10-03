@@ -29,15 +29,19 @@ int main(int argc, char* argv[])
     session.merge(new Province{QString::fromUtf8("Vorarlberg")});
     session.merge(new Province{QString::fromUtf8("Wien")});
 
-//    {
-//        QOrmQueryResult result = session.from<Province>()
-//                                        .select();
+    auto nested = session.from<Province>().build(QOrm::Operation::Read);
 
-//        for (QObject* entityInstance: result.toVector())
-//        {
-//            qDebug() << *qobject_cast<Province*>(entityInstance);
-//        }
-//    }
+    QOrmQueryResult result =
+        session.from(nested).filter(Q_ORM_CLASS_PROPERTY(id) > 3).select<Province>();
+    //    {
+    //        QOrmQueryResult result = session.from<Province>()
+    //                                        .select();
+
+    //        for (QObject* entityInstance: result.toVector())
+    //        {
+    //            qDebug() << *qobject_cast<Province*>(entityInstance);
+    //        }
+    //    }
 
     {
         QOrmQueryResult result = session.from<Province>()
@@ -90,25 +94,6 @@ int main(int argc, char* argv[])
                                         .filter(Q_ORM_CLASS_PROPERTY(id) > 3)
                                         .remove();
     }
-
-//    session.declareTransaction(QOrm::TransactionMode::Supports);
-
-//    auto d1 = session.select<Province>().toVector();
-
-//    auto d2 = session.select<Province>()
-//                     .where(Q_ORM_FIELD(Province::name) == "Oberösterreich")
-//                     .toVector();
-
-//    auto d3 = session.select<Province>()
-//                     .first(3)
-//                     .where(Q_ORM_FIELD(id) < 5)
-//                     .order(QOrmOrderClause{})
-//                     .toVector();
-
-//    auto d4 = session.select<Province>()
-//                     .first(3)
-//                     .where(Q_ORM_FIELD(id) > 5)
-//                     .toVector();
 
     return 0;
 }

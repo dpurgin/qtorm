@@ -32,6 +32,9 @@ public:
     Q_REQUIRED_RESULT
     QOrmQueryResult execute(const QOrmQuery& query);
 
+    Q_REQUIRED_RESULT
+    QOrmQueryBuilder from(const QOrmQuery& query);
+
     template<typename T>
     bool merge(T* entityInstance)
     {

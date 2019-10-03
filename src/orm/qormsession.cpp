@@ -80,6 +80,13 @@ QOrmQueryResult QOrmSession::execute(const QOrmQuery& query)
     return d->m_sessionConfiguration.provider()->execute(query);
 }
 
+QOrmQueryBuilder QOrmSession::from(const QOrmQuery& query)
+{
+    Q_ASSERT(query.operation() == QOrm::Operation::Read);
+
+    return QOrmQueryBuilder{this, QOrmRelation{query}};
+}
+
 QOrmQueryBuilder QOrmSession::queryBuilderFor(const QMetaObject& relationMetaObject)
 {
     Q_D(QOrmSession);
