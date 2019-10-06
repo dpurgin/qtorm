@@ -1,6 +1,6 @@
-QT += orm
+QT += orm  # enable the ORM module
 
-CONFIG += c++17
+CONFIG += c++17 # required by QtOrm
 
 TARGET = navigationdb
 TEMPLATE = app

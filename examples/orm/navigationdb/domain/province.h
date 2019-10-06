@@ -6,7 +6,7 @@
 
 class Community;
 
-class Town : public QObject
+class Province : public QObject
 {
     Q_OBJECT
 
@@ -20,8 +20,8 @@ class Town : public QObject
     QVector<Community*> m_communityList;
 
 public:
-    Q_INVOKABLE explicit Town(QObject *parent = nullptr);
-    explicit Town(const QString& name, QObject* parent = nullptr);
+    Q_INVOKABLE explicit Province(QObject* parent = nullptr);
+    explicit Province(const QString& name, QObject* parent = nullptr);
 
     int id() const;
     void setId(int id);
@@ -38,6 +38,6 @@ signals:
     void communityListChanged();
 };
 
-extern QDebug operator<<(QDebug dbg, const Town& province);
+extern QDebug operator<<(QDebug dbg, const Province& province);
 
 #endif // PROVINCE_H

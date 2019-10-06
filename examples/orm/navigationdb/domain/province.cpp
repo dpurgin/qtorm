@@ -3,7 +3,7 @@
 #include <QDebug>
 #include <QDebugStateSaver>
 
-QDebug operator<<(QDebug dbg, const Town &province)
+QDebug operator<<(QDebug dbg, const Province& province)
 {
     QDebugStateSaver saver{dbg};
     dbg.noquote().nospace()
@@ -11,26 +11,28 @@ QDebug operator<<(QDebug dbg, const Town &province)
     return dbg;
 }
 
-Town::Town(QObject *parent) : QObject(parent)
+Province::Province(QObject* parent)
+    : QObject(parent)
 {
 }
 
-Town::Town(const QString &name, QObject *parent)
-    : QObject{parent}, m_name{name}
+Province::Province(const QString& name, QObject* parent)
+    : QObject{parent}
+    , m_name{name}
 {
 }
 
-int Town::id() const
+int Province::id() const
 {
     return m_id;
 }
 
-QString Town::name() const
+QString Province::name() const
 {
     return m_name;
 }
 
-void Town::setId(int id)
+void Province::setId(int id)
 {
     if (m_id == id)
     {
@@ -41,7 +43,7 @@ void Town::setId(int id)
     emit idChanged(m_id);
 }
 
-void Town::setName(QString name)
+void Province::setName(QString name)
 {
     if (m_name == name)
         return;
@@ -50,12 +52,12 @@ void Town::setName(QString name)
     emit nameChanged(m_name);
 }
 
-QVector<Community*> Town::communityList() const
+QVector<Community*> Province::communityList() const
 {
     return m_communityList;
 }
 
-void Town::setCommunityList(const QVector<Community*>& communityList)
+void Province::setCommunityList(const QVector<Community*>& communityList)
 {
     if (m_communityList == communityList)
         return;

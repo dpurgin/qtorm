@@ -1,5 +1,5 @@
 {
-    "provider": "sql",
+    "provider": "sqlite",
     "verbose": true,
     "sql": {
         "databaseName": "navigationdb.db",
@@ -7,3 +7,4 @@
         "schemaMode": "recreate"
     }
 }
+
