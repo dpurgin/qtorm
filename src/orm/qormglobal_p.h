@@ -10,6 +10,9 @@
 
 QT_BEGIN_NAMESPACE
 
+class QOrmFilterExpression;
+class QOrmRelation;
+
 namespace std
 {
     template<>
@@ -44,6 +47,12 @@ namespace QOrmPrivate
         Q_ASSERT(meta.objectIdMapping() != nullptr);
         return propertyValue(entityInstance, meta.objectIdMapping()->classPropertyName());
     }
+
+    Q_REQUIRED_RESULT
+    Q_ORM_EXPORT
+    extern QOrmFilterExpression resolvedFilterExpression(const QOrmRelation& relation,
+                                                         const QOrmFilterExpression& expression);
+
 } // namespace QOrmPrivate
 
 #define Q_ORM_UNEXPECTED_STATE (qFatal("QtORM: %s: unexpected state", __PRETTY_FUNCTION__))

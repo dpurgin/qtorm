@@ -6,4 +6,10 @@ CONFIG -= app_bundle
 
 TEMPLATE = app
 
-SOURCES +=  tst_sqlitestatementgenerator.cpp
+SOURCES +=  tst_sqlitestatementgenerator.cpp \
+    domain/province.cpp \
+    domain/town.cpp
+
+HEADERS += \
+    domain/province.h \
+    domain/town.h \

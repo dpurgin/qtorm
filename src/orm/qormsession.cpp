@@ -94,7 +94,7 @@ QOrmQueryBuilder QOrmSession::queryBuilderFor(const QMetaObject& relationMetaObj
     return QOrmQueryBuilder{this, QOrmRelation{d->m_metadataCache[relationMetaObject]}};
 }
 
-bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject)
+bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObject)
 {
     Q_D(QOrmSession);
 
@@ -129,7 +129,7 @@ bool QOrmSession::merge(QObject* entityInstance, const QMetaObject& qMetaObject)
     return d->m_lastError.type() == QOrm::ErrorType::None;
 }
 
-bool QOrmSession::remove(QObject*& entityInstance, const QMetaObject& qMetaObject)
+bool QOrmSession::doRemove(QObject*& entityInstance, const QMetaObject& qMetaObject)
 {
     Q_D(QOrmSession);
 

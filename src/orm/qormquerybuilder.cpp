@@ -4,6 +4,7 @@
 #include "qormerror.h"
 #include "qormfilter.h"
 #include "qormfilterexpression.h"
+#include "qormglobal_p.h"
 #include "qormmetadatacache.h"
 #include "qormorder.h"
 #include "qormquery.h"
@@ -33,10 +34,6 @@ class QOrmQueryBuilderPrivate : public QSharedData
     Q_REQUIRED_RESULT static std::optional<QOrmFilter> foldFilters(const QOrmRelation& relation,
                                                                    const ForwardIterable& filters);
 
-    Q_REQUIRED_RESULT
-    static QOrmFilterExpression resolvedFilterExpression(const QOrmRelation& relation,
-                                                         const QOrmFilterExpression& expression);    
-
     QOrmSession* m_session{nullptr};
 
     QOrmRelation m_relation;
@@ -65,7 +62,8 @@ std::optional<QOrmFilter> QOrmQueryBuilderPrivate::foldFilters(const QOrmRelatio
                                if (!lhs.has_value())
                                {
                                    return QOrmFilter{
-                                       resolvedFilterExpression(relation, *rhs.expression())};
+                                       QOrmPrivate::resolvedFilterExpression(relation,
+                                                                             *rhs.expression())};
                                }
                                else
                                {
@@ -74,70 +72,12 @@ std::optional<QOrmFilter> QOrmQueryBuilderPrivate::foldFilters(const QOrmRelatio
 
                                    return QOrmFilter{
                                        *lhs->expression() &&
-                                       resolvedFilterExpression(relation, *rhs.expression())};
+                                       QOrmPrivate::resolvedFilterExpression(relation,
+                                                                             *rhs.expression())};
                                }
                            });
 }
 
-QOrmFilterExpression
-QOrmQueryBuilderPrivate::resolvedFilterExpression(const QOrmRelation& relation,
-                                                  const QOrmFilterExpression& expression)
-{    
-    switch (expression.type())
-    {
-        case QOrm::FilterExpressionType::TerminalPredicate:
-        {
-            const QOrmFilterTerminalPredicate* predicate = expression.terminalPredicate();
-
-            if (predicate->isResolved())
-                return *predicate;
-
-            const QOrmPropertyMapping* propertyMapping = nullptr;
-
-            switch (relation.type())
-            {
-                case QOrm::RelationType::Mapping:
-                    propertyMapping = relation.mapping()->classPropertyMapping(
-                        predicate->classProperty()->descriptor());
-                    break;
-
-                case QOrm::RelationType::Query:
-                    Q_ASSERT(relation.query()->projection().has_value());
-
-                    propertyMapping = relation.query()->projection()->classPropertyMapping(
-                        predicate->classProperty()->descriptor());
-                    break;
-            }
-
-            if (propertyMapping == nullptr)
-            {
-                qCritical() << "QtOrm: Unable to resolve filter expression for class property"
-                            << predicate->classProperty()->descriptor() << ", relation" << relation;
-                qFatal("QtOrm: Malformed query filter");
-            }
-
-            return QOrmFilterTerminalPredicate{
-                *propertyMapping, predicate->comparison(), predicate->value()};
-        }
-
-        case QOrm::FilterExpressionType::BinaryPredicate:
-        {
-            const QOrmFilterBinaryPredicate* predicate = expression.binaryPredicate();
-            return QOrmFilterBinaryPredicate{resolvedFilterExpression(relation, predicate->lhs()),
-                                             predicate->logicalOperator(),
-                                             resolvedFilterExpression(relation, predicate->rhs())};
-        }
-
-        case QOrm::FilterExpressionType::UnaryPredicate:
-        {
-            const QOrmFilterUnaryPredicate* predicate = expression.unaryPredicate();
-            return QOrmFilterUnaryPredicate{predicate->logicalOperator(),
-                                            resolvedFilterExpression(relation, predicate->rhs())};
-        }
-    }
-
-    qFatal("QtOrm: Unexpected state in %s", __PRETTY_FUNCTION__);
-}
 
 QOrmQueryBuilder::QOrmQueryBuilder(QOrmSession* ormSession, const QOrmRelation& relation)
     : d{new QOrmQueryBuilderPrivate{ormSession, relation}}

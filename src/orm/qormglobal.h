@@ -3,6 +3,7 @@
 
 #include <QtCore/qglobal.h>
 #include <QtCore/qhashfunctions.h>
+#include <QtCore/qmetatype.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -101,6 +102,24 @@ namespace QOrm
         Mapping
     };
     extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::RelationType relationType);
+}
+
+namespace QtOrmPrivate
+{
+    template<typename T>
+    inline constexpr void qRegisterOrmEntity()
+    {
+        qRegisterMetaType<T*>();
+        qRegisterMetaType<QVector<T*>>();
+        qRegisterMetaType<QList<T*>>();
+        qRegisterMetaType<QSet<T*>>();
+    }
+} // namespace QtOrmPrivate
+
+template<typename... Ts>
+inline constexpr void qRegisterOrmEntity()
+{
+    (QtOrmPrivate::qRegisterOrmEntity<Ts>(), ...);
 }
 
 QT_END_NAMESPACE

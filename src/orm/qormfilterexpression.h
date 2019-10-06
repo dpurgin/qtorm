@@ -126,6 +126,48 @@ Q_REQUIRED_RESULT
 Q_ORM_EXPORT
 QOrmFilterTerminalPredicate operator>=(const QOrmClassProperty& property, const QVariant& value);
 
+template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator==(const QOrmClassProperty& property,
+                                                                T* value)
+{
+    return operator==(property, QVariant::fromValue(value));
+}
+
+template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator!=(const QOrmClassProperty& property,
+                                                                T* value)
+{
+    return operator!=(property, QVariant::fromValue(value));
+}
+
+template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator<(const QOrmClassProperty& property,
+                                                               T* value)
+{
+    return operator<(property, QVariant::fromValue(value));
+}
+
+template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator<=(const QOrmClassProperty& property,
+                                                                T* value)
+{
+    return operator<=(property, QVariant::fromValue(value));
+}
+
+template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator>(const QOrmClassProperty& property,
+                                                               T* value)
+{
+    return operator>(property, QVariant::fromValue(value));
+}
+
+template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator>=(const QOrmClassProperty& property,
+                                                                T* value)
+{
+    return operator>=(property, QVariant::fromValue(value));
+}
+
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
 QOrmFilterUnaryPredicate operator!(const QOrmFilterExpression& operand);

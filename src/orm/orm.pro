@@ -40,6 +40,7 @@ SOURCES += \
     qormfilter.cpp \
     qormfilterexpression.cpp \
     qormglobal.cpp \
+    qormglobal_p.cpp \
     qormmetadata.cpp \
     qormmetadatacache.cpp \
     qormorder.cpp \

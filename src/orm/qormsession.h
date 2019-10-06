@@ -1,11 +1,12 @@
 #ifndef QORMSESSION_H
 #define QORMSESSION_H
 
+#include <QtOrm/qormclassproperty.h>
 #include <QtOrm/qormglobal.h>
 #include <QtOrm/qormmetadata.h>
-#include <QtOrm/qormsessionconfiguration.h>
 #include <QtOrm/qormquerybuilder.h>
-#include <QtOrm/qormclassproperty.h>
+#include <QtOrm/qormsessionconfiguration.h>
+#include <QtOrm/qormtransactiontoken.h>
 
 #include <QtCore/qobject.h>
 
@@ -18,7 +19,6 @@ class QOrmQuery;
 class QOrmQueryBuilder;
 class QOrmQueryResult;
 class QOrmSessionPrivate;
-class QOrmTransactionToken;
 
 class Q_ORM_EXPORT QOrmSession
 {
@@ -38,13 +38,19 @@ public:
     template<typename T>
     bool merge(T* entityInstance)
     {
-        return merge(entityInstance, T::staticMetaObject);
+        return doMerge(entityInstance, T::staticMetaObject);
+    }
+
+    template<typename... Ts>
+    bool merge(Ts... instances)
+    {
+        return (... && merge(instances));
     }
 
     template<typename T>
     bool remove(T*& entityInstance)
     {
-        return remove(entityInstance, T::staticMetaObject);
+        return doRemove(entityInstance, T::staticMetaObject);
     }
 
     template<typename T>
@@ -75,8 +81,8 @@ public:
     QOrmEntityInstanceCache* entityInstanceCache();
 
 private:
-    bool merge(QObject* entityInstance, const QMetaObject& qMetaObject);
-    bool remove(QObject*& entityInstance, const QMetaObject& qMetaObject);
+    bool doMerge(QObject* entityInstance, const QMetaObject& qMetaObject);
+    bool doRemove(QObject*& entityInstance, const QMetaObject& qMetaObject);
     QOrmQueryBuilder queryBuilderFor(const QMetaObject& relationMetaObject);
 
 private:
