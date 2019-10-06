@@ -3,7 +3,7 @@
 
 #include <QObject>
 
-class Province;
+class Town;
 
 class Community : public QObject
 {
@@ -11,11 +11,11 @@ class Community : public QObject
 
     Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
-    Q_PROPERTY(Province* province READ province WRITE setProvince NOTIFY provinceChanged)
+    Q_PROPERTY(Town* province READ province WRITE setProvince NOTIFY provinceChanged)
 
     int m_id;
     QString m_name;
-    Province* m_province{nullptr};
+    Town* m_province{nullptr};
 
 public:
     Q_INVOKABLE explicit Community(QObject* parent = nullptr);
@@ -27,8 +27,8 @@ public:
     QString name() const { return m_name; }
     void setName(QString name);
 
-    Province* province() const { return m_province; }
-    void setProvince(Province* province);
+    Town* province() const { return m_province; }
+    void setProvince(Town* province);
 
 signals:
     void idChanged();

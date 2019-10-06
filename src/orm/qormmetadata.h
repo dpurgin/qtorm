@@ -5,8 +5,8 @@
 #include <QtOrm/qormpropertymapping.h>
 
 #include <QtCore/qstring.h>
-#include <QtCore/qshareddata.h>
 
+#include <memory>
 #include <vector>
 
 QT_BEGIN_NAMESPACE
@@ -17,7 +17,8 @@ class QOrmMetadataPrivate;
 class Q_ORM_EXPORT QOrmMetadata
 {
 public:
-    explicit QOrmMetadata(const QMetaObject& qMetaObject);
+    //    explicit QOrmMetadata(const QMetaObject& qMetaObject);
+    explicit QOrmMetadata(const QOrmMetadataPrivate* data);
 
     QOrmMetadata(const QOrmMetadata&);
     QOrmMetadata(QOrmMetadata&&);
@@ -41,7 +42,7 @@ public:
     const QOrmPropertyMapping* objectIdMapping() const;
 
 private:
-    QSharedDataPointer<QOrmMetadataPrivate> d;
+    QSharedDataPointer<const QOrmMetadataPrivate> d;
 };
 
 extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmMetadata& metadata);

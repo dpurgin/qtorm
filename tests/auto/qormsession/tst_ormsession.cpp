@@ -6,7 +6,7 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 
-class Province : public QObject
+class Town : public QObject
 {
     Q_OBJECT
 
@@ -17,7 +17,7 @@ class Province : public QObject
     QString m_name;
 
 public:
-    explicit Province(QObject *parent = nullptr);
+    explicit Town(QObject *parent = nullptr);
 
     int id() const;
     void setId(int id);
@@ -30,22 +30,22 @@ signals:
     void nameChanged(QString name);
 };
 
-Province::Province(QObject *parent)
+Town::Town(QObject *parent)
     : QObject(parent)
 {
 }
 
-int Province::id() const
+int Town::id() const
 {
     return m_id;
 }
 
-QString Province::name() const
+QString Town::name() const
 {
     return m_name;
 }
 
-void Province::setId(int id)
+void Town::setId(int id)
 {
     if (m_id == id)
         return;
@@ -54,7 +54,7 @@ void Province::setId(int id)
     emit idChanged(m_id);
 }
 
-void Province::setName(QString name)
+void Town::setName(QString name)
 {
     if (m_name == name)
         return;
@@ -105,7 +105,7 @@ void QOrmSessionTest::testSuccessfulMergeWithExplicitCreate()
 {
     QOrmSession session;
 
-    Province* province = new Province();
+    Town* province = new Town();
     province->setName(QString::fromUtf8("Oberösterreich"));
 
     QVERIFY(session.merge(province));
@@ -128,7 +128,7 @@ void QOrmSessionTest::testSuccessfulMergeWithExplicitUpdate()
 {
     QOrmSession session;
 
-    Province* province = new Province();
+    Town* province = new Town();
     province->setName(QString::fromUtf8("Oberösterreich"));
 
     QVERIFY(session.merge(province));

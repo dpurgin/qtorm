@@ -15,7 +15,7 @@
 
 int main(int argc, char* argv[])
 {
-    qRegisterMetaType<Province*>();
+    qRegisterMetaType<Town*>();
 
     qDebug() << __PRETTY_FUNCTION__;
     QCoreApplication app{argc, argv};

@@ -17,6 +17,12 @@ namespace std
     {
         size_t operator()(const QString& s) const { return qHash(s); }
     };
+
+    template<>
+    struct hash<QByteArray>
+    {
+        size_t operator()(const QByteArray& ba) const { return qHash(ba); }
+    };
 } // namespace std
 
 namespace QOrmPrivate

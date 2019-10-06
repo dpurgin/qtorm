@@ -169,7 +169,7 @@ bool QOrmSession::remove(QObject*& entityInstance, const QMetaObject& qMetaObjec
     return d->m_lastError.type() == QOrm::ErrorType::None;
 }
 
-QOrmTransactionToken QOrmSession::declareTransaction(QOrm::TransactionMode transactionMode)
+QOrmTransactionToken QOrmSession::declareTransaction(QOrm::TransactionMode /*transactionMode*/)
 {
     return {};
 }

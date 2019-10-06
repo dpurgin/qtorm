@@ -6,4 +6,13 @@ CONFIG -= app_bundle
 
 TEMPLATE = app
 
-SOURCES +=  tst_metadatacachetest.cpp
+SOURCES +=  tst_metadatacachetest.cpp \
+    domain/person.cpp \
+    domain/province.cpp \
+    domain/town.cpp
+
+HEADERS += \
+    domain/person.h \
+    domain/province.h \
+    domain/town.h
+

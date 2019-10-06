@@ -28,7 +28,7 @@ void Community::setName(QString name)
     emit nameChanged();
 }
 
-void Community::setProvince(Province* province)
+void Community::setProvince(Town* province)
 {
     if (m_province == province)
         return;

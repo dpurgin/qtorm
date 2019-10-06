@@ -29,6 +29,7 @@ bool QOrmEntityInstanceCache::contains(QObject* instance) const
 
 void QOrmEntityInstanceCache::insert(const QOrmMetadata& metadata, QObject* instance)
 {
+    Q_UNUSED(metadata)
     d->m_cache.insert(instance);
 }
 

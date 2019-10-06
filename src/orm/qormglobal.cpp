@@ -33,6 +33,10 @@ namespace QOrm
             case Operation::Delete:
                 dbg << "Delete";
                 break;
+
+            case Operation::Merge:
+                dbg << "Merge";
+                break;
         }
 
         return dbg;

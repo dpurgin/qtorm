@@ -28,8 +28,9 @@ PUBLIC_HEADERS += \
     qormtransactiontoken.h \
 
 PRIVATE_HEADERS = \
+    qormglobal_p.h \
+    qormmetadata_p.h \
     qormsqlitestatementgenerator_p.h \
-    qormglobal_p.h
 
 SOURCES += \
     qormabstractprovider.cpp \
