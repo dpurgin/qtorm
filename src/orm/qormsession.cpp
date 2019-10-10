@@ -18,12 +18,13 @@ class QOrmSessionPrivate
 {
     Q_DECLARE_PUBLIC(QOrmSession)
     QOrmSession* q_ptr{nullptr};
-    QOrmSessionConfiguration m_sessionConfiguration;
+    const QOrmSessionConfiguration& m_sessionConfiguration;
     QOrmEntityInstanceCache m_entityInstanceCache;
     QOrmError m_lastError{QOrm::ErrorType::None, {}};
     QOrmMetadataCache m_metadataCache;
 
-    explicit QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration, QOrmSession* parent);
+    explicit QOrmSessionPrivate(const QOrmSessionConfiguration& sessionConfiguration,
+                                QOrmSession* parent);
     ~QOrmSessionPrivate();
 
     void ensureProviderConnected();
@@ -32,10 +33,10 @@ class QOrmSessionPrivate
     void setLastError(QOrmError lastError);
 };
 
-QOrmSessionPrivate::QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration,
+QOrmSessionPrivate::QOrmSessionPrivate(const QOrmSessionConfiguration& sessionConfiguration,
                                        QOrmSession* parent)
-    : q_ptr{parent},
-      m_sessionConfiguration{sessionConfiguration}
+    : q_ptr{parent}
+    , m_sessionConfiguration{sessionConfiguration}
 {
     Q_ASSERT(sessionConfiguration.isValid());
 }
@@ -58,7 +59,7 @@ void QOrmSessionPrivate::setLastError(QOrmError lastError)
     m_lastError = lastError;
 }
 
-QOrmSession::QOrmSession(QOrmSessionConfiguration sessionConfiguration)
+QOrmSession::QOrmSession(const QOrmSessionConfiguration& sessionConfiguration)
     : d_ptr{new QOrmSessionPrivate{sessionConfiguration, this}}
 {    
 }
@@ -181,7 +182,7 @@ QOrmError QOrmSession::lastError() const
     return d->m_lastError;
 }
 
-QOrmSessionConfiguration QOrmSession::configuration() const
+const QOrmSessionConfiguration& QOrmSession::configuration() const
 {
     Q_D(const QOrmSession);
 

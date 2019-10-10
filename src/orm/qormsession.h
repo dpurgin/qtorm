@@ -25,8 +25,8 @@ class Q_ORM_EXPORT QOrmSession
     Q_DECLARE_PRIVATE(QOrmSession)
 
 public:
-    explicit QOrmSession(QOrmSessionConfiguration configuration =
-            QOrmSessionConfiguration::defaultConfiguration());
+    explicit QOrmSession(const QOrmSessionConfiguration& configuration =
+                             QOrmSessionConfiguration::defaultConfiguration());
     ~QOrmSession();
 
     Q_REQUIRED_RESULT
@@ -72,7 +72,7 @@ public:
     QOrmError lastError() const;
 
     Q_REQUIRED_RESULT
-    QOrmSessionConfiguration configuration() const;
+    const QOrmSessionConfiguration& configuration() const;
 
     Q_REQUIRED_RESULT
     QOrmMetadataCache* metadataCache();

@@ -11,30 +11,19 @@
 
 QT_BEGIN_NAMESPACE
 
-class QOrmSessionConfigurationData : public QSharedData
+class QOrmSessionConfigurationData /* : public QSharedData*/
 {
-public:
-    ~QOrmSessionConfigurationData();
+    friend class QOrmSessionConfiguration;
 
-    QOrmAbstractProvider* m_provider{nullptr};
+    std::unique_ptr<QOrmAbstractProvider> m_provider;
     bool m_isVerbose{false};
 };
 
-QOrmSessionConfigurationData::~QOrmSessionConfigurationData()
+static QOrmSqliteConfiguration _build_json_sqlite_configuration(const QJsonObject& object)
 {
-    delete m_provider;
-}
+    QOrmSqliteConfiguration sqlConfiguration;
 
-static QOrmSqlConfiguration _build_json_sql_configuration(const QJsonObject& object)
-{
-    QOrmSqlConfiguration sqlConfiguration;
-
-    sqlConfiguration.setDriverName(object["driverName"].toString("QSQLITE"));
-    sqlConfiguration.setHostName(object["hostName"].toString());
     sqlConfiguration.setDatabaseName(object["databaseName"].toString());
-    sqlConfiguration.setPassword(object["password"].toString());
-    sqlConfiguration.setPort(object["port"].toInt(0));
-    sqlConfiguration.setUserName(object["userName"].toString());
     sqlConfiguration.setVerbose(object["verbose"].toBool(false));
 
     QString schemaModeStr = object["schemaMode"].toString("validate");
@@ -42,24 +31,24 @@ static QOrmSqlConfiguration _build_json_sql_configuration(const QJsonObject& obj
     if (schemaModeStr.compare("recreate", Qt::CaseInsensitive) == 0 ||
             schemaModeStr.compare("create", Qt::CaseInsensitive) == 0)
     {
-        sqlConfiguration.setSchemaMode(QOrmSqlConfiguration::SchemaMode::Recreate);
+        sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Recreate);
     }
     else if (schemaModeStr.compare("update", Qt::CaseInsensitive) == 0)
     {
-        sqlConfiguration.setSchemaMode(QOrmSqlConfiguration::SchemaMode::Update);
+        sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Update);
     }
     else if (schemaModeStr.compare("validate", Qt::CaseInsensitive) == 0)
     {
-        sqlConfiguration.setSchemaMode(QOrmSqlConfiguration::SchemaMode::Validate);
+        sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Validate);
     }
     else if (schemaModeStr.compare("bypass", Qt::CaseInsensitive) == 0)
     {
-        sqlConfiguration.setSchemaMode(QOrmSqlConfiguration::SchemaMode::Bypass);
+        sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Bypass);
     }
     else
     {
         qWarning() << "QtORM: Invalid schemaMode in SQL provider configuration. Falling back to validate mode";
-        sqlConfiguration.setSchemaMode(QOrmSqlConfiguration::SchemaMode::Validate);
+        sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Validate);
     }
 
     return sqlConfiguration;
@@ -90,10 +79,10 @@ QOrmSessionConfiguration QOrmSessionConfiguration::defaultConfiguration()
 
                 QOrmSessionConfiguration sessionConfiguration;
 
-                if (rootObject["provider"].toString().compare("sql") == 0)
+                if (rootObject["provider"].toString().compare("sqlite") == 0)
                 {
-                    QOrmSqlConfiguration sqlConfiguration =
-                            _build_json_sql_configuration(rootObject["sql"].toObject());
+                    QOrmSqliteConfiguration sqlConfiguration =
+                        _build_json_sqlite_configuration(rootObject["sqlite"].toObject());
                     sessionConfiguration.setProvider(new QOrmSqliteProvider{sqlConfiguration});
                 }
 
@@ -114,32 +103,29 @@ QOrmSessionConfiguration::QOrmSessionConfiguration()
 {
 }
 
-QOrmSessionConfiguration::QOrmSessionConfiguration(const QOrmSessionConfiguration&) = default;
+// QOrmSessionConfiguration::QOrmSessionConfiguration(const QOrmSessionConfiguration&) = default;
 
-#ifdef Q_COMPILER_RVALUE_REFS
 QOrmSessionConfiguration::QOrmSessionConfiguration(QOrmSessionConfiguration&&) = default;
-#endif
 
 QOrmSessionConfiguration::~QOrmSessionConfiguration() = default;
 
-QOrmSessionConfiguration& QOrmSessionConfiguration::operator=(const QOrmSessionConfiguration&) = default;
+// QOrmSessionConfiguration& QOrmSessionConfiguration::operator=(const QOrmSessionConfiguration&) =
+// default;
 
-#ifdef Q_COMPILER_RVALUE_REFS
 QOrmSessionConfiguration& QOrmSessionConfiguration::operator=(QOrmSessionConfiguration&&) = default;
-#endif
 
 QOrmAbstractProvider* QOrmSessionConfiguration::provider() const
 {
     Q_ASSERT(d != nullptr);
 
-    return d->m_provider;
+    return d->m_provider.get();
 }
 
 void QOrmSessionConfiguration::setProvider(QOrmAbstractProvider* provider)
 {    
     Q_ASSERT(d != nullptr);
 
-    d->m_provider = provider;
+    d->m_provider.reset(provider);
 }
 
 bool QOrmSessionConfiguration::isValid() const

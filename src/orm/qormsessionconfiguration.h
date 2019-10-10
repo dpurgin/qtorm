@@ -6,6 +6,8 @@
 #include <QtCore/qstring.h>
 #include <QtCore/qshareddata.h>
 
+#include <memory>
+
 QT_BEGIN_NAMESPACE
 
 class QOrmAbstractProvider;
@@ -18,28 +20,27 @@ public:
 
 public:
     QOrmSessionConfiguration();
-    QOrmSessionConfiguration(const QOrmSessionConfiguration&);
+    QOrmSessionConfiguration(const QOrmSessionConfiguration&) = delete;
     QOrmSessionConfiguration(QOrmSessionConfiguration&&);
     ~QOrmSessionConfiguration();
 
-    QOrmSessionConfiguration& operator=(const QOrmSessionConfiguration&);
+    QOrmSessionConfiguration& operator=(const QOrmSessionConfiguration&) = delete;
     QOrmSessionConfiguration& operator=(QOrmSessionConfiguration&&);
 
     Q_REQUIRED_RESULT
     QOrmAbstractProvider* provider() const;
+    void setProvider(QOrmAbstractProvider* provider);
 
     Q_REQUIRED_RESULT
     bool isVerbose() const;
+    void setVerbose(bool isVerbose);
 
     Q_REQUIRED_RESULT
     bool isValid() const;
 
-protected:
-    void setProvider(QOrmAbstractProvider* provider);
-    void setVerbose(bool isVerbose);
-
 private:
-    QSharedDataPointer<QOrmSessionConfigurationData> d;
+    std::unique_ptr<QOrmSessionConfigurationData> d;
+    //    QSharedDataPointer<QOrmSessionConfigurationData> d;
 };
 
 QT_END_NAMESPACE

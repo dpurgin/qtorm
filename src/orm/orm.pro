@@ -23,7 +23,7 @@ PUBLIC_HEADERS += \
     qormrelation.h \
     qormsession.h \
     qormsessionconfiguration.h \
-    qormsqlconfiguration.h \
+    qormsqliteconfiguration.h \
     qormsqliteprovider.h \
     qormtransactiontoken.h \
 
@@ -52,7 +52,7 @@ SOURCES += \
     qormrelation.cpp \
     qormsession.cpp \
     qormsessionconfiguration.cpp \
-    qormsqlconfiguration.cpp \
+    qormsqliteconfiguration.cpp \
     qormsqliteprovider.cpp \
     qormsqlitestatementgenerator_p.cpp \
     qormtransactiontoken.cpp \

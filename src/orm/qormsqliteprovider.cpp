@@ -9,7 +9,7 @@
 #include "qormquery.h"
 #include "qormqueryresult.h"
 #include "qormrelation.h"
-#include "qormsqlconfiguration.h"
+#include "qormsqliteconfiguration.h"
 
 #include "qormglobal_p.h"
 #include "qormsqlitestatementgenerator_p.h"
@@ -29,13 +29,13 @@ class QOrmSqliteProviderPrivate
 {
     friend class QOrmSqliteProvider;
 
-    explicit QOrmSqliteProviderPrivate(const QOrmSqlConfiguration& configuration)
+    explicit QOrmSqliteProviderPrivate(const QOrmSqliteConfiguration& configuration)
         : m_sqlConfiguration{configuration}
     {
     }
 
     QSqlDatabase m_database;
-    QOrmSqlConfiguration m_sqlConfiguration;
+    QOrmSqliteConfiguration m_sqlConfiguration;
     QSet<QString> m_schemaSyncCache;
 
     Q_REQUIRED_RESULT
@@ -136,7 +136,7 @@ QObject* QOrmSqliteProviderPrivate::makeEntityInstance(const QOrmMetadata& entit
 
 QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation& relation)
 {
-    if (m_sqlConfiguration.schemaMode() == QOrmSqlConfiguration::SchemaMode::Bypass)
+    if (m_sqlConfiguration.schemaMode() == QOrmSqliteConfiguration::SchemaMode::Bypass)
         return {QOrm::ErrorType::None, ""};
 
     switch (relation.type())
@@ -152,19 +152,19 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
 
             switch (m_sqlConfiguration.schemaMode())
             {
-                case QOrmSqlConfiguration::SchemaMode::Recreate:
+                case QOrmSqliteConfiguration::SchemaMode::Recreate:
                     error = recreateSchema(relation);
                     break;
 
-                case QOrmSqlConfiguration::SchemaMode::Update:
+                case QOrmSqliteConfiguration::SchemaMode::Update:
                     error = updateSchema(relation);
                     break;
 
-                case QOrmSqlConfiguration::SchemaMode::Validate:
+                case QOrmSqliteConfiguration::SchemaMode::Validate:
                     error = validateSchema(relation);
                     break;
 
-                case QOrmSqlConfiguration::SchemaMode::Bypass:
+                case QOrmSqliteConfiguration::SchemaMode::Bypass:
                     qFatal("QtORM: Unexpected state");
             }
 
@@ -295,7 +295,7 @@ QOrmQueryResult QOrmSqliteProviderPrivate::remove(const QOrmQuery& query)
     return QOrmQueryResult{sqlQuery.numRowsAffected()};
 }
 
-QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration)
+QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqliteConfiguration& sqlConfiguration)
     : QOrmAbstractProvider{}
     , d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration}}
 {
@@ -312,13 +312,9 @@ QOrmError QOrmSqliteProvider::connectToBackend()
 
     if (!d->m_database.isOpen())
     {
-        d->m_database = QSqlDatabase::addDatabase(d->m_sqlConfiguration.driverName());
+        d->m_database = QSqlDatabase::addDatabase("QSQLITE");
         d->m_database.setConnectOptions(d->m_sqlConfiguration.connectOptions());
-        d->m_database.setHostName(d->m_sqlConfiguration.hostName());
         d->m_database.setDatabaseName(d->m_sqlConfiguration.databaseName());
-        d->m_database.setPassword(d->m_sqlConfiguration.password());
-        d->m_database.setPort(d->m_sqlConfiguration.port());
-        d->m_database.setUserName(d->m_sqlConfiguration.userName());
 
         if (!d->m_database.open())
             return d->lastDatabaseError();
@@ -571,7 +567,7 @@ QOrmQueryResult QOrmSqliteProvider::execute(const QOrmQuery& query)
 //    return QOrmError{QOrm::Error::None, {}};
 //}
 
-QOrmSqlConfiguration QOrmSqliteProvider::configuration() const
+QOrmSqliteConfiguration QOrmSqliteProvider::configuration() const
 {
     Q_D(const QOrmSqliteProvider);
 

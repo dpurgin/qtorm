@@ -8,14 +8,14 @@ QT_BEGIN_NAMESPACE
 
 class QOrmEntityInstanceCache;
 class QOrmQueryResult;
-class QOrmSqlConfiguration;
+class QOrmSqliteConfiguration;
 class QOrmSqliteProviderPrivate;
 class QSqlDatabase;
 
 class Q_ORM_EXPORT QOrmSqliteProvider : public QOrmAbstractProvider
 {
 public:
-    explicit QOrmSqliteProvider(const QOrmSqlConfiguration& sqlConfiguration);
+    explicit QOrmSqliteProvider(const QOrmSqliteConfiguration& sqlConfiguration);
     ~QOrmSqliteProvider() override;
 
     QOrmError connectToBackend() override;
@@ -28,7 +28,7 @@ public:
 
     QOrmQueryResult execute(const QOrmQuery& query) override;
 
-    QOrmSqlConfiguration configuration() const;
+    QOrmSqliteConfiguration configuration() const;
     QSqlDatabase database() const;
 
 private:
