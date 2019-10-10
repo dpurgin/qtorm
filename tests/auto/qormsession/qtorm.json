@@ -1,6 +1,6 @@
 {
-    "provider": "sql",
-    "sql": {
+    "provider": "sqlite",
+    "sqlite": {
         "databaseName": "testdb.db",
         "schemaMode": "recreate"
     }

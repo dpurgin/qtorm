@@ -1,7 +1,7 @@
 {
     "provider": "sqlite",
     "verbose": true,
-    "sql": {
+    "sqlite": {
         "databaseName": "navigationdb.db",
         "verbose": true,
         "schemaMode": "recreate"

@@ -107,17 +107,24 @@ void SqliteSessionTest::testCascadedCreate()
 {
     QOrmSession session;
 
-    Province* upperAustria = new Province("Oberösterreich");
-    Province* lowerAustria = new Province("Niederösterreich");
+    Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
+    Province* lowerAustria = new Province(QString::fromUtf8("Niederösterreich"));
 
-    Town* hagenberg = new Town("Hagenberg", upperAustria);
-    Town* pregarten = new Town("Pregarten", upperAustria);
-    Town* melk = new Town("Melk", lowerAustria);
+    Town* hagenberg = new Town(QString::fromUtf8("Hagenberg"), upperAustria);
+    Town* pregarten = new Town(QString::fromUtf8("Pregarten"), upperAustria);
+    Town* melk = new Town(QString::fromUtf8("Melk"), lowerAustria);
 
-    session.merge(hagenberg, pregarten, melk, upperAustria, lowerAustria);
-    //    session.merge(hagenberg);
-    //    session.merge(pregarten);
-    //    session.merge(melk);
+    QVERIFY(session.merge(hagenberg, pregarten, melk, upperAustria, lowerAustria));
+
+    QOrmSqliteProvider* provider =
+        static_cast<QOrmSqliteProvider*>(session.configuration().provider());
+    QSqlQuery query{provider->database()};
+
+    QVERIFY(query.exec(QString::fromUtf8("SELECT * Province WHERE name = \"Oberösterreich\"")));
+    QVERIFY(query.size() == 1);
+
+    QVERIFY(query.exec(QString::fromUtf8("SELECT * Province WHERE name = \"Niederösterreich\"")));
+    QVERIFY(query.size() == 1);
 }
 
 QTEST_GUILESS_MAIN(SqliteSessionTest)

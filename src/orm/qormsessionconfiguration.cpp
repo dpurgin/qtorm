@@ -11,13 +11,23 @@
 
 QT_BEGIN_NAMESPACE
 
-class QOrmSessionConfigurationData /* : public QSharedData*/
+class QOrmSessionConfigurationData : public QSharedData
 {
     friend class QOrmSessionConfiguration;
+
+    QOrmSessionConfigurationData(QOrmAbstractProvider* provider, bool isVerbose);
 
     std::unique_ptr<QOrmAbstractProvider> m_provider;
     bool m_isVerbose{false};
 };
+
+QOrmSessionConfigurationData::QOrmSessionConfigurationData(QOrmAbstractProvider* provider,
+                                                           bool isVerbose)
+    : m_provider{provider}
+    , m_isVerbose{isVerbose}
+{
+    Q_ASSERT(provider != nullptr);
+}
 
 static QOrmSqliteConfiguration _build_json_sqlite_configuration(const QJsonObject& object)
 {
@@ -77,76 +87,50 @@ QOrmSessionConfiguration QOrmSessionConfiguration::defaultConfiguration()
             {
                 QJsonObject rootObject = doc.object();
 
-                QOrmSessionConfiguration sessionConfiguration;
+                std::unique_ptr<QOrmAbstractProvider> provider;
+                bool isVerbose = rootObject["verbose"].toBool(false);
 
                 if (rootObject["provider"].toString().compare("sqlite") == 0)
                 {
                     QOrmSqliteConfiguration sqlConfiguration =
                         _build_json_sqlite_configuration(rootObject["sqlite"].toObject());
-                    sessionConfiguration.setProvider(new QOrmSqliteProvider{sqlConfiguration});
+                    provider = std::make_unique<QOrmSqliteProvider>(sqlConfiguration);
                 }
 
-                sessionConfiguration.setVerbose(rootObject["verbose"].toBool(false));
-
-                return sessionConfiguration;
+                return QOrmSessionConfiguration{provider.release(), isVerbose};
             }
         }
     }
 
-    qWarning() << "Unable to find a valid qtorm.json in" << searchPaths;
-
-    return {};
+    qFatal(
+        "QtOrm: Unable to find a valid qtorm.json in resource, working directory, or application "
+        "directory");
 }
 
-QOrmSessionConfiguration::QOrmSessionConfiguration()
-    : d{new QOrmSessionConfigurationData}
+QOrmSessionConfiguration::QOrmSessionConfiguration(QOrmAbstractProvider* provider, bool isVerbose)
+    : d{new QOrmSessionConfigurationData{provider, isVerbose}}
 {
 }
 
-// QOrmSessionConfiguration::QOrmSessionConfiguration(const QOrmSessionConfiguration&) = default;
+QOrmSessionConfiguration::QOrmSessionConfiguration(const QOrmSessionConfiguration&) = default;
 
 QOrmSessionConfiguration::QOrmSessionConfiguration(QOrmSessionConfiguration&&) = default;
 
 QOrmSessionConfiguration::~QOrmSessionConfiguration() = default;
 
-// QOrmSessionConfiguration& QOrmSessionConfiguration::operator=(const QOrmSessionConfiguration&) =
-// default;
+QOrmSessionConfiguration& QOrmSessionConfiguration::
+operator=(const QOrmSessionConfiguration&) = default;
 
 QOrmSessionConfiguration& QOrmSessionConfiguration::operator=(QOrmSessionConfiguration&&) = default;
 
 QOrmAbstractProvider* QOrmSessionConfiguration::provider() const
 {
-    Q_ASSERT(d != nullptr);
-
     return d->m_provider.get();
-}
-
-void QOrmSessionConfiguration::setProvider(QOrmAbstractProvider* provider)
-{    
-    Q_ASSERT(d != nullptr);
-
-    d->m_provider.reset(provider);
-}
-
-bool QOrmSessionConfiguration::isValid() const
-{
-    Q_ASSERT(d != nullptr);
-
-    return d->m_provider != nullptr;
 }
 
 bool QOrmSessionConfiguration::isVerbose() const
 {
-    Q_ASSERT(d != nullptr);
-
     return d->m_isVerbose;
-}
-
-void QOrmSessionConfiguration::setVerbose(bool isVerbose)
-{
-    Q_ASSERT(d != nullptr);
-
-    d->m_isVerbose = isVerbose;
 }
 
 QT_END_NAMESPACE

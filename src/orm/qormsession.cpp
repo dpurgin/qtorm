@@ -18,13 +18,12 @@ class QOrmSessionPrivate
 {
     Q_DECLARE_PUBLIC(QOrmSession)
     QOrmSession* q_ptr{nullptr};
-    const QOrmSessionConfiguration& m_sessionConfiguration;
+    QOrmSessionConfiguration m_sessionConfiguration;
     QOrmEntityInstanceCache m_entityInstanceCache;
     QOrmError m_lastError{QOrm::ErrorType::None, {}};
     QOrmMetadataCache m_metadataCache;
 
-    explicit QOrmSessionPrivate(const QOrmSessionConfiguration& sessionConfiguration,
-                                QOrmSession* parent);
+    explicit QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration, QOrmSession* parent);
     ~QOrmSessionPrivate();
 
     void ensureProviderConnected();
@@ -33,12 +32,11 @@ class QOrmSessionPrivate
     void setLastError(QOrmError lastError);
 };
 
-QOrmSessionPrivate::QOrmSessionPrivate(const QOrmSessionConfiguration& sessionConfiguration,
+QOrmSessionPrivate::QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration,
                                        QOrmSession* parent)
     : q_ptr{parent}
-    , m_sessionConfiguration{sessionConfiguration}
+    , m_sessionConfiguration{std::move(sessionConfiguration)}
 {
-    Q_ASSERT(sessionConfiguration.isValid());
 }
 
 QOrmSessionPrivate::~QOrmSessionPrivate() = default;
@@ -59,7 +57,7 @@ void QOrmSessionPrivate::setLastError(QOrmError lastError)
     m_lastError = lastError;
 }
 
-QOrmSession::QOrmSession(const QOrmSessionConfiguration& sessionConfiguration)
+QOrmSession::QOrmSession(QOrmSessionConfiguration sessionConfiguration)
     : d_ptr{new QOrmSessionPrivate{sessionConfiguration, this}}
 {    
 }
@@ -105,6 +103,25 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
     QOrm::Operation operation = d->m_entityInstanceCache.contains(entityInstance)
                                     ? QOrm::Operation::Update
                                     : QOrm::Operation::Create;
+
+    QOrmMetadata entity = d->m_metadataCache[qMetaObject];
+
+    // Cascade merge of referenced entities
+    for (const QOrmPropertyMapping& mapping : entity.propertyMappings())
+    {
+        if (mapping.isReference() && !mapping.isTransient())
+        {
+            QObject* referencedInstance =
+                QOrmPrivate::propertyValue(entityInstance, mapping.classPropertyName())
+                    .value<QObject*>();
+            const QMetaObject& qMetaObject = mapping.referencedEntity()->qMetaObject();
+
+            if (!doMerge(referencedInstance, qMetaObject))
+            {
+                return false;
+            }
+        }
+    }
 
     QOrmQueryResult result = d->m_sessionConfiguration.provider()->execute(
         queryBuilderFor(qMetaObject).instance(qMetaObject, entityInstance).build(operation));

@@ -104,66 +104,72 @@ extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterUnaryPredicate
 
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator==(const QOrmClassProperty& property, const QVariant& value);
+QOrmFilterTerminalPredicate operator==(const QOrmFilterTerminalPredicate::FilterProperty& property,
+                                       const QVariant& value);
 
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator!=(const QOrmClassProperty& property, const QVariant& value);
+QOrmFilterTerminalPredicate operator!=(const QOrmFilterTerminalPredicate::FilterProperty& property,
+                                       const QVariant& value);
 
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator<(const QOrmClassProperty& property, const QVariant& value);
+QOrmFilterTerminalPredicate operator<(const QOrmFilterTerminalPredicate::FilterProperty& property,
+                                      const QVariant& value);
 
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator<=(const QOrmClassProperty& property, const QVariant& value);
+QOrmFilterTerminalPredicate operator<=(const QOrmFilterTerminalPredicate::FilterProperty& property,
+                                       const QVariant& value);
 
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator>(const QOrmClassProperty& property, const QVariant& value);
+QOrmFilterTerminalPredicate operator>(const QOrmFilterTerminalPredicate::FilterProperty& property,
+                                      const QVariant& value);
 
 Q_REQUIRED_RESULT
 Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator>=(const QOrmClassProperty& property, const QVariant& value);
+QOrmFilterTerminalPredicate operator>=(const QOrmFilterTerminalPredicate::FilterProperty& property,
+                                       const QVariant& value);
 
 template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator==(const QOrmClassProperty& property,
-                                                                T* value)
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
+operator==(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
 {
     return operator==(property, QVariant::fromValue(value));
 }
 
 template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator!=(const QOrmClassProperty& property,
-                                                                T* value)
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
+operator!=(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
 {
     return operator!=(property, QVariant::fromValue(value));
 }
 
 template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator<(const QOrmClassProperty& property,
-                                                               T* value)
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
+operator<(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
 {
     return operator<(property, QVariant::fromValue(value));
 }
 
 template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator<=(const QOrmClassProperty& property,
-                                                                T* value)
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
+operator<=(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
 {
     return operator<=(property, QVariant::fromValue(value));
 }
 
 template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator>(const QOrmClassProperty& property,
-                                                               T* value)
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
+operator>(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
 {
     return operator>(property, QVariant::fromValue(value));
 }
 
 template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate operator>=(const QOrmClassProperty& property,
-                                                                T* value)
+Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
+operator>=(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
 {
     return operator>=(property, QVariant::fromValue(value));
 }

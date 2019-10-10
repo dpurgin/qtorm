@@ -19,28 +19,22 @@ public:
     static QOrmSessionConfiguration defaultConfiguration();
 
 public:
-    QOrmSessionConfiguration();
-    QOrmSessionConfiguration(const QOrmSessionConfiguration&) = delete;
+    QOrmSessionConfiguration(QOrmAbstractProvider* provider, bool isVerbose);
+    QOrmSessionConfiguration(const QOrmSessionConfiguration&);
     QOrmSessionConfiguration(QOrmSessionConfiguration&&);
     ~QOrmSessionConfiguration();
 
-    QOrmSessionConfiguration& operator=(const QOrmSessionConfiguration&) = delete;
+    QOrmSessionConfiguration& operator=(const QOrmSessionConfiguration&);
     QOrmSessionConfiguration& operator=(QOrmSessionConfiguration&&);
 
     Q_REQUIRED_RESULT
     QOrmAbstractProvider* provider() const;
-    void setProvider(QOrmAbstractProvider* provider);
 
     Q_REQUIRED_RESULT
     bool isVerbose() const;
-    void setVerbose(bool isVerbose);
-
-    Q_REQUIRED_RESULT
-    bool isValid() const;
 
 private:
-    std::unique_ptr<QOrmSessionConfigurationData> d;
-    //    QSharedDataPointer<QOrmSessionConfigurationData> d;
+    QSharedDataPointer<QOrmSessionConfigurationData> d;
 };
 
 QT_END_NAMESPACE

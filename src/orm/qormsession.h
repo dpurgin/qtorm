@@ -25,8 +25,8 @@ class Q_ORM_EXPORT QOrmSession
     Q_DECLARE_PRIVATE(QOrmSession)
 
 public:
-    explicit QOrmSession(const QOrmSessionConfiguration& configuration =
-                             QOrmSessionConfiguration::defaultConfiguration());
+    explicit QOrmSession(
+        QOrmSessionConfiguration configuration = QOrmSessionConfiguration::defaultConfiguration());
     ~QOrmSession();
 
     Q_REQUIRED_RESULT
