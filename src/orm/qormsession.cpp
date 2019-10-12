@@ -104,6 +104,12 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
                                     ? QOrm::Operation::Update
                                     : QOrm::Operation::Create;
 
+    if (operation == QOrm::Operation::Update &&
+        !d->m_entityInstanceCache.isModified(entityInstance))
+    {
+        return true;
+    }
+
     QOrmMetadata entity = d->m_metadataCache[qMetaObject];
 
     // Cascade merge of referenced entities if needed
