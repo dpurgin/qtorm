@@ -18,6 +18,7 @@ public:
     QOrmEntityInstanceCache();
     ~QOrmEntityInstanceCache();
 
+    QObject* get(const QOrmMetadata& meta, const QVariant& objectId);
     bool contains(QObject* instance) const;
     void insert(const QOrmMetadata& meta, QObject* instance);
     QObject* take(QObject* instance);

@@ -20,6 +20,7 @@ public:
     QOrmQueryResult(QOrmQueryResult&&);
     ~QOrmQueryResult();
 
+    explicit QOrmQueryResult(QOrmError error, QVector<QObject*> resultSet, QVariant lastInsertedId);
     explicit QOrmQueryResult(QOrmError error);
     explicit QOrmQueryResult(QVector<QObject*> resultSet);
     explicit QOrmQueryResult(QVariant lastInsertedId);
@@ -34,9 +35,6 @@ public:
 
     Q_REQUIRED_RESULT
     const QVector<QObject*>& toVector() const;
-
-private:
-    explicit QOrmQueryResult(QOrmError error, QVector<QObject*> resultSet, QVariant lastInsertedId);
 
     QSharedDataPointer<QOrmQueryResultPrivate> d;
 };

@@ -26,6 +26,8 @@ private slots:
     void testSuccessfulMergeWithExplicitUpdate();
 
     void testCascadedCreate();
+
+    void testSelectWithOneToMany();
 };
 
 SqliteSessionTest::SqliteSessionTest()
@@ -133,6 +135,54 @@ void SqliteSessionTest::testCascadedCreate()
     QVERIFY(
         query.exec(QString::fromUtf8("SELECT * FROM Province WHERE name = 'Niederösterreich'")));
     QCOMPARE(query.numRowsAffected(), 1);
+}
+
+void SqliteSessionTest::testSelectWithOneToMany()
+{
+    //     prepare database
+    {
+        QOrmSession session;
+        Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
+        Province* lowerAustria = new Province(QString::fromUtf8("Niederösterreich"));
+
+        Town* hagenberg = new Town(QString::fromUtf8("Hagenberg"), upperAustria);
+        Town* pregarten = new Town(QString::fromUtf8("Pregarten"), upperAustria);
+        Town* melk = new Town(QString::fromUtf8("Melk"), lowerAustria);
+
+        QVERIFY(session.merge(hagenberg, pregarten, melk, upperAustria, lowerAustria));
+    }
+
+    // Load data from the database using new ORM session
+    QOrmSqliteConfiguration sqliteConfiguration;
+    sqliteConfiguration.setVerbose(true);
+    sqliteConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Bypass);
+    sqliteConfiguration.setDatabaseName("testdb.db");
+    QOrmSqliteProvider* sqliteProvider = new QOrmSqliteProvider{sqliteConfiguration};
+    QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
+    QOrmSession session{sessionConfiguration};
+
+    QOrmQueryResult result = session.from<Province>().select();
+
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+
+    auto data = result.toVector();
+    QCOMPARE(data.size(), 2);
+
+    QCOMPARE(qobject_cast<Province*>(data[0])->id(), 1);
+    QCOMPARE(qobject_cast<Province*>(data[0])->name(), QString::fromUtf8("Oberösterreich"));
+    QCOMPARE(qobject_cast<Province*>(data[0])->towns().size(), 2);
+
+    QCOMPARE(qobject_cast<Province*>(data[0])->towns()[0]->id(), 1);
+    QCOMPARE(qobject_cast<Province*>(data[0])->towns()[0]->name(), QString::fromUtf8("Hagenberg"));
+
+    QCOMPARE(qobject_cast<Province*>(data[0])->towns()[1]->id(), 2);
+    QCOMPARE(qobject_cast<Province*>(data[0])->towns()[1]->name(), QString::fromUtf8("Pregarten"));
+
+    QCOMPARE(qobject_cast<Province*>(data[1])->id(), 2);
+    QCOMPARE(qobject_cast<Province*>(data[1])->name(), QString::fromUtf8("Niederösterreich"));
+
+    QCOMPARE(qobject_cast<Province*>(data[1])->towns()[0]->id(), 3);
+    QCOMPARE(qobject_cast<Province*>(data[1])->towns()[0]->name(), QString::fromUtf8("Melk"));
 }
 
 QTEST_GUILESS_MAIN(SqliteSessionTest)

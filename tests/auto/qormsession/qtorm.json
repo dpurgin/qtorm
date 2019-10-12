@@ -2,6 +2,7 @@
     "provider": "sqlite",
     "sqlite": {
         "databaseName": "testdb.db",
-        "schemaMode": "recreate"
+        "schemaMode": "recreate",
+        "verbose": true
     }
 }

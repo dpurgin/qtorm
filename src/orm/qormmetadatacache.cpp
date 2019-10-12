@@ -58,15 +58,12 @@ void QOrmMetadataCachePrivate::initialize(QOrmMetadataCache* cache,
         const QOrmMetadata* referencedEntity = nullptr;
         bool isTransient = false;
 
+        // Reference to another entity
         if (property.type() == QVariant::UserType)
         {
-            if (property.userType() == QMetaType::UnknownType)
-            {
-                qFatal("QtORM: The type %s is used in an ORM entity but was not registered using "
-                       "qRegisterMetaType<%s>()",
-                       property.typeName(),
-                       property.typeName());
-            }
+            // Check if this is one-to-many or many-to-one relation.
+            // One-to-many relation will have a container in type. If so, extract the contained
+            // type.
 
             auto typeName = QByteArray{property.typeName()};
 
@@ -92,12 +89,25 @@ void QOrmMetadataCachePrivate::initialize(QOrmMetadataCache* cache,
                 isTransient = false;
             }
 
+            if (property.userType() == QMetaType::UnknownType)
+            {
+                if (typeName.endsWith('*'))
+                    typeName.chop(1);
+
+                qFatal("QtOrm: An unregistered type %s is used in %s::%s. If this is a referenced "
+                       "entity register it with qRegisterOrmEntity<%s>()",
+                       typeName.data(),
+                       qMetaObject.className(),
+                       property.name(),
+                       typeName.data());
+            }
+
             const QMetaObject* referencedMeta =
                 QMetaType::metaObjectForType(QMetaType::type(typeName));
 
             if (referencedMeta == nullptr)
             {
-                qFatal("QtORM: Cannot deduce ORM entity from type %s used in %s::%s",
+                qFatal("QtOrom: Cannot deduce ORM entity from type %s used in %s::%s",
                        property.typeName(),
                        qMetaObject.className(),
                        property.name());
@@ -106,9 +116,35 @@ void QOrmMetadataCachePrivate::initialize(QOrmMetadataCache* cache,
             referencedEntity = &cache->get(*referencedMeta);
             Q_ASSERT(referencedEntity != nullptr);
 
-            if (referencedEntity->objectIdMapping() == nullptr)
+            // for one-to-many relation: Check that there is the corresponding field on the other
+            // side
+            if (isTransient)
             {
-                qFatal("QtORM: Entity %s referenced in %s::%s must have an object ID property",
+                auto it =
+                    std::find_if(std::cbegin(referencedEntity->propertyMappings()),
+                                 std::cend(referencedEntity->propertyMappings()),
+                                 [cache, qMetaObject](const QOrmPropertyMapping& mapping) {
+                                     return mapping.isReference() &&
+                                            mapping.referencedEntity() == &cache->get(qMetaObject);
+                                 });
+
+                if (it == std::cend(referencedEntity->propertyMappings()))
+                {
+                    qFatal(
+                        "QtOrm: Entity %s referenced in %s::%s must have a back-reference to %s. "
+                        "Declare a Q_PROPERTY(%s* ...) in %s.",
+                        referencedEntity->className().toUtf8().data(),
+                        className.data(),
+                        property.name(),
+                        className.data(),
+                        className.data(),
+                        referencedEntity->className().toUtf8().data());
+                }
+            }
+            // Many-to-one relations. Check that the related entity has object ID
+            else if (referencedEntity->objectIdMapping() == nullptr)
+            {
+                qFatal("QtOrm: Entity %s referenced in %s::%s must have an object ID property",
                        referencedEntity->className().toUtf8().data(),
                        qMetaObject.className(),
                        property.name());
