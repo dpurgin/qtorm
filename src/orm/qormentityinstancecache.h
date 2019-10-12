@@ -22,6 +22,9 @@ public:
     void insert(const QOrmMetadata& meta, QObject* instance);
     QObject* take(QObject* instance);
 
+    bool isModified(QObject* instance) const;
+    void markUnmodified(QObject* instance) const;
+
 private:
     QScopedPointer<QOrmEntityInstanceCachePrivate> d;
 };

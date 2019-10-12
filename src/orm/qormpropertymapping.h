@@ -3,6 +3,7 @@
 
 #include <QtOrm/qormglobal.h>
 
+#include <QtCore/qmetaobject.h>
 #include <QtCore/qshareddata.h>
 #include <QtCore/qstring.h>
 #include <QtCore/qvariant.h>
@@ -16,6 +17,7 @@ class Q_ORM_EXPORT QOrmPropertyMapping
 {
 public:
     QOrmPropertyMapping(const QOrmMetadata& enclosingEntity,
+                        QMetaProperty qMetaProperty,
                         QString classPropertyName,
                         QString tableFieldName,
                         bool isObjectId,
@@ -32,6 +34,9 @@ public:
 
     Q_REQUIRED_RESULT
     const QOrmMetadata& enclosingEntity() const;
+
+    Q_REQUIRED_RESULT
+    const QMetaProperty& qMetaProperty() const;
 
     Q_REQUIRED_RESULT
     QString classPropertyName() const;

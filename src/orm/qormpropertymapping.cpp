@@ -30,6 +30,7 @@ class QOrmPropertyMappingPrivate : public QSharedData
     friend class QOrmPropertyMapping;
 
     QOrmPropertyMappingPrivate(const QOrmMetadata& enclosingEntity,
+                               QMetaProperty qMetaProperty,
                                QString classPropertyName,
                                QString tableFieldName,
                                bool isObjectId,
@@ -38,6 +39,7 @@ class QOrmPropertyMappingPrivate : public QSharedData
                                const QOrmMetadata* referencedEntity,
                                bool isTransient)
         : m_enclosingEntity{enclosingEntity}
+        , m_qMetaProperty{std::move(qMetaProperty)}
         , m_classPropertyName{std::move(classPropertyName)}
         , m_tableFieldName{std::move(tableFieldName)}
         , m_isObjectId{isObjectId}
@@ -49,6 +51,7 @@ class QOrmPropertyMappingPrivate : public QSharedData
     }
 
     const QOrmMetadata& m_enclosingEntity;
+    QMetaProperty m_qMetaProperty;
     QString m_classPropertyName;
     QString m_tableFieldName;
     bool m_isObjectId{false};
@@ -59,6 +62,7 @@ class QOrmPropertyMappingPrivate : public QSharedData
 };
 
 QOrmPropertyMapping::QOrmPropertyMapping(const QOrmMetadata& enclosingEntity,
+                                         QMetaProperty qMetaProperty,
                                          QString classPropertyName,
                                          QString tableFieldName,
                                          bool isObjectId,
@@ -67,6 +71,7 @@ QOrmPropertyMapping::QOrmPropertyMapping(const QOrmMetadata& enclosingEntity,
                                          const QOrmMetadata* referencedEntity,
                                          bool isTransient)
     : d{new QOrmPropertyMappingPrivate{enclosingEntity,
+                                       std::move(qMetaProperty),
                                        std::move(classPropertyName),
                                        std::move(tableFieldName),
                                        isObjectId,
@@ -90,6 +95,11 @@ QOrmPropertyMapping& QOrmPropertyMapping::operator=(QOrmPropertyMapping&&) = def
 const QOrmMetadata& QOrmPropertyMapping::enclosingEntity() const
 {
     return d->m_enclosingEntity;
+}
+
+const QMetaProperty& QOrmPropertyMapping::qMetaProperty() const
+{
+    return d->m_qMetaProperty;
 }
 
 QString QOrmPropertyMapping::classPropertyName() const

@@ -41,6 +41,15 @@ void QOrmMetadataCachePrivate::initialize(QOrmMetadataCache* cache,
         if (property.enclosingMetaObject() == &QObject::staticMetaObject)
             continue;
 
+        if (!property.isReadable() || !property.isWritable() || !property.hasNotifySignal() ||
+            !property.notifySignal().isValid())
+        {
+            qFatal("QtOrm: The property %s::%s must have READ, WRITE, and NOTIFY declarations in "
+                   "Q_PROPERTY().",
+                   className.data(),
+                   property.name());
+        }
+
         auto classPropertyName = QString::fromUtf8(property.name());
         auto tableFieldName = QString::fromUtf8(property.name()).toLower();
         auto isObjectId =
@@ -107,6 +116,7 @@ void QOrmMetadataCachePrivate::initialize(QOrmMetadataCache* cache,
         }
 
         data->m_propertyMappings.emplace_back(m_cache.at(className),
+                                              property,
                                               classPropertyName,
                                               tableFieldName,
                                               isObjectId,

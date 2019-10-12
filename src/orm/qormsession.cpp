@@ -106,7 +106,7 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
 
     QOrmMetadata entity = d->m_metadataCache[qMetaObject];
 
-    // Cascade merge of referenced entities
+    // Cascade merge of referenced entities if needed
     for (const QOrmPropertyMapping& mapping : entity.propertyMappings())
     {
         if (mapping.isReference() && !mapping.isTransient())
@@ -114,11 +114,16 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
             QObject* referencedInstance =
                 QOrmPrivate::propertyValue(entityInstance, mapping.classPropertyName())
                     .value<QObject*>();
-            const QMetaObject& qMetaObject = mapping.referencedEntity()->qMetaObject();
 
-            if (!doMerge(referencedInstance, qMetaObject))
+            if (!d->m_entityInstanceCache.contains(referencedInstance) ||
+                d->m_entityInstanceCache.isModified(referencedInstance))
             {
-                return false;
+                const QMetaObject& qMetaObject = mapping.referencedEntity()->qMetaObject();
+
+                if (!doMerge(referencedInstance, qMetaObject))
+                {
+                    return false;
+                }
             }
         }
     }
@@ -142,6 +147,8 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
 
         if (operation == QOrm::Operation::Create)
             d->m_entityInstanceCache.insert(d->m_metadataCache[qMetaObject], entityInstance);
+        else
+            d->m_entityInstanceCache.markUnmodified(entityInstance);
     }
 
     return d->m_lastError.type() == QOrm::ErrorType::None;
