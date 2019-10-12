@@ -65,6 +65,15 @@ public:
     Q_REQUIRED_RESULT
     static QString generateCondition(const QOrmFilterUnaryPredicate& predicate,
                                      QVariantMap& boundParameters);
+
+    Q_REQUIRED_RESULT
+    static QString generateCreateTableStatement(const QOrmMetadata& entity);
+
+    Q_REQUIRED_RESULT
+    static QString generateDropTableStatement(const QOrmMetadata& entity);
+
+    Q_REQUIRED_RESULT
+    static QString toSqliteType(QVariant::Type type);
 };
 
 QT_END_NAMESPACE

@@ -21,6 +21,10 @@ private slots:
     void testInsertWithManyToOne();
     void testInsertWithOneToMany();
     void testFilterWithReference();
+    void testUpdateWithManyToOne();
+    void testUpdateWithOneToMany();
+    void testCreateTableWithReference();
+    void testCreateTableWithManyToOne();
 };
 
 void SqliteStatementGenerator::init()
@@ -83,6 +87,57 @@ void SqliteStatementGenerator::testFilterWithReference()
 
     QCOMPARE(statement, "WHERE province_id = :province_id");
     QCOMPARE(boundParameters[":province_id"], 1);
+}
+
+void SqliteStatementGenerator::testUpdateWithManyToOne()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    QScopedPointer<Province> upperAustria{new Province(1, QString::fromUtf8("Oberösterreich"))};
+    QVariantMap boundParameters;
+    QString statement = generator.generateUpdateStatement(cache.get<Province>(),
+                                                          upperAustria.get(),
+                                                          boundParameters);
+
+    QCOMPARE(statement, "UPDATE Province SET name = :name WHERE id = :id");
+    QCOMPARE(boundParameters[":name"], QString::fromUtf8("Oberösterreich"));
+    QCOMPARE(boundParameters[":id"], 1);
+}
+
+void SqliteStatementGenerator::testUpdateWithOneToMany()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    QScopedPointer<Province> upperAustria{new Province(1, "Oberösterreich")};
+    QScopedPointer<Town> hagenberg{new Town{2, "Hagenberg", upperAustria.get()}};
+
+    QVariantMap boundParameters;
+    QString statement =
+        generator.generateUpdateStatement(cache.get<Town>(), hagenberg.get(), boundParameters);
+
+    QCOMPARE(statement, "UPDATE Town SET name = :name,province_id = :province_id WHERE id = :id");
+    QCOMPARE(boundParameters[":name"], QString::fromUtf8("Hagenberg"));
+    QCOMPARE(boundParameters[":province_id"], 1);
+    QCOMPARE(boundParameters[":id"], 2);
+}
+
+void SqliteStatementGenerator::testCreateTableWithReference()
+{
+    QOrmMetadataCache cache;
+
+    QCOMPARE(
+        QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Town>()),
+        "CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,province_id INTEGER)");
+}
+
+void SqliteStatementGenerator::testCreateTableWithManyToOne()
+{
+    QOrmMetadataCache cache;
+
+    QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Province>()),
+             "CREATE TABLE Province(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT)");
 }
 
 QTEST_APPLESS_MAIN(SqliteStatementGenerator)

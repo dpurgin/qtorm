@@ -2,6 +2,7 @@
 
 #include <QOrmError>
 #include <QOrmSession>
+#include <QOrmSqlConfiguration>
 #include <QOrmSqliteProvider>
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -105,7 +106,13 @@ void SqliteSessionTest::testSuccessfulMergeWithExplicitUpdate()
 
 void SqliteSessionTest::testCascadedCreate()
 {
-    QOrmSession session;
+    QOrmSqliteConfiguration sqliteConfiguration{};
+    sqliteConfiguration.setVerbose(true);
+    sqliteConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Recreate);
+    sqliteConfiguration.setDatabaseName("testdb.db");
+    QOrmSqliteProvider* sqliteProvider = new QOrmSqliteProvider{sqliteConfiguration};
+    QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
+    QOrmSession session{sessionConfiguration};
 
     Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
     Province* lowerAustria = new Province(QString::fromUtf8("Niederösterreich"));
@@ -120,11 +127,12 @@ void SqliteSessionTest::testCascadedCreate()
         static_cast<QOrmSqliteProvider*>(session.configuration().provider());
     QSqlQuery query{provider->database()};
 
-    QVERIFY(query.exec(QString::fromUtf8("SELECT * Province WHERE name = \"Oberösterreich\"")));
-    QVERIFY(query.size() == 1);
+    QVERIFY(query.exec(QString::fromUtf8("SELECT * FROM Province WHERE name = 'Oberösterreich'")));
+    QCOMPARE(query.numRowsAffected(), 1);
 
-    QVERIFY(query.exec(QString::fromUtf8("SELECT * Province WHERE name = \"Niederösterreich\"")));
-    QVERIFY(query.size() == 1);
+    QVERIFY(
+        query.exec(QString::fromUtf8("SELECT * FROM Province WHERE name = 'Niederösterreich'")));
+    QCOMPARE(query.numRowsAffected(), 1);
 }
 
 QTEST_GUILESS_MAIN(SqliteSessionTest)

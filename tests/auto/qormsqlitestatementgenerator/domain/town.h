@@ -18,6 +18,13 @@ class Town : public QObject
 
 public:
     explicit Town(QObject* parent = nullptr);
+    Town(int id, const QString& name, Province* province)
+        : m_id{id}
+        , m_name{name}
+        , m_province{province}
+    {
+    }
+
     Town(const QString& name, Province* province)
         : m_name{name}
         , m_province{province}
