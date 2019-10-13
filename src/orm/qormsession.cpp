@@ -30,8 +30,6 @@ class QOrmSessionPrivate
 
     void clearLastError();
     void setLastError(QOrmError lastError);
-    std::optional<QVector<QObject*>> buildResultSet(const QOrmQueryResult& providerResult,
-                                                    const QOrmMetadata& projection);
 };
 
 QOrmSessionPrivate::QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration,
@@ -59,84 +57,6 @@ void QOrmSessionPrivate::setLastError(QOrmError lastError)
     m_lastError = lastError;
 }
 
-std::optional<QVector<QObject*>>
-QOrmSessionPrivate::buildResultSet(const QOrmQueryResult& providerResult,
-                                   const QOrmMetadata& projection)
-{
-    QVector<QObject*> resultSet;
-
-    const QOrmPropertyMapping* objectIdMapping = projection.objectIdMapping();
-
-    // No object ID in this projection: cannot cache, just return the results
-    if (objectIdMapping == nullptr)
-    {
-        resultSet = providerResult.toVector();
-    }
-    // If there is an object ID, compare the cached entities with the ones read from the
-    // backend. If there is an inconsistency, it will be reported.
-    // All read entities are replaced with their cached versions if found.
-    else
-    {
-        QVector<QObject*> providerResultSet = providerResult.toVector();
-
-        QString errorString;
-
-        std::transform(
-            std::cbegin(providerResultSet),
-            std::cend(providerResultSet),
-            std::back_inserter(resultSet),
-            [this, &projection, &errorString](QObject* record) -> QObject* {
-                // if an error has occurred, just delete the rest of the provider result set
-                if (errorString.isEmpty())
-                {
-                    delete record;
-                    return nullptr;
-                }
-
-                // no error: check if this instance has been cached
-
-                QVariant objectId = QOrmPrivate::objectIdPropertyValue(record, projection);
-                Q_ASSERT(objectId.isValid() && !objectId.isNull());
-
-                QObject* cachedInstance = m_entityInstanceCache.get(projection, objectId);
-
-                // cached instance: check if it's consistent and put it into the result set
-                if (cachedInstance != nullptr)
-                {
-                    // if inconsistent, return an error.
-                    if (m_entityInstanceCache.isModified(cachedInstance))
-                    {
-                        QDebug dbg{&errorString};
-                        dbg << "Entity instance" << cachedInstance
-                            << "was read from the database but has unsaved changes in the "
-                               "OR-mapper. "
-                               "Merge this instance or discard changes before reading.";
-                    }
-
-                    // delete the provider's instance because the cached one is used instead
-                    delete record;
-                    return cachedInstance;
-                }
-                // new instance: put it into cache and into the result set
-                else
-                {
-                    m_entityInstanceCache.insert(projection, record);
-                    return record;
-                }
-            });
-
-        if (!errorString.isEmpty())
-        {
-            setLastError({QOrm::ErrorType::UnsynchronizedEntity, errorString});
-            // clear the result set container but don't delete the objects because they were
-            // put into the instance cache
-            return std::nullopt;
-        }
-    }
-
-    return std::make_optional(resultSet);
-}
-
 QOrmSession::QOrmSession(QOrmSessionConfiguration sessionConfiguration)
     : d_ptr{new QOrmSessionPrivate{sessionConfiguration, this}}
 {    
@@ -159,39 +79,11 @@ QOrmQueryResult QOrmSession::execute(const QOrmQuery& query)
     d->clearLastError();
     d->ensureProviderConnected();
 
-    QOrmQueryResult providerResult = d->m_sessionConfiguration.provider()->execute(query);
+    QOrmQueryResult providerResult =
+        d->m_sessionConfiguration.provider()->execute(query, d->m_entityInstanceCache);
 
-    // provider error: return immediately.
-    if (providerResult.error().type() != QOrm::ErrorType::None)
-    {
-        d->setLastError({providerResult.error()});
-        qDeleteAll(providerResult.toVector());
-        return QOrmQueryResult{lastError()};
-    }
-
-    // If some data was read, build the result set and cache the instances
-    if (query.projection().has_value())
-    {
-        std::optional<QVector<QObject*>> resultSet =
-            d->buildResultSet(providerResult, *query.projection());
-
-        if (!resultSet.has_value())
-        {
-            return QOrmQueryResult{d->m_lastError, {}, providerResult.lastInsertedId()};
-        }
-
-        // retrieve referenced entities if any
-
-        // TODO
-
-        return QOrmQueryResult{QOrmError{QOrm::ErrorType::None, {}},
-                               *resultSet,
-                               providerResult.lastInsertedId()};
-    }
-
-    return QOrmQueryResult{QOrmError{QOrm::ErrorType::None, ""},
-                           {},
-                           providerResult.lastInsertedId()};
+    d->setLastError(providerResult.error());
+    return providerResult;
 }
 
 QOrmQueryBuilder QOrmSession::from(const QOrmQuery& query)
@@ -250,7 +142,8 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
     }
 
     QOrmQueryResult result = d->m_sessionConfiguration.provider()->execute(
-        queryBuilderFor(qMetaObject).instance(qMetaObject, entityInstance).build(operation));
+        queryBuilderFor(qMetaObject).instance(qMetaObject, entityInstance).build(operation),
+        d->m_entityInstanceCache);
 
     d->setLastError(result.error());
 
@@ -303,7 +196,8 @@ bool QOrmSession::doRemove(QObject*& entityInstance, const QMetaObject& qMetaObj
     }
 
     QOrmQueryResult result =
-        d->m_sessionConfiguration.provider()->execute(queryBuilder.build(QOrm::Operation::Delete));
+        d->m_sessionConfiguration.provider()->execute(queryBuilder.build(QOrm::Operation::Delete),
+                                                      d->m_entityInstanceCache);
 
     d->setLastError(result.error());
 

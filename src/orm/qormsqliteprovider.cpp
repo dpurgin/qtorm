@@ -4,7 +4,9 @@
 #include "qormentityinstancecache.h"
 #include "qormerror.h"
 #include "qormfilter.h"
+#include "qormfilterexpression.h"
 #include "qormmetadatacache.h"
+#include "qormorder.h"
 #include "qormpropertymapping.h"
 #include "qormquery.h"
 #include "qormqueryresult.h"
@@ -48,14 +50,17 @@ class QOrmSqliteProviderPrivate
     QSqlQuery prepareAndExecute(const QString& statement, const QVariantMap& parameters);
 
     Q_REQUIRED_RESULT
-    QObject* makeEntityInstance(const QOrmMetadata& entityMetadata, const QSqlRecord& record);
+    QOrmPrivate::Expected<QObject*, QOrmError> makeEntityInstance(
+        const QOrmMetadata& entityMetadata,
+        const QSqlRecord& record,
+        QOrmEntityInstanceCache& entityInstanceCache);
 
     QOrmError ensureSchemaSynchronized(const QOrmRelation& entityMetadata);
     QOrmError recreateSchema(const QOrmRelation& entityMetadata);
     QOrmError updateSchema(const QOrmRelation& entityMetadata);
     QOrmError validateSchema(const QOrmRelation& validateSchema);
 
-    QOrmQueryResult read(const QOrmQuery& query);
+    QOrmQueryResult read(const QOrmQuery& query, QOrmEntityInstanceCache& entityInstanceCache);
     QOrmQueryResult merge(const QOrmQuery& query);
     QOrmQueryResult remove(const QOrmQuery& query);
 };
@@ -90,19 +95,87 @@ QSqlQuery QOrmSqliteProviderPrivate::prepareAndExecute(const QString& statement,
     return query;
 }
 
-QObject* QOrmSqliteProviderPrivate::makeEntityInstance(const QOrmMetadata& entityMetadata,
-                                                       const QSqlRecord& record)
+QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntityInstance(
+    const QOrmMetadata& entityMetadata,
+    const QSqlRecord& record,
+    QOrmEntityInstanceCache& entityInstanceCache)
 {
-    QObject* entityInstance = entityMetadata.qMetaObject().newInstance();
+    std::unique_ptr<QObject> entityInstance{entityMetadata.qMetaObject().newInstance()};
 
     for (const QOrmPropertyMapping& mapping : entityMetadata.propertyMappings())
     {
-        QOrmPrivate::setPropertyValue(entityInstance,
-                                      mapping.classPropertyName(),
-                                      record.value(mapping.tableFieldName()));
+        // if this is a reference, retrieve referenced entities and assign
+        if (mapping.isReference())
+        {
+            // transient references are one-to-many references
+            if (mapping.isTransient())
+            {
+                Q_ORM_NOT_IMPLEMENTED;
+            }
+            // non-transient references are many-to-one references
+            else
+            {
+                Q_ASSERT(mapping.referencedEntity() != nullptr);
+
+                // try to retrieve the referenced instance from the cache.
+                QVariant referencedObjectId = record.value(mapping.tableFieldName());
+
+                QObject* referencedEntityInstance =
+                    entityInstanceCache.get(*mapping.referencedEntity(), referencedObjectId);
+
+                // referenced instance is in cache: check that it wasn't modified and assign to the
+                // corresponding property
+                if (referencedEntityInstance != nullptr)
+                {
+                    if (entityInstanceCache.isModified(referencedEntityInstance))
+                    {
+                        Q_ORM_UNEXPECTED_STATE;
+                    }
+
+                    QOrmPrivate::setPropertyValue(entityInstance.get(),
+                                                  mapping.classPropertyName(),
+                                                  QVariant::fromValue(referencedEntityInstance));
+                }
+                // referenced instance is not in cache: retrieve it from the database by ID
+                else
+                {
+                    QOrmFilter filter{*mapping.referencedEntity()->objectIdMapping() ==
+                                      referencedObjectId};
+
+                    QOrmQuery query{QOrm::Operation::Read,
+                                    QOrmRelation{*mapping.referencedEntity()},
+                                    *mapping.referencedEntity(),
+                                    filter,
+                                    std::nullopt};
+
+                    QOrmQueryResult result = read(query, entityInstanceCache);
+
+                    // error during read: return this error and do not continue
+                    if (result.error().type() != QOrm::ErrorType::None)
+                    {
+                        return QOrmPrivate::makeUnexpected(result.error());
+                    }
+
+                    // sanity check: when selecting by object id, only one instance should be
+                    // returned
+                    Q_ASSERT(result.toVector().size() == 1);
+
+                    QOrmPrivate::setPropertyValue(entityInstance.get(),
+                                                  mapping.classPropertyName(),
+                                                  QVariant::fromValue(result.toVector().front()));
+                }
+            }
+        }
+        // just a value: set the property value
+        else
+        {
+            QOrmPrivate::setPropertyValue(entityInstance.get(),
+                                          mapping.classPropertyName(),
+                                          record.value(mapping.tableFieldName()));
+        }
     }
 
-    return entityInstance;
+    return entityInstance.release();
 }
 
 QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation& relation)
@@ -195,10 +268,10 @@ QOrmError QOrmSqliteProviderPrivate::validateSchema(const QOrmRelation& relation
     Q_ORM_NOT_IMPLEMENTED;
 }
 
-QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query)
+QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
+                                                QOrmEntityInstanceCache& entityInstanceCache)
 {
-    std::optional<QOrmMetadata> projectionMeta = query.projection();
-    Q_ASSERT(projectionMeta.has_value());
+    Q_ASSERT(query.projection().has_value());
 
     auto [statement, boundParameters] = QOrmSqliteStatementGenerator::generate(query);
 
@@ -209,9 +282,75 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query)
 
     QVector<QObject*> resultSet;
 
-    while (sqlQuery.next())
+    const QOrmPropertyMapping* objectIdMapping = query.projection()->objectIdMapping();
+
+    // If there is an object ID, compare the cached entities with the ones read from the
+    // backend. If there is an inconsistency, it will be reported.
+    // All read entities are replaced with their cached versions if found.
+    if (objectIdMapping != nullptr)
     {
-        resultSet.push_back(makeEntityInstance(*projectionMeta, sqlQuery.record()));
+        while (sqlQuery.next())
+        {
+            QVariant objectId = sqlQuery.value(objectIdMapping->tableFieldName());
+
+            QObject* cachedInstance = entityInstanceCache.get(*query.projection(), objectId);
+
+            // cached instance: check if consistent
+            if (cachedInstance != nullptr)
+            {
+                // If inconsistent, return an error. Already cached instances remain in the cache
+                if (entityInstanceCache.isModified(cachedInstance))
+                {
+                    QString errorString;
+                    QDebug dbg{&errorString};
+                    dbg << "Entity instance" << cachedInstance
+                        << "was read from the database but has unsaved changes in the OR-mapper. "
+                           "Merge this instance or discard changes before reading.";
+
+                    return QOrmQueryResult{
+                        QOrmError{QOrm::ErrorType::UnsynchronizedEntity, errorString}};
+                }
+
+                resultSet.push_back(cachedInstance);
+            }
+            // new instance: put it into the cache
+            else
+            {
+                QOrmPrivate::Expected<QObject*, QOrmError> entityInstance =
+                    makeEntityInstance(*query.projection(), sqlQuery.record(), entityInstanceCache);
+
+                if (entityInstance)
+                {
+                    resultSet.push_back(entityInstance.value());
+                    entityInstanceCache.insert(*query.projection(), entityInstance.value());
+                }
+                else
+                {
+                    return QOrmQueryResult{entityInstance.error()};
+                }
+            }
+        }
+    }
+    // No object ID in this projection: cannot cache, just return the results
+    else
+    {
+        while (sqlQuery.next())
+        {
+            QOrmPrivate::Expected<QObject*, QOrmError> entityInstance =
+                makeEntityInstance(*query.projection(), sqlQuery.record(), entityInstanceCache);
+
+            if (entityInstance)
+            {
+                resultSet.push_back(entityInstance.value());
+            }
+            else
+            {
+                // if error occurred, delete everything that was read from the database since no
+                // caching was involved
+                qDeleteAll(resultSet);
+                return QOrmQueryResult{entityInstance.error()};
+            }
+        }
     }
 
     return QOrmQueryResult{resultSet};
@@ -347,7 +486,8 @@ QOrmError QOrmSqliteProvider::rollbackTransaction()
     return QOrmError{QOrm::ErrorType::None, {}};
 }
 
-QOrmQueryResult QOrmSqliteProvider::execute(const QOrmQuery& query)
+QOrmQueryResult QOrmSqliteProvider::execute(const QOrmQuery& query,
+                                            QOrmEntityInstanceCache& entityInstanceCache)
 {
     Q_D(QOrmSqliteProvider);
 
@@ -356,7 +496,7 @@ QOrmQueryResult QOrmSqliteProvider::execute(const QOrmQuery& query)
     switch (query.operation())
     {
         case QOrm::Operation::Read:
-            return d->read(query);
+            return d->read(query, entityInstanceCache);
 
         case QOrm::Operation::Create:
         case QOrm::Operation::Update:

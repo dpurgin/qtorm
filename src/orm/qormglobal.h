@@ -104,7 +104,7 @@ namespace QOrm
     extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::RelationType relationType);
 }
 
-namespace QtOrmPrivate
+namespace QOrmPrivate
 {
     template<typename T>
     inline constexpr void qRegisterOrmEntity()
@@ -119,7 +119,7 @@ namespace QtOrmPrivate
 template<typename... Ts>
 inline constexpr void qRegisterOrmEntity()
 {
-    (QtOrmPrivate::qRegisterOrmEntity<Ts>(), ...);
+    (..., QOrmPrivate::qRegisterOrmEntity<Ts>());
 }
 
 QT_END_NAMESPACE

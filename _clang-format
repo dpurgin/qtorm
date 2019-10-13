@@ -39,4 +39,4 @@ AlwaysBreakTemplateDeclarations: Yes
 SpaceAfterTemplateKeyword: false
 ReflowComments: true
 PenaltyBreakBeforeFirstCallParameter: 100
-PenaltyReturnTypeOnItsOwnLine: 100
+PenaltyReturnTypeOnItsOwnLine: 150

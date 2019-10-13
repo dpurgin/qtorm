@@ -1,8 +1,11 @@
 #include "qormentityinstancecache.h"
+#include "qormglobal_p.h"
 #include "qormmetadata.h"
 
+#include <QMap>
 #include <QMetaProperty>
 #include <QSet>
+#include <QVariant>
 
 QT_BEGIN_NAMESPACE
 
@@ -16,6 +19,7 @@ private slots:
     void onEntityInstanceChanged();
 
 private:
+    QMap<QPair<QString, QVariant>, QObject*> m_cache;
     QSet<QObject*> m_persistedInstances;
     QSet<QObject*> m_modifiedInstances;
 };
@@ -39,6 +43,11 @@ QOrmEntityInstanceCache::~QOrmEntityInstanceCache()
     qDeleteAll(d->m_persistedInstances);
 }
 
+QObject* QOrmEntityInstanceCache::get(const QOrmMetadata& meta, const QVariant& objectId)
+{
+    return d->m_cache.value(qMakePair(meta.className(), objectId), nullptr);
+}
+
 bool QOrmEntityInstanceCache::contains(QObject* instance) const
 {
     return d->m_persistedInstances.contains(instance);
@@ -47,6 +56,13 @@ bool QOrmEntityInstanceCache::contains(QObject* instance) const
 void QOrmEntityInstanceCache::insert(const QOrmMetadata& metadata, QObject* instance)
 {
     Q_UNUSED(metadata)
+
+    if (metadata.objectIdMapping() != nullptr)
+    {
+        QVariant objectId = QOrmPrivate::objectIdPropertyValue(instance, metadata);
+        d->m_cache.insert(qMakePair(metadata.className(), objectId), instance);
+    }
+
     d->m_persistedInstances.insert(instance);
 
     for (const QOrmPropertyMapping& mapping : metadata.propertyMappings())
@@ -68,6 +84,9 @@ QObject* QOrmEntityInstanceCache::take(QObject* instance)
 {
     d->m_persistedInstances.remove(instance);
     d->m_modifiedInstances.remove(instance);
+
+    // TODO: remove from cache by object ID
+
     return instance;
 }
 

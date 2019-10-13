@@ -26,7 +26,8 @@ public:
     QOrmError commitTransaction() override;
     QOrmError rollbackTransaction() override;
 
-    QOrmQueryResult execute(const QOrmQuery& query) override;
+    QOrmQueryResult execute(const QOrmQuery& query,
+                            QOrmEntityInstanceCache& entityInstanceCache) override;
 
     QOrmSqliteConfiguration configuration() const;
     QSqlDatabase database() const;

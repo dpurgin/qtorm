@@ -8,6 +8,8 @@
 #include <QtCore/qstring.h>
 #include <QtCore/qvariant.h>
 
+#include <variant>
+
 QT_BEGIN_NAMESPACE
 
 class QOrmFilterExpression;
@@ -53,10 +55,55 @@ namespace QOrmPrivate
     extern QOrmFilterExpression resolvedFilterExpression(const QOrmRelation& relation,
                                                          const QOrmFilterExpression& expression);
 
+    template<typename E>
+    class Unexpected
+    {
+    public:
+        explicit Unexpected(E val)
+            : m_value{std::move(val)}
+        {
+        }
+
+        const E& value() const { return m_value; }
+
+    private:
+        E m_value;
+    };
+
+    template<typename E>
+    Unexpected<std::decay_t<E>> makeUnexpected(E&& val)
+    {
+        return Unexpected<std::decay_t<E>>(std::forward<E>(val));
+    }
+
+    template<typename T, typename E>
+    struct Expected
+    {
+    public:
+        Expected(T&& expected)
+            : m_value{expected}
+        {
+        }
+
+        Expected(Unexpected<E>&& unexpected)
+            : m_value{unexpected}
+        {
+        }
+
+        constexpr bool hasValue() const { return std::holds_alternative<T>(m_value); }
+        constexpr const T& value() const { return *std::get_if<T>(&m_value); }
+        constexpr const E& error() const { return std::get_if<Unexpected<E>>(&m_value)->value(); }
+
+        constexpr explicit operator bool() const { return hasValue(); }
+
+    private:
+        std::variant<T, Unexpected<E>> m_value;
+    };
+
 } // namespace QOrmPrivate
 
-#define Q_ORM_UNEXPECTED_STATE (qFatal("QtORM: %s: unexpected state", __PRETTY_FUNCTION__))
-#define Q_ORM_NOT_IMPLEMENTED (qFatal("QtORM: %s: not implemented", __PRETTY_FUNCTION__))
+#define Q_ORM_UNEXPECTED_STATE (qFatal("QtOrm: %s: unexpected state", __PRETTY_FUNCTION__))
+#define Q_ORM_NOT_IMPLEMENTED (qFatal("QtOrm: %s: not implemented", __PRETTY_FUNCTION__))
 
 QT_END_NAMESPACE
 

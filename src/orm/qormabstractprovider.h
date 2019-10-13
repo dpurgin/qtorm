@@ -6,8 +6,9 @@
 QT_BEGIN_NAMESPACE
 
 class QObject;
+class QOrmEntityInstanceCache;
 class QOrmError;
-class QOrmMetadata;
+class QOrmMetadataCache;
 class QOrmQuery;
 class QOrmQueryResult;
 
@@ -24,7 +25,8 @@ public:
     virtual QOrmError commitTransaction() = 0;
     virtual QOrmError rollbackTransaction() = 0;
 
-    virtual QOrmQueryResult execute(const QOrmQuery& query) = 0;
+    virtual QOrmQueryResult execute(const QOrmQuery& query,
+                                    QOrmEntityInstanceCache& entityInstanceCache) = 0;
 };
 
 QT_END_NAMESPACE

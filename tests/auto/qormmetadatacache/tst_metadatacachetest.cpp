@@ -34,10 +34,7 @@ MetadataCacheTest::~MetadataCacheTest()
 
 void MetadataCacheTest::initTestCase()
 {
-    qRegisterMetaType<Town*>();
-    qRegisterMetaType<Person*>();
-    qRegisterMetaType<Town*>();
-    qRegisterMetaType<QVector<Person*>>();
+    qRegisterOrmEntity<Town, Person>();
 }
 
 void MetadataCacheTest::testDefaultMetadata()
