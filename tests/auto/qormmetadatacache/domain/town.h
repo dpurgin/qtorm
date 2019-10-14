@@ -8,7 +8,6 @@ class Person;
 class Town : public QObject
 {
     Q_OBJECT
-    Q_DISABLE_COPY(Town)
 
     Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
@@ -20,10 +19,7 @@ class Town : public QObject
     QVector<Person*> m_population;
 
 public:
-    Q_INVOKABLE Town(QObject* parent = nullptr)
-        : QObject(parent)
-    {
-    }
+    Q_INVOKABLE explicit Town(QObject* parent = nullptr);
 
     virtual ~Town() {}
 

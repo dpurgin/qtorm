@@ -24,9 +24,10 @@ static QString insertParameter(QVariantMap& boundParameters, QString name, QVari
 static QVariant propertyValueForQuery(const QObject* entityInstance,
                                       const QOrmPropertyMapping& propertyMapping)
 {
-    if (propertyMapping.isReference())
+    if (propertyMapping.isReference() && !propertyMapping.isTransient())
     {
         const QOrmMetadata* referencedEntity = propertyMapping.referencedEntity();
+
         Q_ASSERT(referencedEntity != nullptr);
         Q_ASSERT(referencedEntity->objectIdMapping() != nullptr);
 
@@ -34,7 +35,9 @@ static QVariant propertyValueForQuery(const QObject* entityInstance,
             QOrmPrivate::propertyValue(entityInstance, propertyMapping.classPropertyName())
                 .value<QObject*>();
 
-        return QOrmPrivate::objectIdPropertyValue(referencedInstance, *referencedEntity);
+        return referencedInstance == nullptr
+                   ? QVariant::fromValue(nullptr)
+                   : QOrmPrivate::objectIdPropertyValue(referencedInstance, *referencedEntity);
     }
     else
     {

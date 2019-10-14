@@ -104,6 +104,8 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
 {
     Q_D(QOrmSession);
 
+    Q_ASSERT(entityInstance != nullptr);
+
     d->clearLastError();
     d->ensureProviderConnected();
 
@@ -127,6 +129,9 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
             QObject* referencedInstance =
                 QOrmPrivate::propertyValue(entityInstance, mapping.classPropertyName())
                     .value<QObject*>();
+
+            if (referencedInstance == nullptr)
+                continue;
 
             if (!d->m_entityInstanceCache.contains(referencedInstance) ||
                 d->m_entityInstanceCache.isModified(referencedInstance))

@@ -1,5 +1,10 @@
 #include "town.h"
 
+Town::Town(QObject* parent)
+    : QObject(parent)
+{
+}
+
 void Town::setId(int id)
 {
     if (m_id == id)

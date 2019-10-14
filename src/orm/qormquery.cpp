@@ -13,14 +13,14 @@ class QOrmQueryPrivate : public QSharedData
 public:
     QOrmQueryPrivate(QOrm::Operation operation,
                      const QOrmRelation& relation,
-                     std::optional<QOrmMetadata> projection,
-                     std::optional<QOrmFilter> filter,
-                     std::optional<QOrmOrder> order)
+                     const std::optional<QOrmMetadata>& projection,
+                     const std::optional<QOrmFilter>& filter,
+                     const std::optional<QOrmOrder>& order)
         : m_operation{operation}
         , m_relation{relation}
-        , m_projection{std::move(projection)}
-        , m_filter{std::move(filter)}
-        , m_order{std::move(order)}
+        , m_projection{projection}
+        , m_filter{filter}
+        , m_order{order}
     {
     }
 
@@ -43,14 +43,10 @@ public:
 
 QOrmQuery::QOrmQuery(QOrm::Operation operation,
                      const QOrmRelation& relation,
-                     std::optional<QOrmMetadata> projection,
-                     std::optional<QOrmFilter> filter,
-                     std::optional<QOrmOrder> order)
-    : d{new QOrmQueryPrivate{operation,
-                             relation,
-                             std::move(projection),
-                             std::move(filter),
-                             std::move(order)}}
+                     const std::optional<QOrmMetadata>& projection,
+                     const std::optional<QOrmFilter>& filter,
+                     const std::optional<QOrmOrder>& order)
+    : d{new QOrmQueryPrivate{operation, relation, projection, filter, order}}
 {
 }
 

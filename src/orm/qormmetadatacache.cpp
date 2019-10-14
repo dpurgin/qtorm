@@ -35,6 +35,8 @@ class QOrmMetadataCachePrivate
     MappingDescriptor mappingDescriptor(const QMetaObject& qMetaObject,
                                         const QMetaProperty& property);
 
+    void validateConstructor(const QMetaObject& qMetaObject);
+
     template<typename Container>
     void validateCrossReferences(Container&& entityNames);
 };
@@ -55,6 +57,9 @@ void QOrmMetadataCachePrivate::initialize(const QByteArray& className,
                                           const QMetaObject& qMetaObject)
 {
     m_underConstruction.insert(className);
+
+    // check whether the entity is creatable
+    validateConstructor(qMetaObject);
 
     QOrmMetadataPrivate* data = new QOrmMetadataPrivate{qMetaObject};
 
@@ -181,6 +186,30 @@ QOrmMetadataCachePrivate::MappingDescriptor QOrmMetadataCachePrivate::mappingDes
     }
 
     return descriptor;
+}
+
+void QOrmMetadataCachePrivate::validateConstructor(const QMetaObject& qMetaObject)
+{
+    bool hasError = false;
+
+    if (qMetaObject.constructorCount() == 0)
+    {
+        hasError = true;
+    }
+
+    for (int i = 0; i < qMetaObject.constructorCount() && !hasError; ++i)
+    {
+        QMetaMethod ctor = qMetaObject.constructor(i);
+
+        hasError = (ctor.access() != QMetaMethod::Public) || (ctor.parameterCount() > 1) ||
+                   (ctor.parameterCount() == 1 && ctor.parameterTypes().front() != "QObject*");
+    }
+
+    if (hasError)
+    {
+        qFatal("QtOrm: Entity %s requires a public default constructor declared with Q_INVOKABLE.",
+               qMetaObject.className());
+    }
 }
 
 template<typename Container>

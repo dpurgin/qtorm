@@ -20,9 +20,11 @@ private slots:
     void testGenerateConditionTerminalPredicate();
     void testInsertWithManyToOne();
     void testInsertWithOneToMany();
+    void testInsertWithOneToManyNullReference();
     void testFilterWithReference();
     void testUpdateWithManyToOne();
     void testUpdateWithOneToMany();
+    void testUpdateWithOneToManyNullReference();
     void testCreateTableWithReference();
     void testCreateTableWithManyToOne();
 };
@@ -68,6 +70,22 @@ void SqliteStatementGenerator::testInsertWithOneToMany()
     QCOMPARE(statement, "INSERT INTO Town(name,province_id) VALUES(:name,:province_id)");
     QCOMPARE(boundParameters[":name"], "Hagenberg");
     QCOMPARE(boundParameters[":province_id"], 1);
+}
+
+void SqliteStatementGenerator::testInsertWithOneToManyNullReference()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    QScopedPointer<Town> hagenberg{new Town{"Hagenberg", nullptr}};
+
+    QVariantMap boundParameters;
+    QString statement =
+        generator.generateInsertStatement(cache.get<Town>(), hagenberg.get(), boundParameters);
+
+    QCOMPARE(statement, "INSERT INTO Town(name,province_id) VALUES(:name,:province_id)");
+    QCOMPARE(boundParameters[":name"], "Hagenberg");
+    QCOMPARE(boundParameters[":province_id"], QVariant::fromValue(nullptr));
 }
 
 void SqliteStatementGenerator::testFilterWithReference()
@@ -120,6 +138,23 @@ void SqliteStatementGenerator::testUpdateWithOneToMany()
     QCOMPARE(statement, "UPDATE Town SET name = :name,province_id = :province_id WHERE id = :id");
     QCOMPARE(boundParameters[":name"], QString::fromUtf8("Hagenberg"));
     QCOMPARE(boundParameters[":province_id"], 1);
+    QCOMPARE(boundParameters[":id"], 2);
+}
+
+void SqliteStatementGenerator::testUpdateWithOneToManyNullReference()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    QScopedPointer<Town> hagenberg{new Town{2, "Hagenberg", nullptr}};
+
+    QVariantMap boundParameters;
+    QString statement =
+        generator.generateUpdateStatement(cache.get<Town>(), hagenberg.get(), boundParameters);
+
+    QCOMPARE(statement, "UPDATE Town SET name = :name,province_id = :province_id WHERE id = :id");
+    QCOMPARE(boundParameters[":name"], QString::fromUtf8("Hagenberg"));
+    QCOMPARE(boundParameters[":province_id"], QVariant::fromValue(nullptr));
     QCOMPARE(boundParameters[":id"], 2);
 }
 

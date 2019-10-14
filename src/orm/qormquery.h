@@ -20,9 +20,9 @@ class Q_ORM_EXPORT QOrmQuery
 public:
     QOrmQuery(QOrm::Operation operation,
               const QOrmRelation& relation,
-              std::optional<QOrmMetadata> projection,
-              std::optional<QOrmFilter> filter,
-              std::optional<QOrmOrder> order);
+              const std::optional<QOrmMetadata>& projection,
+              const std::optional<QOrmFilter>& filter,
+              const std::optional<QOrmOrder>& order);
     QOrmQuery(QOrm::Operation operation, const QOrmMetadata& relation, QObject* entityInstance);
     QOrmQuery(const QOrmQuery&);
     QOrmQuery(QOrmQuery&&);
