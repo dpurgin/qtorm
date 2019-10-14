@@ -10,23 +10,24 @@
 QT_BEGIN_NAMESPACE
 
 class QOrmEntityInstanceCachePrivate : public QObject
-{
-    Q_OBJECT
+{    
+    Q_OBJECT        
 
     friend class QOrmEntityInstanceCache;
+    using ObjectId = QPair<QString, QVariant>;
 
 private slots:
     void onEntityInstanceChanged();
 
 private:
-    QMap<QPair<QString, QVariant>, QObject*> m_cache;
-    QSet<QObject*> m_persistedInstances;
+    QHash<QObject*, ObjectId> m_cache;
+    QMap<ObjectId, QObject*> m_byObjectId;
     QSet<QObject*> m_modifiedInstances;
 };
 
 void QOrmEntityInstanceCachePrivate::onEntityInstanceChanged()
 {
-    Q_ASSERT(m_persistedInstances.contains(sender()));
+    Q_ASSERT(m_cache.contains(sender()));
     m_modifiedInstances.insert(sender());
 }
 
@@ -37,33 +38,38 @@ QOrmEntityInstanceCache::QOrmEntityInstanceCache()
 
 QOrmEntityInstanceCache::~QOrmEntityInstanceCache()
 {
-    for (const QObject* instance : d->m_persistedInstances)
-        instance->disconnect(d.get());
+    for (auto it = std::begin(d->m_cache); it != std::end(d->m_cache); ++it)
+    {
+        it.key()->disconnect(d.get());
+        delete it.key();
+    }
 
-    qDeleteAll(d->m_persistedInstances);
+    d->m_cache.clear();
 }
 
 QObject* QOrmEntityInstanceCache::get(const QOrmMetadata& meta, const QVariant& objectId)
 {
-    return d->m_cache.value(qMakePair(meta.className(), objectId), nullptr);
+    return d->m_byObjectId.value(qMakePair(meta.className(), objectId), nullptr);
 }
 
 bool QOrmEntityInstanceCache::contains(QObject* instance) const
 {
-    return d->m_persistedInstances.contains(instance);
+    return d->m_cache.contains(instance);
 }
 
 void QOrmEntityInstanceCache::insert(const QOrmMetadata& metadata, QObject* instance)
 {
-    Q_UNUSED(metadata)
+    Q_ASSERT(metadata.objectIdMapping() != nullptr);
+    Q_ASSERT(instance != nullptr);
 
-    if (metadata.objectIdMapping() != nullptr)
-    {
-        QVariant objectId = QOrmPrivate::objectIdPropertyValue(instance, metadata);
-        d->m_cache.insert(qMakePair(metadata.className(), objectId), instance);
-    }
+    if (d->m_cache.contains(instance))
+        return;
 
-    d->m_persistedInstances.insert(instance);
+    auto objectId =
+        qMakePair(metadata.className(), QOrmPrivate::objectIdPropertyValue(instance, metadata));
+
+    d->m_cache.insert(instance, objectId);
+    d->m_byObjectId.insert(objectId, instance);
 
     for (const QOrmPropertyMapping& mapping : metadata.propertyMappings())
     {
@@ -82,10 +88,9 @@ void QOrmEntityInstanceCache::insert(const QOrmMetadata& metadata, QObject* inst
 
 QObject* QOrmEntityInstanceCache::take(QObject* instance)
 {
-    d->m_persistedInstances.remove(instance);
+    d->m_byObjectId.remove(d->m_cache[instance]);
     d->m_modifiedInstances.remove(instance);
-
-    // TODO: remove from cache by object ID
+    d->m_cache.remove(instance);
 
     return instance;
 }

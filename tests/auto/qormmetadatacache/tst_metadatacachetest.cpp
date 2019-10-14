@@ -146,6 +146,7 @@ void MetadataCacheTest::testManyToOneReference()
     QVERIFY(populationPropertyMapping->tableFieldName().isEmpty());
     QCOMPARE(populationPropertyMapping->dataType(), QVariant::UserType);
     QVERIFY(populationPropertyMapping->isReference());
+    QVERIFY(populationPropertyMapping->isTransient());
     QVERIFY(populationPropertyMapping->referencedEntity() != nullptr);
     QCOMPARE(populationPropertyMapping->referencedEntity()->className(), "Person");
 }
