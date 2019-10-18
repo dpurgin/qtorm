@@ -23,6 +23,7 @@ public:
     void insert(const QOrmMetadata& meta, QObject* instance);
     QObject* take(QObject* instance);
 
+    void finalize(const QOrmMetadata& metadata, QObject* instance);
     bool isModified(QObject* instance) const;
     void markUnmodified(QObject* instance) const;
 

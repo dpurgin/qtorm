@@ -38,9 +38,10 @@ namespace QOrmPrivate
         return object->property(property.toUtf8().data());
     }
 
-    inline void setPropertyValue(QObject* object, const QString& property, const QVariant& value)
+    Q_REQUIRED_RESULT
+    inline bool setPropertyValue(QObject* object, const QString& property, const QVariant& value)
     {
-        object->setProperty(property.toUtf8().data(), value);
+        return object->setProperty(property.toUtf8().data(), value);
     }
 
     Q_REQUIRED_RESULT
@@ -54,6 +55,26 @@ namespace QOrmPrivate
     Q_ORM_EXPORT
     extern QOrmFilterExpression resolvedFilterExpression(const QOrmRelation& relation,
                                                          const QOrmFilterExpression& expression);
+
+    Q_REQUIRED_RESULT
+    inline const QOrmPropertyMapping* backReference(const QOrmPropertyMapping& reference)
+    {
+        Q_ASSERT(reference.referencedEntity() != nullptr);
+
+        const auto& referencedPropertyMappings = reference.referencedEntity()->propertyMappings();
+
+        auto it = std::find_if(std::begin(referencedPropertyMappings),
+                               std::end(referencedPropertyMappings),
+                               [&reference](const QOrmPropertyMapping& propertyMapping) {
+                                   return propertyMapping.isReference() &&
+                                          !propertyMapping.isTransient() &&
+                                          propertyMapping.referencedEntity() != nullptr &&
+                                          propertyMapping.referencedEntity()->className() ==
+                                              reference.enclosingEntity().className();
+                               });
+
+        return it == std::end(referencedPropertyMappings) ? nullptr : &(*it);
+    }
 
     template<typename E>
     class Unexpected

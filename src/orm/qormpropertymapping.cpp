@@ -127,6 +127,11 @@ QVariant::Type QOrmPropertyMapping::dataType() const
     return d->m_dataType;
 }
 
+QString QOrmPropertyMapping::dataTypeName() const
+{
+    return QString::fromUtf8(d->m_qMetaProperty.typeName());
+}
+
 bool QOrmPropertyMapping::isReference() const
 {
     return d->m_referencedEntity != nullptr;

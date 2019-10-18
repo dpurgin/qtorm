@@ -70,7 +70,19 @@ void QOrmEntityInstanceCache::insert(const QOrmMetadata& metadata, QObject* inst
 
     d->m_cache.insert(instance, objectId);
     d->m_byObjectId.insert(objectId, instance);
+}
 
+QObject* QOrmEntityInstanceCache::take(QObject* instance)
+{
+    d->m_byObjectId.remove(d->m_cache[instance]);
+    d->m_modifiedInstances.remove(instance);
+    d->m_cache.remove(instance);
+
+    return instance;
+}
+
+void QOrmEntityInstanceCache::finalize(const QOrmMetadata& metadata, QObject* instance)
+{
     for (const QOrmPropertyMapping& mapping : metadata.propertyMappings())
     {
         if (mapping.isTransient())
@@ -84,15 +96,6 @@ void QOrmEntityInstanceCache::insert(const QOrmMetadata& metadata, QObject* inst
 
         QObject::connect(instance, notifySignal, d.get(), slot);
     }
-}
-
-QObject* QOrmEntityInstanceCache::take(QObject* instance)
-{
-    d->m_byObjectId.remove(d->m_cache[instance]);
-    d->m_modifiedInstances.remove(instance);
-    d->m_cache.remove(instance);
-
-    return instance;
 }
 
 bool QOrmEntityInstanceCache::isModified(QObject* instance) const

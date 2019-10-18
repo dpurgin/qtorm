@@ -1,9 +1,13 @@
 #ifndef QORMGLOBAL_H
 #define QORMGLOBAL_H
 
+#include <algorithm>
+
 #include <QtCore/qglobal.h>
 #include <QtCore/qhashfunctions.h>
 #include <QtCore/qmetatype.h>
+#include <QtCore/qobject.h>
+#include <QtCore/qvector.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -107,12 +111,26 @@ namespace QOrm
 namespace QOrmPrivate
 {
     template<typename T>
+    inline QVector<T*> toQVectorT(const QVector<QObject*>& v)
+    {
+        QVector<T*> result;
+
+        std::transform(std::begin(v), std::end(v), std::back_inserter(result), [](QObject* p) {
+            return qobject_cast<T*>(p);
+        });
+
+        return result;
+    }
+
+    template<typename T>
     inline constexpr void qRegisterOrmEntity()
     {
         qRegisterMetaType<T*>();
         qRegisterMetaType<QVector<T*>>();
         qRegisterMetaType<QList<T*>>();
         qRegisterMetaType<QSet<T*>>();
+
+        QMetaType::registerConverter<QVector<QObject*>, QVector<T*>>(&toQVectorT<T>);
     }
 } // namespace QtOrmPrivate
 

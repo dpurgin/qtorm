@@ -100,18 +100,76 @@ QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntity
     const QSqlRecord& record,
     QOrmEntityInstanceCache& entityInstanceCache)
 {
-    std::unique_ptr<QObject> entityInstance{entityMetadata.qMetaObject().newInstance()};
-    Q_ASSERT(entityInstance.get() != nullptr);
+    QObject* entityInstance = entityMetadata.qMetaObject().newInstance();
+    Q_ASSERT(entityInstance != nullptr);
 
+    // assign object ID and put into cache to be able to resolve cyclic references
+    Q_ASSERT(entityMetadata.objectIdMapping() != nullptr);
+    if (!QOrmPrivate::setPropertyValue(entityInstance,
+                                       entityMetadata.objectIdMapping()->classPropertyName(),
+                                       record.value(
+                                           entityMetadata.objectIdMapping()->tableFieldName())))
+    {
+        Q_ORM_UNEXPECTED_STATE;
+    }
+    entityInstanceCache.insert(entityMetadata, entityInstance);
+
+    // fill the rest of the properties
     for (const QOrmPropertyMapping& mapping : entityMetadata.propertyMappings())
     {
-        // if this is a reference, retrieve referenced entities and assign
+        // if this property is a reference, retrieve referenced entity instances and assign
         if (mapping.isReference())
         {
+            QOrmRelation referencedRelation{*mapping.referencedEntity()};
+
+            QOrmError syncError = ensureSchemaSynchronized(referencedRelation);
+            if (syncError.type() != QOrm::ErrorType::None)
+                return QOrmPrivate::makeUnexpected(syncError);
+
             // transient references are one-to-many references
             if (mapping.isTransient())
             {
-                //                Q_ORM_NOT_IMPLEMENTED;
+                const QOrmPropertyMapping* backReference = QOrmPrivate::backReference(mapping);
+                Q_ASSERT(backReference != nullptr);
+                Q_ASSERT(entityMetadata.objectIdMapping() != nullptr);
+
+                // read all entity instances referring to the current record
+                //                QVariant objectId =
+                //                    record.value(entityMetadata.objectIdMapping()->tableFieldName());
+
+                QOrmFilter filter{*backReference == entityInstance};
+
+                QOrmQuery query{QOrm::Operation::Read,
+                                referencedRelation,
+                                *mapping.referencedEntity(),
+                                filter,
+                                std::nullopt};
+
+                QOrmQueryResult result = read(query, entityInstanceCache);
+
+                // error during read: return this error and do not continue
+                if (result.error().type() != QOrm::ErrorType::None)
+                {
+                    return QOrmPrivate::makeUnexpected(result.error());
+                }
+
+                // dispatch according to declared property type
+                QVariant propertyValue;
+
+                if (mapping.dataTypeName().startsWith("QVector<", Qt::CaseInsensitive))
+                    propertyValue = QVariant::fromValue(result.toVector());
+                else if (mapping.dataTypeName().startsWith("QSet<", Qt::CaseInsensitive))
+                    propertyValue = QVariant::fromValue(result.toVector().toList().toSet());
+                else
+                    Q_ORM_UNEXPECTED_STATE;
+
+                Q_ASSERT(propertyValue.isValid() && !propertyValue.isNull());
+                if (!QOrmPrivate::setPropertyValue(entityInstance,
+                                                   mapping.classPropertyName(),
+                                                   propertyValue))
+                {
+                    Q_ORM_UNEXPECTED_STATE;
+                }
             }
             // non-transient references are many-to-one references
             else
@@ -136,21 +194,19 @@ QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntity
                         Q_ORM_UNEXPECTED_STATE;
                     }
 
-                    QOrmPrivate::setPropertyValue(entityInstance.get(),
-                                                  mapping.classPropertyName(),
-                                                  QVariant::fromValue(referencedEntityInstance));
+                    if (!QOrmPrivate::setPropertyValue(entityInstance,
+                                                       mapping.classPropertyName(),
+                                                       QVariant::fromValue(
+                                                           referencedEntityInstance)))
+                    {
+                        Q_ORM_UNEXPECTED_STATE;
+                    }
                 }
                 // referenced instance is not in cache: retrieve it from the database by ID
                 else
                 {
                     QOrmFilter filter{*mapping.referencedEntity()->objectIdMapping() ==
                                       referencedObjectId};
-
-                    QOrmRelation referencedRelation{*mapping.referencedEntity()};
-
-                    QOrmError syncError = ensureSchemaSynchronized(referencedRelation);
-                    if (syncError.type() != QOrm::ErrorType::None)
-                        return QOrmPrivate::makeUnexpected(syncError);
 
                     QOrmQuery query{QOrm::Operation::Read,
                                     referencedRelation,
@@ -170,22 +226,31 @@ QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntity
                     // returned
                     Q_ASSERT(result.toVector().size() == 1);
 
-                    QOrmPrivate::setPropertyValue(entityInstance.get(),
-                                                  mapping.classPropertyName(),
-                                                  QVariant::fromValue(result.toVector().front()));
+                    if (!QOrmPrivate::setPropertyValue(entityInstance,
+                                                       mapping.classPropertyName(),
+                                                       QVariant::fromValue(
+                                                           result.toVector().front())))
+                    {
+                        Q_ORM_UNEXPECTED_STATE;
+                    }
                 }
             }
         }
         // just a value: set the property value
         else
         {
-            QOrmPrivate::setPropertyValue(entityInstance.get(),
-                                          mapping.classPropertyName(),
-                                          record.value(mapping.tableFieldName()));
+            if (!QOrmPrivate::setPropertyValue(entityInstance,
+                                               mapping.classPropertyName(),
+                                               record.value(mapping.tableFieldName())))
+            {
+                Q_ORM_UNEXPECTED_STATE;
+            }
         }
     }
 
-    return entityInstance.release();
+    entityInstanceCache.finalize(entityMetadata, entityInstance);
+
+    return entityInstance;
 }
 
 QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation& relation)
@@ -323,7 +388,7 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
 
                 resultSet.push_back(cachedInstance);
             }
-            // new instance: put it into the cache
+            // new instance: it will be cached in makeEntityInstance
             else
             {
                 QOrmPrivate::Expected<QObject*, QOrmError> entityInstance =
@@ -332,7 +397,6 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
                 if (entityInstance)
                 {
                     resultSet.push_back(entityInstance.value());
-                    entityInstanceCache.insert(*query.projection(), entityInstance.value());
                 }
                 else
                 {

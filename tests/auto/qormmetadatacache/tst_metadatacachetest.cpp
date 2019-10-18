@@ -53,7 +53,7 @@ void MetadataCacheTest::testDefaultMetadata()
     QCOMPARE(metadata.objectIdMapping()->tableFieldName(), "id");
 
     auto mappings = metadata.propertyMappings();
-    QCOMPARE(mappings.size(), 2);
+    QCOMPARE(mappings.size(), 2u);
 
     QCOMPARE(mappings[0].tableFieldName(), "id");
     QCOMPARE(mappings[0].classPropertyName(), "id");

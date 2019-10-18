@@ -54,6 +54,9 @@ public:
     QVariant::Type dataType() const;
 
     Q_REQUIRED_RESULT
+    QString dataTypeName() const;
+
+    Q_REQUIRED_RESULT
     bool isReference() const;
 
     Q_REQUIRED_RESULT

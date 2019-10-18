@@ -135,7 +135,7 @@ QOrmMetadataCachePrivate::MappingDescriptor QOrmMetadataCachePrivate::mappingDes
     {
         auto typeName = QByteArray{property.typeName()};
 
-        static auto aggregatePrefixes = QVector<QByteArray>{"QVector<", "QSet<", "QList<"};
+        static auto aggregatePrefixes = QVector<QByteArray>{"QVector<", "QSet<"};
 
         for (const auto& prefix : aggregatePrefixes)
         {
@@ -175,7 +175,7 @@ QOrmMetadataCachePrivate::MappingDescriptor QOrmMetadataCachePrivate::mappingDes
 
         if (referencedMeta == nullptr)
         {
-            qFatal("QtOrom: Cannot deduce ORM entity from type %s used in %s::%s",
+            qFatal("QtOrm: Cannot deduce ORM entity from type %s used in %s::%s",
                    property.typeName(),
                    qMetaObject.className(),
                    property.name());
