@@ -207,7 +207,9 @@ void QOrmMetadataCachePrivate::validateConstructor(const QMetaObject& qMetaObjec
 
     if (hasError)
     {
-        qFatal("QtOrm: Entity %s requires a public default constructor declared with Q_INVOKABLE.",
+        qFatal("QtOrm: Entity %s requires a metaobject-invokable public default constructor, "
+               "e.g.: Q_INVOKABLE explicit %s(QObject* parent = nullptr) = default;",
+               qMetaObject.className(),
                qMetaObject.className());
     }
 }

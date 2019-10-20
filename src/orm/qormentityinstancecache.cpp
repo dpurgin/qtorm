@@ -22,7 +22,7 @@ private slots:
 private:
     QHash<QObject*, ObjectId> m_cache;
     QMap<ObjectId, QObject*> m_byObjectId;
-    QSet<QObject*> m_modifiedInstances;
+    QSet<const QObject*> m_modifiedInstances;
 };
 
 void QOrmEntityInstanceCachePrivate::onEntityInstanceChanged()
@@ -52,9 +52,9 @@ QObject* QOrmEntityInstanceCache::get(const QOrmMetadata& meta, const QVariant& 
     return d->m_byObjectId.value(qMakePair(meta.className(), objectId), nullptr);
 }
 
-bool QOrmEntityInstanceCache::contains(QObject* instance) const
+bool QOrmEntityInstanceCache::contains(const QObject* instance) const
 {
-    return d->m_cache.contains(instance);
+    return d->m_cache.contains(const_cast<QObject*>(instance));
 }
 
 void QOrmEntityInstanceCache::insert(const QOrmMetadata& metadata, QObject* instance)
@@ -98,12 +98,12 @@ void QOrmEntityInstanceCache::finalize(const QOrmMetadata& metadata, QObject* in
     }
 }
 
-bool QOrmEntityInstanceCache::isModified(QObject* instance) const
+bool QOrmEntityInstanceCache::isModified(const QObject* instance) const
 {
     return d->m_modifiedInstances.contains(instance);
 }
 
-void QOrmEntityInstanceCache::markUnmodified(QObject* instance) const
+void QOrmEntityInstanceCache::markUnmodified(const QObject* instance) const
 {
     d->m_modifiedInstances.remove(instance);
 }

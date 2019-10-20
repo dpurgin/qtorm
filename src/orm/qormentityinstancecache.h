@@ -19,13 +19,13 @@ public:
     ~QOrmEntityInstanceCache();
 
     QObject* get(const QOrmMetadata& meta, const QVariant& objectId);
-    bool contains(QObject* instance) const;
+    bool contains(const QObject* instance) const;
     void insert(const QOrmMetadata& meta, QObject* instance);
     QObject* take(QObject* instance);
 
     void finalize(const QOrmMetadata& metadata, QObject* instance);
-    bool isModified(QObject* instance) const;
-    void markUnmodified(QObject* instance) const;
+    bool isModified(const QObject* instance) const;
+    void markUnmodified(const QObject* instance) const;
 
 private:
     QScopedPointer<QOrmEntityInstanceCachePrivate> d;

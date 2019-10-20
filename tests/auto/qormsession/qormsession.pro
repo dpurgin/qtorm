@@ -1,4 +1,4 @@
-QT = core testlib orm
+QT = core testlib orm orm-private
 
 CONFIG += testcase warn_on silent c++17
 

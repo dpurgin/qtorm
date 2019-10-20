@@ -1,6 +1,7 @@
 #include <QtTest>
 
 #include <QOrmError>
+#include <QOrmMetadataCache>
 #include <QOrmSession>
 #include <QOrmSqlConfiguration>
 #include <QOrmSqliteProvider>
@@ -10,6 +11,8 @@
 #include <domain/person.h>
 #include <domain/province.h>
 #include <domain/town.h>
+
+#include "private/qormglobal_p.h"
 
 class SqliteSessionTest : public QObject
 {
@@ -23,13 +26,12 @@ private slots:
     void init();
     void cleanup();
 
-    void testSuccessfulMergeWithExplicitCreate();
-    void testSuccessfulMergeWithExplicitUpdate();
-
     void testCascadedCreate();
 
     void testSelectWithOneToMany();
     void testSelectWithManyToOne();
+
+    void testMergeFailsWithInconsistentReferences();
 };
 
 SqliteSessionTest::SqliteSessionTest()
@@ -55,59 +57,6 @@ void SqliteSessionTest::cleanup()
 
 }
 
-void SqliteSessionTest::testSuccessfulMergeWithExplicitCreate()
-{
-    //    QOrmSession session;
-
-    //    Province* province = new Province();
-    //    province->setName(QString::fromUtf8("Oberösterreich"));
-
-    //    QVERIFY(session.merge(province));
-    //    QCOMPARE(session.lastError().type(), QOrm::ErrorType::None);
-    //    QCOMPARE(province->id(), 1);
-    //    QCOMPARE(province->name(), QString::fromUtf8("Oberösterreich"));
-
-    //    // Check that the database contains the corresponding record
-    //    QOrmSqliteProvider* provider =
-    //    static_cast<QOrmSqliteProvider*>(session.configuration().provider()); QSqlQuery
-    //    query{provider->database()}; QVERIFY(query.exec("SELECT * FROM Province"));
-    //    QVERIFY(query.next());
-    //    QCOMPARE(query.value("id"), 1);
-    //    QCOMPARE(query.value("name"), QString::fromUtf8("Oberösterreich"));
-    //    QVERIFY(!query.next());
-}
-
-void SqliteSessionTest::testSuccessfulMergeWithExplicitUpdate()
-{
-    //    QOrmSession session;
-
-    //    Province* province = new Province();
-    //    province->setName(QString::fromUtf8("Oberösterreich"));
-
-    //    QVERIFY(session.merge(province));
-
-    //    QCOMPARE(session.lastError().type(), QOrm::ErrorType::None);
-    //    QCOMPARE(province->id(), 1);
-    //    QCOMPARE(province->name(), QString::fromUtf8("Oberösterreich"));
-
-    //    province->setName(QString::fromUtf8("Niederoesterreich"));
-
-    //    QVERIFY(session.merge(province));
-
-    //    QCOMPARE(session.lastError().type(), QOrm::ErrorType::None);
-    //    QCOMPARE(province->id(), 1);
-    //    QCOMPARE(province->name(), QString::fromUtf8("Niederoesterreich"));
-
-    //    // Check that the database contains the corresponding record
-    //    QOrmSqliteProvider* provider =
-    //    static_cast<QOrmSqliteProvider*>(session.configuration().provider()); QSqlQuery
-    //    query{provider->database()}; QVERIFY(query.exec("SELECT * FROM Province"));
-    //    QVERIFY(query.next());
-    //    QCOMPARE(query.value("id"), 1);
-    //    QCOMPARE(query.value("name"), QString::fromUtf8("Niederoesterreich"));
-    //    QVERIFY(!query.next());
-}
-
 void SqliteSessionTest::testCascadedCreate()
 {
     QOrmSqliteConfiguration sqliteConfiguration{};
@@ -125,7 +74,17 @@ void SqliteSessionTest::testCascadedCreate()
     Town* pregarten = new Town(QString::fromUtf8("Pregarten"), upperAustria);
     Town* melk = new Town(QString::fromUtf8("Melk"), lowerAustria);
 
+    upperAustria->setTowns({hagenberg, pregarten});
+    lowerAustria->setTowns({melk});
+
     QVERIFY(session.merge(hagenberg, pregarten, melk, upperAustria, lowerAustria));
+
+    QCOMPARE(upperAustria->id(), 1);
+    QCOMPARE(lowerAustria->id(), 2);
+
+    QCOMPARE(hagenberg->id(), 1);
+    QCOMPARE(pregarten->id(), 2);
+    QCOMPARE(melk->id(), 3);
 
     QOrmSqliteProvider* provider =
         static_cast<QOrmSqliteProvider*>(session.configuration().provider());
@@ -235,6 +194,33 @@ void SqliteSessionTest::testSelectWithManyToOne()
     QCOMPARE(lisaMaier->lastName(), QString::fromUtf8("Maier"));
     QVERIFY(lisaMaier->town() != nullptr);
     QCOMPARE(lisaMaier->town()->name(), QString::fromUtf8("Hagenberg"));
+}
+
+void SqliteSessionTest::testMergeFailsWithInconsistentReferences()
+{
+    QOrmSession session;
+    QOrmMetadataCache* metadataCache = session.metadataCache();
+
+    Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
+    Province* lowerAustria = new Province(QString::fromUtf8("Niederösterreich"));
+
+    Town* hagenberg = new Town(QString::fromUtf8("Hagenberg"), upperAustria);
+    Town* pregarten = new Town(QString::fromUtf8("Pregarten"), upperAustria);
+    Town* melk = new Town(QString::fromUtf8("Melk"), lowerAustria);
+
+    upperAustria->setTowns({pregarten});
+
+    QVERIFY(QOrmPrivate::crossReferenceError(metadataCache->get<Town>(), hagenberg).has_value());
+    QVERIFY(!QOrmPrivate::crossReferenceError(metadataCache->get<Town>(), pregarten).has_value());
+    QVERIFY(QOrmPrivate::crossReferenceError(metadataCache->get<Town>(), melk).has_value());
+
+    // Provine instances to have a cross-reference error but it cannot be detected because the
+    // referencing issues are not in the list. The cross-reference is detected on the other side
+    // of the relation.
+    QVERIFY(!QOrmPrivate::crossReferenceError(metadataCache->get<Province>(), upperAustria)
+                 .has_value());
+    QVERIFY(!QOrmPrivate::crossReferenceError(metadataCache->get<Province>(), lowerAustria)
+                 .has_value());
 }
 
 QTEST_GUILESS_MAIN(SqliteSessionTest)

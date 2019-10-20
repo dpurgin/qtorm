@@ -7,6 +7,7 @@
 #include <QtCore/qhashfunctions.h>
 #include <QtCore/qmetatype.h>
 #include <QtCore/qobject.h>
+#include <QtCore/qset.h>
 #include <QtCore/qvector.h>
 
 QT_BEGIN_NAMESPACE
@@ -110,27 +111,59 @@ namespace QOrm
 
 namespace QOrmPrivate
 {
-    template<typename T>
-    inline QVector<T*> toQVectorT(const QVector<QObject*>& v)
+    template<typename ContainerFrom,
+             typename ContainerTo,
+             typename ToValueType = typename ContainerTo::value_type>
+    inline ContainerTo convertContainer(const ContainerFrom& v)
     {
-        QVector<T*> result;
+        ContainerTo result;
 
-        std::transform(std::begin(v), std::end(v), std::back_inserter(result), [](QObject* p) {
-            return qobject_cast<T*>(p);
-        });
+        std::transform(std::begin(v),
+                       std::end(v),
+                       std::inserter(result, std::end(result)),
+                       [](auto o) { return qobject_cast<ToValueType>(o); });
 
         return result;
     }
 
+    template<typename ContainerFrom,
+             typename ContainerTo,
+             typename ToValueType = typename ContainerTo::value_type,
+             typename = std::enable_if_t<std::is_same_v<ContainerTo, QSet<ToValueType>>>>
+    inline QSet<ToValueType> convertContainer(const ContainerFrom& v)
+    {
+        QSet<ToValueType> result;
+
+        for (auto o : v)
+            result.insert(qobject_cast<ToValueType>(o));
+
+        return result;
+    }
+    template<typename EntityContainer, typename Entity = typename EntityContainer::value_type>
+    void registerContainerConverter()
+    {
+        if (!QMetaType::hasRegisteredConverterFunction<EntityContainer, QVector<QObject*>>())
+        {
+            QMetaType::registerConverter<EntityContainer, QVector<QObject*>>(
+                &convertContainer<EntityContainer, QVector<QObject*>>);
+        }
+
+        if (!QMetaType::hasRegisteredConverterFunction<QVector<QObject*>, EntityContainer>())
+        {
+            QMetaType::registerConverter<QVector<QObject*>, EntityContainer>(
+                &convertContainer<QVector<QObject*>, EntityContainer>);
+        }
+    }
+
     template<typename T>
-    inline constexpr void qRegisterOrmEntity()
+    inline void qRegisterOrmEntity()
     {
         qRegisterMetaType<T*>();
         qRegisterMetaType<QVector<T*>>();
-        qRegisterMetaType<QList<T*>>();
         qRegisterMetaType<QSet<T*>>();
 
-        QMetaType::registerConverter<QVector<QObject*>, QVector<T*>>(&toQVectorT<T>);
+        registerContainerConverter<QVector<T*>>();
+        registerContainerConverter<QSet<T*>>();
     }
 } // namespace QtOrmPrivate
 

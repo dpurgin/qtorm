@@ -11,6 +11,7 @@
 #include "qormtransactiontoken.h"
 
 #include <QDebug>
+#include <QScopeGuard>
 
 QT_BEGIN_NAMESPACE
 
@@ -22,11 +23,20 @@ class QOrmSessionPrivate
     QOrmEntityInstanceCache m_entityInstanceCache;
     QOrmError m_lastError{QOrm::ErrorType::None, {}};
     QOrmMetadataCache m_metadataCache;
+    QSet<const QObject*> m_mergingInstances;
 
     explicit QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration, QOrmSession* parent);
     ~QOrmSessionPrivate();
 
     void ensureProviderConnected();
+
+    bool needsMerge(const QObject* instance)
+    {
+        return instance != nullptr &&
+               (!m_entityInstanceCache.contains(instance) ||
+                m_entityInstanceCache.isModified(instance)) &&
+               !m_mergingInstances.contains(instance);
+    }
 
     void clearLastError();
     void setLastError(QOrmError lastError);
@@ -106,6 +116,14 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
 
     Q_ASSERT(entityInstance != nullptr);
 
+    if (d->m_mergingInstances.contains(entityInstance))
+        return true;
+
+    d->m_mergingInstances.insert(entityInstance);
+
+    auto mergeRemover =
+        qScopeGuard([d, entityInstance]() { d->m_mergingInstances.remove(entityInstance); });
+
     d->clearLastError();
     d->ensureProviderConnected();
 
@@ -121,29 +139,26 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
 
     QOrmMetadata entity = d->m_metadataCache[qMetaObject];
 
-    // Cascade merge of referenced entities if needed
+    if (auto result = QOrmPrivate::crossReferenceError(entity, entityInstance))
+    {
+        qFatal("QtOrm: %s", result->toUtf8().data());
+    }
+
+    // Merge modified referenced entity instances
     for (const QOrmPropertyMapping& mapping : entity.propertyMappings())
     {
-        if (mapping.isReference() && !mapping.isTransient())
-        {
-            QObject* referencedInstance =
-                QOrmPrivate::propertyValue(entityInstance, mapping.classPropertyName())
-                    .value<QObject*>();
+        if (!mapping.isReference() || mapping.isTransient())
+            continue;
 
-            if (referencedInstance == nullptr)
-                continue;
+        // T*: merge if modified
+        QObject* referencedInstance =
+            QOrmPrivate::propertyValue(entityInstance, mapping).value<QObject*>();
 
-            if (!d->m_entityInstanceCache.contains(referencedInstance) ||
-                d->m_entityInstanceCache.isModified(referencedInstance))
-            {
-                const QMetaObject& qMetaObject = mapping.referencedEntity()->qMetaObject();
+        if (!d->needsMerge(referencedInstance))
+            continue;
 
-                if (!doMerge(referencedInstance, qMetaObject))
-                {
-                    return false;
-                }
-            }
-        }
+        if (!doMerge(referencedInstance, *referencedInstance->metaObject()))
+            return false;
     }
 
     QOrmQueryResult result = d->m_sessionConfiguration.provider()->execute(

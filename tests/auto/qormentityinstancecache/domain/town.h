@@ -17,7 +17,7 @@ class Town : public QObject
     Province* m_province = nullptr;
 
 public:
-    explicit Town(QObject* parent = nullptr);
+    Q_INVOKABLE explicit Town(QObject* parent = nullptr);
     Town(int id, const QString& name, Province* province)
         : m_id{id}
         , m_name{name}

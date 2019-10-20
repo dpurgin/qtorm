@@ -39,6 +39,12 @@ namespace QOrmPrivate
     }
 
     Q_REQUIRED_RESULT
+    inline QVariant propertyValue(const QObject* object, const QOrmPropertyMapping& mapping)
+    {
+        return propertyValue(object, mapping.classPropertyName());
+    }
+
+    Q_REQUIRED_RESULT
     inline bool setPropertyValue(QObject* object, const QString& property, const QVariant& value)
     {
         return object->setProperty(property.toUtf8().data(), value);
@@ -66,15 +72,29 @@ namespace QOrmPrivate
         auto it = std::find_if(std::begin(referencedPropertyMappings),
                                std::end(referencedPropertyMappings),
                                [&reference](const QOrmPropertyMapping& propertyMapping) {
+                                   Q_ASSERT(!propertyMapping.isReference() ||
+                                            propertyMapping.referencedEntity() != nullptr);
                                    return propertyMapping.isReference() &&
-                                          !propertyMapping.isTransient() &&
-                                          propertyMapping.referencedEntity() != nullptr &&
                                           propertyMapping.referencedEntity()->className() ==
                                               reference.enclosingEntity().className();
                                });
 
         return it == std::end(referencedPropertyMappings) ? nullptr : &(*it);
     }
+
+    Q_REQUIRED_RESULT
+    Q_ORM_EXPORT
+    extern QString entityInstanceRepresentation(const QOrmMetadata& entity,
+                                                const QObject* entityInstance);
+
+    Q_REQUIRED_RESULT
+    Q_ORM_EXPORT
+    extern QString shortPropertyMappingRepresentation(const QOrmPropertyMapping& mapping);
+
+    Q_REQUIRED_RESULT
+    Q_ORM_EXPORT
+    extern std::optional<QString> crossReferenceError(const QOrmMetadata& entity,
+                                                      const QObject* entityInstance);
 
     template<typename E>
     class Unexpected

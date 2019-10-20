@@ -73,6 +73,153 @@ namespace QOrmPrivate
 
         Q_ORM_UNEXPECTED_STATE;
     }
+
+    QString entityInstanceRepresentation(const QOrmMetadata& entity, const QObject* entityInstance)
+    {
+        QString repr;
+        QDebug dbg{&repr};
+
+        dbg.nospace().noquote() << entity.className() << "{";
+
+        for (const QOrmPropertyMapping& mapping : entity.propertyMappings())
+        {
+            dbg << mapping.classPropertyName() << " = " << propertyValue(entityInstance, mapping)
+                << ", ";
+        }
+
+        dbg << "}";
+
+        return repr;
+    }
+
+    QString shortPropertyMappingRepresentation(const QOrmPropertyMapping& mapping)
+    {
+        QString repr;
+        QDebug dbg{&repr};
+
+        dbg.nospace().noquote() << mapping.enclosingEntity().className()
+                                << "::" << mapping.classPropertyName();
+
+        return repr;
+    }
+
+    std::optional<QString> crossReferenceError(const QOrmMetadata& entity,
+                                               const QObject* entityInstance)
+    {
+        for (const QOrmPropertyMapping& mapping : entity.propertyMappings())
+        {
+            if (!mapping.isReference())
+                continue;
+
+            Q_ASSERT(mapping.referencedEntity() != nullptr);
+
+            const QOrmPropertyMapping* backReference = QOrmPrivate::backReference(mapping);
+            if (backReference == nullptr)
+                continue;
+
+            Q_ASSERT(backReference->referencedEntity()->className() == entity.className());
+
+            // if reference to a single instance, make sure that our instance is listed on the other
+            // side
+            if (!mapping.isTransient())
+            {
+                QObject* referencedEntity =
+                    propertyValue(entityInstance, mapping).value<QObject*>();
+
+                if (referencedEntity == nullptr)
+                    continue;
+
+                // T* <-> QVector<T*>
+                // Check that the right side contains a reference to this entity instance
+                if (backReference->isTransient())
+                {
+                    QVector<QObject*> backReferencedInstances =
+                        propertyValue(referencedEntity, *backReference).value<QVector<QObject*>>();
+
+                    if (std::find(std::cbegin(backReferencedInstances),
+                                  std::cend(backReferencedInstances),
+                                  entityInstance) == std::cend(backReferencedInstances))
+                    {
+                        QString errorText;
+                        QDebug dbg{&errorText};
+                        dbg.noquote().nospace()
+                            << entityInstanceRepresentation(entity, entityInstance)
+                            << " references "
+                            << entityInstanceRepresentation(*mapping.referencedEntity(),
+                                                            referencedEntity)
+                            << " but its back-reference "
+                            << shortPropertyMappingRepresentation(*backReference)
+                            << " does not contain the original instance. ";
+                        return std::make_optional(errorText);
+                    }
+                }
+                // T* <-> T*
+                // check that both sides are equal
+                else
+                {
+                    QObject* backReferencedInstance =
+                        propertyValue(referencedEntity, *backReference).value<QObject*>();
+
+                    if (backReferencedInstance != entityInstance)
+                    {
+                        QString errorText;
+                        QDebug dbg{&errorText};
+                        dbg.noquote().nospace()
+                            << entityInstanceRepresentation(entity, entityInstance)
+                            << " references "
+                            << entityInstanceRepresentation(*mapping.referencedEntity(),
+                                                            referencedEntity)
+                            << " but its back-reference "
+                            << shortPropertyMappingRepresentation(*backReference)
+                            << " is set to something else.";
+                        return std::make_optional(errorText);
+                    }
+                }
+            }
+            // If list of referenced instances, check that each one has a back reference to our
+            // instance on the other side
+            else
+            {
+                // for now, do not support n:m
+                if (backReference->isTransient())
+                {
+                    qCritical()
+                        << "QtOrm: Many-to-many relation is not supported in related entities"
+                        << mapping << "<->" << *backReference;
+                    Q_ORM_NOT_IMPLEMENTED;
+                }
+
+                QVector<QObject*> referencedInstances =
+                    propertyValue(entityInstance, mapping).value<QVector<QObject*>>();
+
+                for (const QObject* referencedInstance : referencedInstances)
+                {
+                    // QVector<T*> <-> T*
+                    // check that the entity on the other side references this one
+                    QObject* backReferencedEntity =
+                        propertyValue(referencedInstance, *backReference).value<QObject*>();
+
+                    if (backReferencedEntity != entityInstance)
+                    {
+                        QString errorText;
+                        QDebug dbg{&errorText};
+                        dbg.noquote().nospace()
+                            << entityInstanceRepresentation(entity, entityInstance)
+                            << " references "
+                            << entityInstanceRepresentation(*mapping.referencedEntity(),
+                                                            referencedInstance)
+                            << " but its back-reference "
+                            << shortPropertyMappingRepresentation(*backReference)
+                            << " is set to something else.";
+
+                        return std::make_optional(errorText);
+                    }
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
 } // namespace QOrmPrivate
 
 QT_END_NAMESPACE
