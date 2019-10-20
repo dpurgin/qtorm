@@ -110,6 +110,9 @@ void SqliteSessionTest::testSelectWithOneToMany()
         Town* pregarten = new Town(QString::fromUtf8("Pregarten"), upperAustria);
         Town* melk = new Town(QString::fromUtf8("Melk"), lowerAustria);
 
+        upperAustria->setTowns({hagenberg, pregarten});
+        lowerAustria->setTowns({melk});
+
         QVERIFY(session.merge(hagenberg, pregarten, melk, upperAustria, lowerAustria));
     }
 
