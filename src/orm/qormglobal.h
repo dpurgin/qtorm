@@ -57,13 +57,20 @@ namespace QOrm
     };
     extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::ErrorType error);
 
-    enum class TransactionMode
+    enum class TransactionPropagation
     {
-        Requires,
-        RequiresNew,
-        Supports,
-        DoesntSupport
+        Require,
+        Support,
+        DontSupport
     };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::TransactionPropagation propagation);
+
+    enum class TransactionAction
+    {
+        Commit,
+        Rollback
+    };
+    extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::TransactionAction action);
 
     enum class Comparison
     {

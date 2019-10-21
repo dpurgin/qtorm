@@ -1,8 +1,9 @@
 #include <QVector>
 
 #include <QCoreApplication>
-#include <QOrmSession>
+#include <QElapsedTimer>
 #include <QOrmError>
+#include <QOrmSession>
 
 #include "domain/community.h"
 #include "domain/province.h"
@@ -15,35 +16,36 @@
 
 int main(int argc, char* argv[])
 {
-    qRegisterOrmEntity<Province>();
+    qRegisterOrmEntity<Province, Community>();
 
     qDebug() << __PRETTY_FUNCTION__;
     QCoreApplication app{argc, argv};
 
     QOrmSession session;
 
-    auto result = session.from<Province>()
-                      .filter(Q_ORM_CLASS_PROPERTY(name) == "Niederösterreich" ||
-                              Q_ORM_CLASS_PROPERTY(name) == "Tirol")
-                      .select();
+    QElapsedTimer timer;
+    timer.start();
+    {
+        auto token = session.declareTransaction(QOrm::TransactionPropagation::Require,
+                                                QOrm::TransactionAction::Commit);
 
-    auto lowerAustria = session.from<Province>()
-                            .filter(Q_ORM_CLASS_PROPERTY(name) == "Niederösterreich")
-                            .select()
-                            .toVector()
-                            .first();
-    session.remove(lowerAustria);
+        for (int i = 0; i < 100; ++i)
+        {
+            session.merge(new Province{QString::fromUtf8("Burgenland")});
+            session.merge(new Province{QString::fromUtf8("Kärnten")});
+            session.merge(new Province{QString::fromUtf8("Salzburg")});
+            session.merge(new Province{QString::fromUtf8("Steiermark")});
+            session.merge(new Province{QString::fromUtf8("Tirol")});
+            session.merge(new Province{QString::fromUtf8("Vorarlberg")});
+            session.merge(new Province{QString::fromUtf8("Wien")});
 
-    session.merge(new Province{QString::fromUtf8("Burgenland")});
-    session.merge(new Province{QString::fromUtf8("Kärnten")});
-    session.merge(new Province{QString::fromUtf8("Salzburg")});
-    session.merge(new Province{QString::fromUtf8("Steiermark")});
-    session.merge(new Province{QString::fromUtf8("Tirol")});
-    session.merge(new Province{QString::fromUtf8("Vorarlberg")});
-    session.merge(new Province{QString::fromUtf8("Wien")});
+            session.merge(new Community{QString::fromUtf8("Hagenberg"), nullptr});
+        }
+    }
+    qDebug() << "Elapsed:" << timer.elapsed();
 
-    session.merge(new Community{QString::fromUtf8("Hagenberg")});
-
+    auto provinces = session.from<Province>().select();
+    qDebug() << "size:" << provinces.toVector<Province>().size();
 
     return 0;
 }

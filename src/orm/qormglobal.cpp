@@ -226,6 +226,50 @@ namespace QOrm
         return dbg;
     }
 
+    QDebug operator<<(QDebug dbg, TransactionPropagation propagation)
+    {
+        QDebugStateSaver saver{dbg};
+
+        dbg.noquote().nospace() << "QOrm::TransactionPropagation::";
+
+        switch (propagation)
+        {
+            case TransactionPropagation::Require:
+                qDebug() << "Require";
+                break;
+
+            case TransactionPropagation::Support:
+                qDebug() << "Support";
+                break;
+
+            case TransactionPropagation::DontSupport:
+                qDebug() << "DontSupport";
+                break;
+        }
+
+        return dbg;
+    }
+
+    QDebug operator<<(QDebug dbg, TransactionAction action)
+    {
+        QDebugStateSaver saver{dbg};
+
+        dbg.noquote().nospace() << "QOrm::TransactionAction::";
+
+        switch (action)
+        {
+            case TransactionAction::Commit:
+                qDebug() << "Commit";
+                break;
+
+            case TransactionAction::Rollback:
+                qDebug() << "Action";
+                break;
+        }
+
+        return dbg;
+    }
+
 } // namespace QOrm
 
 QT_END_NAMESPACE

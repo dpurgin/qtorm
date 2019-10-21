@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ *
+ * This file is part of QtOrm library.
+ *
+ * QtOrm is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * QtOrm is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "qormsession.h"
 
 #include "qormabstractprovider.h"
@@ -24,6 +44,7 @@ class QOrmSessionPrivate
     QOrmError m_lastError{QOrm::ErrorType::None, {}};
     QOrmMetadataCache m_metadataCache;
     QSet<const QObject*> m_mergingInstances;
+    bool m_isTransactionActive{false};
 
     explicit QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration, QOrmSession* parent);
     ~QOrmSessionPrivate();
@@ -233,9 +254,35 @@ bool QOrmSession::doRemove(QObject*& entityInstance, const QMetaObject& qMetaObj
     return d->m_lastError.type() == QOrm::ErrorType::None;
 }
 
-QOrmTransactionToken QOrmSession::declareTransaction(QOrm::TransactionMode /*transactionMode*/)
+QOrmTransactionToken QOrmSession::declareTransaction(QOrm::TransactionPropagation propagation,
+                                                     QOrm::TransactionAction finalAction)
 {
-    return {};
+    Q_D(QOrmSession);
+
+    switch (propagation)
+    {
+        case QOrm::TransactionPropagation::DontSupport:
+            if (isTransactionActive())
+            {
+                qCritical() << "QtOrm:" << propagation << " requested but a transaction is active!";
+                qFatal("QtOrm: Invalid transactional state.");
+            }
+            break;
+
+        case QOrm::TransactionPropagation::Require:
+            if (!isTransactionActive() && !beginTransaction())
+            {
+                qCritical() << "QtOrm: Error starting transaction:" << d->m_lastError;
+                qFatal("QtOrm: transaction was requested but it could not be started");
+            }
+            break;
+
+        case QOrm::TransactionPropagation::Support:
+            // don't care, support both
+            break;
+    }
+
+    return QOrmTransactionToken{this, finalAction};
 }
 
 QOrmError QOrmSession::lastError() const
@@ -258,5 +305,81 @@ QOrmMetadataCache* QOrmSession::metadataCache()
     return &d->m_metadataCache;
 }
 
+bool QOrmSession::beginTransaction()
+{
+    Q_D(QOrmSession);
+
+    if (!d->m_isTransactionActive)
+    {
+        if (d->m_sessionConfiguration.isVerbose())
+            qDebug() << "Beginning transaction";
+
+        d->ensureProviderConnected();
+        d->setLastError(d->m_sessionConfiguration.provider()->beginTransaction());
+
+        d->m_isTransactionActive = d->m_lastError.type() == QOrm::ErrorType::None;
+    }
+    else
+    {
+        if (d->m_sessionConfiguration.isVerbose())
+            qDebug() << "Transaction is already active";
+    }
+
+    return d->m_isTransactionActive;
+}
+
+bool QOrmSession::commitTransaction()
+{
+    Q_D(QOrmSession);
+
+    if (d->m_sessionConfiguration.isVerbose())
+        qDebug() << "Committing transaction";
+
+    d->setLastError(QOrmError{QOrm::ErrorType::None, {}});
+
+    if (d->m_isTransactionActive)
+    {
+        d->ensureProviderConnected();
+        d->setLastError(d->m_sessionConfiguration.provider()->commitTransaction());
+        d->m_isTransactionActive = false;
+    }
+    else
+    {
+        if (d->m_sessionConfiguration.isVerbose())
+            qDebug() << "Transaction is not active";
+    }
+
+    return d->m_lastError.type() == QOrm::ErrorType::None;
+}
+
+bool QOrmSession::rollbackTransaction()
+{
+    Q_D(QOrmSession);
+
+    if (d->m_sessionConfiguration.isVerbose())
+        qDebug() << "Rolling back transaction";
+
+    d->setLastError(QOrmError{QOrm::ErrorType::None, {}});
+
+    if (d->m_isTransactionActive)
+    {
+        d->ensureProviderConnected();
+        d->setLastError(d->m_sessionConfiguration.provider()->rollbackTransaction());
+        d->m_isTransactionActive = false;        
+    }
+    else
+    {
+        if (d->m_sessionConfiguration.isVerbose())
+            qDebug() << "Transaction is not active";
+    }
+
+    return d->m_lastError.type() == QOrm::ErrorType::None;
+}
+
+bool QOrmSession::isTransactionActive() const
+{
+    Q_D(const QOrmSession);
+    return d->m_isTransactionActive;
+}
 
 QT_END_NAMESPACE

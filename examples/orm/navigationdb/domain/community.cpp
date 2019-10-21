@@ -4,9 +4,10 @@ Community::Community(QObject *parent) : QObject(parent)
 {
 }
 
-Community::Community(QString name, QObject* parent)
+Community::Community(QString name, Province* province, QObject* parent)
     : QObject{parent}
     , m_name{std::move(name)}
+    , m_province{province}
 {
 }
 
@@ -28,7 +29,7 @@ void Community::setName(QString name)
     emit nameChanged();
 }
 
-void Community::setProvince(Town* province)
+void Community::setProvince(Province* province)
 {
     if (m_province == province)
         return;
