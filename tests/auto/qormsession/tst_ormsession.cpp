@@ -32,6 +32,8 @@ private slots:
     void testSelectWithManyToOne();
 
     void testMergeFailsWithInconsistentReferences();
+
+    void testTransactionRollback();
 };
 
 SqliteSessionTest::SqliteSessionTest()
@@ -224,6 +226,26 @@ void SqliteSessionTest::testMergeFailsWithInconsistentReferences()
                  .has_value());
     QVERIFY(!QOrmPrivate::crossReferenceError(metadataCache->get<Province>(), lowerAustria)
                  .has_value());
+}
+
+void SqliteSessionTest::testTransactionRollback()
+{
+    QOrmSession session;
+
+    Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
+    Province* lowerAustria = new Province(QString::fromUtf8("Niederösterreich"));
+
+    QVERIFY(session.merge(upperAustria, lowerAustria));
+
+    {
+        auto transactionToken = session.declareTransaction(QOrm::TransactionPropagation::Require,
+                                                           QOrm::TransactionAction::Rollback);
+
+        upperAustria->setName(QString::fromUtf8("Upper Austria"));
+        QVERIFY(session.merge(upperAustria));
+    }
+
+    QCOMPARE(upperAustria->name(), QString::fromUtf8("Oberösterreich"));
 }
 
 QTEST_GUILESS_MAIN(SqliteSessionTest)

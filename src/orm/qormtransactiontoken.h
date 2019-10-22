@@ -44,6 +44,9 @@ public:
     Q_REQUIRED_RESULT bool isEngaged() const;
     void disengage();
 
+    bool commit();
+    bool rollback();
+
 private:
     std::unique_ptr<QOrmTransactionTokenPrivate> d;
 };

@@ -25,6 +25,7 @@
 #include "qormerror.h"
 #include "qormglobal_p.h"
 #include "qormmetadatacache.h"
+#include "qormorder.h"
 #include "qormquery.h"
 #include "qormrelation.h"
 #include "qormsessionconfiguration.h"
@@ -37,6 +38,8 @@ QT_BEGIN_NAMESPACE
 
 class QOrmSessionPrivate
 {
+    using TrackedEntityInstance = std::pair<QObject*, QOrm::Operation>;
+
     Q_DECLARE_PUBLIC(QOrmSession)
     QOrmSession* q_ptr{nullptr};
     QOrmSessionConfiguration m_sessionConfiguration;
@@ -44,7 +47,8 @@ class QOrmSessionPrivate
     QOrmError m_lastError{QOrm::ErrorType::None, {}};
     QOrmMetadataCache m_metadataCache;
     QSet<const QObject*> m_mergingInstances;
-    bool m_isTransactionActive{false};
+    int m_transactionCounter{0};
+    std::vector<TrackedEntityInstance> m_trackedInstances;
 
     explicit QOrmSessionPrivate(QOrmSessionConfiguration sessionConfiguration, QOrmSession* parent);
     ~QOrmSessionPrivate();
@@ -58,6 +62,9 @@ class QOrmSessionPrivate
                 m_entityInstanceCache.isModified(instance)) &&
                !m_mergingInstances.contains(instance);
     }
+
+    void commitTrackedInstances();
+    void rollbackTrackedInstances();
 
     void clearLastError();
     void setLastError(QOrmError lastError);
@@ -76,6 +83,40 @@ void QOrmSessionPrivate::ensureProviderConnected()
 {
     if (!m_sessionConfiguration.provider()->isConnectedToBackend())
         m_sessionConfiguration.provider()->connectToBackend();
+}
+
+void QOrmSessionPrivate::commitTrackedInstances()
+{
+    for (auto& [instance, operation] : m_trackedInstances)
+    {
+        if (operation == QOrm::Operation::Delete)
+            instance->deleteLater();
+    }
+
+    m_trackedInstances.clear();
+}
+
+void QOrmSessionPrivate::rollbackTrackedInstances()
+{
+    for (auto& [instance, operation] : m_trackedInstances)
+    {
+        Q_UNUSED(operation)
+
+        QOrmMetadata relation = m_metadataCache.get(*instance->metaObject());
+        QOrmMetadata projection = relation;
+        QOrmFilter filter{*relation.objectIdMapping() ==
+                          QOrmPrivate::objectIdPropertyValue(instance, relation)};
+
+        QOrmQuery query{
+            QOrm::Operation::Read, QOrmRelation{relation}, projection, filter, std::nullopt};
+        QOrmQueryResult result =
+            m_sessionConfiguration.provider()->execute(query, m_entityInstanceCache);
+
+        if (result.error().type() != QOrm::ErrorType::None)
+            qFatal("QtOrm: Inconsistent state: unable to rollback tracked instances.");
+    }
+
+    m_trackedInstances.clear();
 }
 
 void QOrmSessionPrivate::clearLastError()
@@ -140,10 +181,15 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
     if (d->m_mergingInstances.contains(entityInstance))
         return true;
 
+    auto token = declareTransaction(QOrm::TransactionPropagation::Require,
+                                    QOrm::TransactionAction::Rollback);
+
     d->m_mergingInstances.insert(entityInstance);
 
-    auto mergeRemover =
-        qScopeGuard([d, entityInstance]() { d->m_mergingInstances.remove(entityInstance); });
+    auto mergeFinalizer = qScopeGuard([d, entityInstance]() {
+        d->m_mergingInstances.remove(entityInstance);
+        d->m_trackedInstances.push_back(std::make_pair(entityInstance, QOrm::Operation::Merge));
+    });
 
     d->clearLastError();
     d->ensureProviderConnected();
@@ -207,6 +253,8 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
             d->m_entityInstanceCache.insert(d->m_metadataCache[qMetaObject], entityInstance);
         else
             d->m_entityInstanceCache.markUnmodified(entityInstance);
+
+        token.commit();
     }
 
     return d->m_lastError.type() == QOrm::ErrorType::None;
@@ -235,8 +283,8 @@ bool QOrmSession::doRemove(QObject*& entityInstance, const QMetaObject& qMetaObj
     }
     else
     {
-        qCritical() << "QtORM: Unable to remove from" << relation << "without object ID property";
-        qFatal("QtORM: Consistency check failure");
+        qCritical() << "QtOrm: Unable to remove from" << relation << "without object ID property";
+        qFatal("QtOrm: Consistency check failure");
     }
 
     QOrmQueryResult result =
@@ -270,7 +318,7 @@ QOrmTransactionToken QOrmSession::declareTransaction(QOrm::TransactionPropagatio
             break;
 
         case QOrm::TransactionPropagation::Require:
-            if (!isTransactionActive() && !beginTransaction())
+            if (!beginTransaction())
             {
                 qCritical() << "QtOrm: Error starting transaction:" << d->m_lastError;
                 qFatal("QtOrm: transaction was requested but it could not be started");
@@ -309,7 +357,9 @@ bool QOrmSession::beginTransaction()
 {
     Q_D(QOrmSession);
 
-    if (!d->m_isTransactionActive)
+    d->setLastError({QOrm::ErrorType::None, {}});
+
+    if (d->m_transactionCounter == 0)
     {
         if (d->m_sessionConfiguration.isVerbose())
             qDebug() << "Beginning transaction";
@@ -317,36 +367,60 @@ bool QOrmSession::beginTransaction()
         d->ensureProviderConnected();
         d->setLastError(d->m_sessionConfiguration.provider()->beginTransaction());
 
-        d->m_isTransactionActive = d->m_lastError.type() == QOrm::ErrorType::None;
+        if (d->m_lastError.type() == QOrm::ErrorType::None)
+        {
+            d->m_transactionCounter++;
+        }
+        else if (d->m_sessionConfiguration.isVerbose())
+        {
+            qWarning() << "Unable to begin transaction:" << d->m_lastError.text();
+        }
     }
     else
     {
+        d->m_transactionCounter++;
+
         if (d->m_sessionConfiguration.isVerbose())
-            qDebug() << "Transaction is already active";
+            qDebug() << "Nesting transaction";
     }
 
-    return d->m_isTransactionActive;
+    return d->m_transactionCounter > 0;
 }
 
 bool QOrmSession::commitTransaction()
 {
     Q_D(QOrmSession);
 
-    if (d->m_sessionConfiguration.isVerbose())
-        qDebug() << "Committing transaction";
-
     d->setLastError(QOrmError{QOrm::ErrorType::None, {}});
 
-    if (d->m_isTransactionActive)
+    if (d->m_transactionCounter == 0)
     {
+        d->setLastError({QOrm::ErrorType::TransactionNotActive, "Transaction is not active"});
+    }
+    else if (d->m_transactionCounter == 1)
+    {
+        if (d->m_sessionConfiguration.isVerbose())
+            qDebug() << "Committing transaction";
+
         d->ensureProviderConnected();
         d->setLastError(d->m_sessionConfiguration.provider()->commitTransaction());
-        d->m_isTransactionActive = false;
+
+        if (d->m_lastError.type() == QOrm::ErrorType::None)
+        {
+            d->commitTrackedInstances();
+            d->m_transactionCounter = 0;
+        }
+        else if (d->m_sessionConfiguration.isVerbose())
+        {
+            qWarning() << "Unable to commit transaction:" << d->m_lastError.text();
+        }
     }
     else
     {
+        d->m_transactionCounter--;
+
         if (d->m_sessionConfiguration.isVerbose())
-            qDebug() << "Transaction is not active";
+            qDebug() << "Unnesting transaction";
     }
 
     return d->m_lastError.type() == QOrm::ErrorType::None;
@@ -361,16 +435,31 @@ bool QOrmSession::rollbackTransaction()
 
     d->setLastError(QOrmError{QOrm::ErrorType::None, {}});
 
-    if (d->m_isTransactionActive)
+    if (d->m_transactionCounter == 0)
+    {
+        d->setLastError({QOrm::ErrorType::TransactionNotActive, "Transaction is not active"});
+    }
+    else if (d->m_transactionCounter == 1)
     {
         d->ensureProviderConnected();
         d->setLastError(d->m_sessionConfiguration.provider()->rollbackTransaction());
-        d->m_isTransactionActive = false;        
+
+        if (d->m_lastError.type() == QOrm::ErrorType::None)
+        {
+            d->rollbackTrackedInstances();
+            d->m_transactionCounter = 0;
+        }
+        else if (d->m_sessionConfiguration.isVerbose())
+        {
+            qWarning() << "Unable to rollback transaction:" << d->m_lastError.text();
+        }
     }
     else
     {
+        d->m_transactionCounter--;
+
         if (d->m_sessionConfiguration.isVerbose())
-            qDebug() << "Transaction is not active";
+            qDebug() << "Unnesting transaction";
     }
 
     return d->m_lastError.type() == QOrm::ErrorType::None;
@@ -379,7 +468,7 @@ bool QOrmSession::rollbackTransaction()
 bool QOrmSession::isTransactionActive() const
 {
     Q_D(const QOrmSession);
-    return d->m_isTransactionActive;
+    return d->m_transactionCounter > 0;
 }
 
 QT_END_NAMESPACE

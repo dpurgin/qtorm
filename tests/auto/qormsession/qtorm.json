@@ -1,5 +1,6 @@
 {
     "provider": "sqlite",
+    "verbose": true,
     "sqlite": {
         "databaseName": "testdb.db",
         "schemaMode": "recreate",

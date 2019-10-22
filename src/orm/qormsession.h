@@ -64,7 +64,16 @@ public:
     template<typename... Ts>
     bool merge(Ts... instances)
     {
-        return (... && merge(instances));
+        QOrmTransactionToken token = declareTransaction(QOrm::TransactionPropagation::Require,
+                                                        QOrm::TransactionAction::Commit);
+
+        if (!(... && merge(instances)))
+        {
+            token.rollback();
+            return false;
+        }
+
+        return true;
     }
 
     template<typename T>

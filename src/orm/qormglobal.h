@@ -53,6 +53,7 @@ namespace QOrm
         UnsynchronizedEntity,
         UnsynchronizedSchema,
         InvalidMapping,
+        TransactionNotActive,
         Other
     };
     extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::ErrorType error);

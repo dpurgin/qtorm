@@ -87,6 +87,8 @@ namespace QOrm
             case ErrorType::InvalidMapping:
                 dbg << "InvalidMapping";
                 break;
+            case ErrorType::TransactionNotActive:
+                dbg << "TransactionNotActive";
         }
 
         return dbg;

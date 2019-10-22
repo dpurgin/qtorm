@@ -66,3 +66,15 @@ void QOrmTransactionToken::disengage()
 {
     d->m_engaged = false;
 }
+
+bool QOrmTransactionToken::commit()
+{
+    disengage();
+    return d->m_session->commitTransaction();
+}
+
+bool QOrmTransactionToken::rollback()
+{
+    disengage();
+    return d->m_session->rollbackTransaction();
+}
