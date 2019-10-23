@@ -20,6 +20,7 @@ private slots:
     void init();
 
     void testWithObjectId();
+    void testModificationTracked();
 };
 
 EntityInstanceCache::EntityInstanceCache()
@@ -45,6 +46,7 @@ void EntityInstanceCache::testWithObjectId()
     std::unique_ptr<Province> upperAustria{new Province(1, QString::fromUtf8("Oberösterreich"))};
 
     instanceCache.insert(metadataCache.get<Province>(), upperAustria.get());
+    instanceCache.finalize(metadataCache.get<Province>(), upperAustria.get());
 
     QVERIFY(instanceCache.contains(upperAustria.get()));
     QVERIFY(!instanceCache.isModified(upperAustria.get()));
@@ -55,6 +57,7 @@ void EntityInstanceCache::testWithObjectId()
 
     std::unique_ptr<Town> hagenberg{new Town(1, QString::fromUtf8("Hagenberg"), nullptr)};
     instanceCache.insert(metadataCache.get<Town>(), hagenberg.get());
+    instanceCache.finalize(metadataCache.get<Town>(), hagenberg.get());
 
     QVERIFY(instanceCache.contains(upperAustria.get()));
     QVERIFY(instanceCache.contains(hagenberg.get()));
@@ -72,6 +75,24 @@ void EntityInstanceCache::testWithObjectId()
     QCOMPARE(instanceCache.take(hagenberg.get()), hagenberg.get());
     QCOMPARE(instanceCache.get(metadataCache.get<Town>(), 1), nullptr);
     QVERIFY(!instanceCache.contains(hagenberg.get()));
+}
+
+void EntityInstanceCache::testModificationTracked()
+{
+    QOrmMetadataCache metadataCache;
+    QOrmEntityInstanceCache instanceCache;
+
+    Province* upperAustria = new Province(1, QString::fromUtf8("Oberösterreich"));
+    instanceCache.insert(metadataCache.get<Province>(), upperAustria);
+    instanceCache.finalize(metadataCache.get<Province>(), upperAustria);
+
+    QVERIFY(!instanceCache.isModified(upperAustria));
+
+    upperAustria->setName(QString::fromUtf8("Upper Austria"));
+    QVERIFY(instanceCache.isModified(upperAustria));
+
+    instanceCache.markUnmodified(upperAustria);
+    QVERIFY(!instanceCache.isModified(upperAustria));
 }
 
 QTEST_APPLESS_MAIN(EntityInstanceCache)

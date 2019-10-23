@@ -30,6 +30,7 @@ private slots:
 
     void testSelectWithOneToMany();
     void testSelectWithManyToOne();
+    void testSelectReturnsCachedInstances();
 
     void testMergeFailsWithInconsistentReferences();
 
@@ -199,6 +200,21 @@ void SqliteSessionTest::testSelectWithManyToOne()
     QCOMPARE(lisaMaier->lastName(), QString::fromUtf8("Maier"));
     QVERIFY(lisaMaier->town() != nullptr);
     QCOMPARE(lisaMaier->town()->name(), QString::fromUtf8("Hagenberg"));
+}
+
+void SqliteSessionTest::testSelectReturnsCachedInstances()
+{
+    QOrmSession session;
+
+    Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
+    Province* lowerAustria = new Province(QString::fromUtf8("Niederösterreich"));
+
+    QVERIFY(session.merge(upperAustria, lowerAustria));
+
+    auto result = session.from<Province>().select().toVector<Province>();
+    QCOMPARE(result.size(), 2);
+    QVERIFY(result.contains(upperAustria));
+    QVERIFY(result.contains(lowerAustria));
 }
 
 void SqliteSessionTest::testMergeFailsWithInconsistentReferences()

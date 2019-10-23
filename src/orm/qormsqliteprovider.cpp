@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ *
+ * This file is part of QtOrm library.
+ *
+ * QtOrm is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * QtOrm is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "qormsqliteprovider.h"
 
 #include "qormclassproperty.h"
@@ -54,6 +74,11 @@ class QOrmSqliteProviderPrivate
         const QOrmMetadata& entityMetadata,
         const QSqlRecord& record,
         QOrmEntityInstanceCache& entityInstanceCache);
+    QOrmError fillEntityInstance(const QOrmMetadata& entityMetadata,
+                                 QObject* entityInstance,
+                                 const QSqlRecord& record,
+                                 QOrmEntityInstanceCache& entityInstanceCache,
+                                 const QFlags<QOrm::QueryFlags>& queryFlags);
 
     QOrmError ensureSchemaSynchronized(const QOrmRelation& entityMetadata);
     QOrmError recreateSchema(const QOrmRelation& entityMetadata);
@@ -112,9 +137,28 @@ QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntity
     {
         Q_ORM_UNEXPECTED_STATE;
     }
+
     entityInstanceCache.insert(entityMetadata, entityInstance);
 
     // fill the rest of the properties
+    QOrmError fillError = fillEntityInstance(
+        entityMetadata, entityInstance, record, entityInstanceCache, QOrm::QueryFlags::None);
+
+    if (fillError != QOrm::ErrorType::None)
+        return QOrmPrivate::makeUnexpected(fillError);
+
+    entityInstanceCache.finalize(entityMetadata, entityInstance);
+
+    return entityInstance;
+}
+
+QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
+    const QOrmMetadata& entityMetadata,
+    QObject* entityInstance,
+    const QSqlRecord& record,
+    QOrmEntityInstanceCache& entityInstanceCache,
+    const QFlags<QOrm::QueryFlags>& queryFlags)
+{
     for (const QOrmPropertyMapping& mapping : entityMetadata.propertyMappings())
     {
         // if this property is a reference, retrieve referenced entity instances and assign
@@ -123,8 +167,8 @@ QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntity
             QOrmRelation referencedRelation{*mapping.referencedEntity()};
 
             QOrmError syncError = ensureSchemaSynchronized(referencedRelation);
-            if (syncError.type() != QOrm::ErrorType::None)
-                return QOrmPrivate::makeUnexpected(syncError);
+            if (syncError != QOrm::ErrorType::None)
+                return syncError;
 
             // transient references are one-to-many references
             if (mapping.isTransient())
@@ -143,14 +187,15 @@ QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntity
                                 referencedRelation,
                                 *mapping.referencedEntity(),
                                 filter,
-                                std::nullopt};
+                                std::nullopt,
+                                queryFlags};
 
                 QOrmQueryResult result = read(query, entityInstanceCache);
 
                 // error during read: return this error and do not continue
                 if (result.error().type() != QOrm::ErrorType::None)
                 {
-                    return QOrmPrivate::makeUnexpected(result.error());
+                    return result.error();
                 }
 
                 // dispatch according to declared property type
@@ -212,14 +257,15 @@ QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntity
                                     referencedRelation,
                                     *mapping.referencedEntity(),
                                     filter,
-                                    std::nullopt};
+                                    std::nullopt,
+                                    queryFlags};
 
                     QOrmQueryResult result = read(query, entityInstanceCache);
 
                     // error during read: return this error and do not continue
                     if (result.error().type() != QOrm::ErrorType::None)
                     {
-                        return QOrmPrivate::makeUnexpected(result.error());
+                        return result.error();
                     }
 
                     // sanity check: when selecting by object id, only one instance should be
@@ -248,9 +294,7 @@ QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntity
         }
     }
 
-    entityInstanceCache.finalize(entityMetadata, entityInstance);
-
-    return entityInstance;
+    return QOrmError{QOrm::ErrorType::None, {}};
 }
 
 QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation& relation)
@@ -374,16 +418,29 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
             if (cachedInstance != nullptr)
             {
                 // If inconsistent, return an error. Already cached instances remain in the cache
-                if (entityInstanceCache.isModified(cachedInstance))
+                if (entityInstanceCache.isModified(cachedInstance) &&
+                    !query.flags().testFlag(QOrm::QueryFlags::OverwriteCachedInstances))
                 {
-                    QString errorString;
-                    QDebug dbg{&errorString};
-                    dbg << "Entity instance" << cachedInstance
-                        << "was read from the database but has unsaved changes in the OR-mapper. "
-                           "Merge this instance or discard changes before reading.";
+                        QString errorString;
+                        QDebug dbg{&errorString};
+                        dbg << "Entity instance" << cachedInstance
+                            << "was read from the database but has unsaved changes in the "
+                               "OR-mapper. "
+                               "Merge this instance or discard changes before reading.";
 
-                    return QOrmQueryResult{
-                        QOrmError{QOrm::ErrorType::UnsynchronizedEntity, errorString}};
+                        return QOrmQueryResult{
+                            QOrmError{QOrm::ErrorType::UnsynchronizedEntity, errorString}};
+                }
+                else if (query.flags().testFlag(QOrm::QueryFlags::OverwriteCachedInstances))
+                {
+                    QOrmError error = fillEntityInstance(*query.projection(),
+                                                         cachedInstance,
+                                                         sqlQuery.record(),
+                                                         entityInstanceCache,
+                                                         query.flags());
+
+                    if (error != QOrm::ErrorType::None)
+                        return QOrmQueryResult{error};
                 }
 
                 resultSet.push_back(cachedInstance);

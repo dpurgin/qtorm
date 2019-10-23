@@ -135,6 +135,12 @@ namespace QOrm
         Mapping
     };
     extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::RelationType relationType);
+
+    enum class QueryFlags
+    {
+        None = 0x00,
+        OverwriteCachedInstances = 0x01
+    };
 }
 
 namespace QOrmPrivate

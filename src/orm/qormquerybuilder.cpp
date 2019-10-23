@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ *
+ * This file is part of QtOrm library.
+ *
+ * QtOrm is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * QtOrm is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "qormquerybuilder.h"
 
 #include "qormabstractprovider.h"
@@ -140,7 +160,8 @@ QOrmQuery QOrmQueryBuilder::build(QOrm::Operation operation) const
                          d->m_relation,
                          d->m_projection,
                          d->foldFilters(d->m_relation, d->m_filters),
-                         d->m_orderBuilder->build()};
+                         d->m_orderBuilder->build(),
+                         QOrm::QueryFlags::None};
     }
 
     qFatal("Unexpected state");
@@ -151,8 +172,12 @@ QOrmQueryResult QOrmQueryBuilder::select()
     std::optional<QOrmFilter> filter =
         QOrmQueryBuilderPrivate::foldFilters(d->m_relation, d->m_filters);
 
-    QOrmQuery query{
-        QOrm::Operation::Read, d->m_relation, d->m_projection, filter, d->m_orderBuilder->build()};
+    QOrmQuery query{QOrm::Operation::Read,
+                    d->m_relation,
+                    d->m_projection,
+                    filter,
+                    d->m_orderBuilder->build(),
+                    QOrm::QueryFlags::None};
 
     return d->m_session->execute(query);
 }
@@ -164,8 +189,12 @@ QOrmQueryResult QOrmQueryBuilder::select(const QMetaObject& projectionMetaObject
     std::optional<QOrmFilter> filter =
         QOrmQueryBuilderPrivate::foldFilters(d->m_relation, d->m_filters);
 
-    QOrmQuery query{
-        QOrm::Operation::Read, d->m_relation, projection, filter, d->m_orderBuilder->build()};
+    QOrmQuery query{QOrm::Operation::Read,
+                    d->m_relation,
+                    projection,
+                    filter,
+                    d->m_orderBuilder->build(),
+                    QOrm::QueryFlags::None};
 
     return d->m_session->execute(query);
 }
@@ -174,9 +203,9 @@ QOrmQueryResult QOrmQueryBuilder::remove(QOrm::RemoveMode removeMode) const
 {
     if (removeMode != QOrm::RemoveMode::ForceRemoveAll && d->m_filters.empty())
     {
-        qCritical() << "QtORM: Attempting to remove all entries in" << d->m_relation
+        qCritical() << "QtOrm: Attempting to remove all entries in" << d->m_relation
                     << ". Either provide a filter or pass QOrm::RemoveMode::ForceRemoveAll";
-        qFatal("QtORM: Security check failure");
+        qFatal("QtOrm: Security check failure");
     }
 
     std::optional<QOrmFilter> filter =
@@ -186,7 +215,8 @@ QOrmQueryResult QOrmQueryBuilder::remove(QOrm::RemoveMode removeMode) const
                     d->m_relation,
                     d->m_projection,
                     filter,
-                    d->m_orderBuilder->build()};
+                    d->m_orderBuilder->build(),
+                    QOrm::QueryFlags::None};
 
     return d->m_session->execute(query);
 }

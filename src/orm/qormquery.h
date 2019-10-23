@@ -42,7 +42,8 @@ public:
               const QOrmRelation& relation,
               const std::optional<QOrmMetadata>& projection,
               const std::optional<QOrmFilter>& filter,
-              const std::optional<QOrmOrder>& order);
+              const std::optional<QOrmOrder>& order,
+              const QFlags<QOrm::QueryFlags>& flags);
     QOrmQuery(QOrm::Operation operation, const QOrmMetadata& relation, QObject* entityInstance);
     QOrmQuery(const QOrmQuery&);
     QOrmQuery(QOrmQuery&&);
@@ -68,6 +69,9 @@ public:
 
     Q_REQUIRED_RESULT
     const QObject* entityInstance() const;
+
+    Q_REQUIRED_RESULT
+    const QFlags<QOrm::QueryFlags>& flags() const;
 
 private:
     QSharedDataPointer<QOrmQueryPrivate> d;
