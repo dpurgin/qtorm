@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ *
+ * This file is part of QtOrm library.
+ *
+ * QtOrm is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * QtOrm is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "qormsqlitestatementgenerator_p.h"
 #include "qormfilter.h"
 #include "qormfilterexpression.h"
@@ -72,11 +92,21 @@ QString QOrmSqliteStatementGenerator::generate(const QOrmQuery& query, QVariantM
 
         case QOrm::Operation::Delete:
             Q_ASSERT(query.relation().type() == QOrm::RelationType::Mapping);
-            Q_ASSERT(query.filter().has_value());
 
-            return generateDeleteStatement(*query.relation().mapping(),
-                                           *query.filter(),
-                                           boundParameters);
+            if (query.entityInstance() != nullptr)
+            {
+                return generateDeleteStatement(*query.relation().mapping(),
+                                               query.entityInstance(),
+                                               boundParameters);
+            }
+            else if (query.filter().has_value())
+            {
+                return generateDeleteStatement(*query.relation().mapping(),
+                                               *query.filter(),
+                                               boundParameters);
+            }
+            else
+                Q_ORM_UNEXPECTED_STATE;
 
         default:
             Q_ORM_UNEXPECTED_STATE;
@@ -166,6 +196,19 @@ QString QOrmSqliteStatementGenerator::generateDeleteStatement(const QOrmMetadata
                          generateWhereClause(filter, boundParameters)};
 
     return parts.join(QChar{' '});
+}
+
+QString QOrmSqliteStatementGenerator::generateDeleteStatement(const QOrmMetadata& relation,
+                                                              const QObject* instance,
+                                                              QVariantMap& boundParameters)
+{
+    Q_ASSERT(relation.objectIdMapping() != nullptr);
+
+    QVariant objectId = QOrmPrivate::objectIdPropertyValue(instance, relation);
+
+    return generateDeleteStatement(relation,
+                                   QOrmFilter{*relation.objectIdMapping() == objectId},
+                                   boundParameters);
 }
 
 QString QOrmSqliteStatementGenerator::generateFromClause(const QOrmRelation& relation,

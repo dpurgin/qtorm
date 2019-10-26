@@ -37,11 +37,11 @@ class QOrmQueryResultPrivate;
 template<typename T>
 class Q_ORM_EXPORT QOrmQueryResult
 {
+public:
     using Projection = T;
     static_assert(std::is_convertible_v<Projection*, QObject*>,
                   "Projection entity must be inherited from QObject");
 
-public:
     QOrmQueryResult(const QOrmQueryResult&) = delete;
     QOrmQueryResult(QOrmQueryResult&& other) = default;
 

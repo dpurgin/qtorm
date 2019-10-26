@@ -37,8 +37,10 @@ class QOrmAbstractProvider;
 class QOrmEntityInstanceCache;
 class QOrmError;
 class QOrmQuery;
-class QOrmQueryBuilder;
 class QOrmSessionPrivate;
+
+template<typename Projection>
+class QOrmQueryBuilder;
 
 class Q_ORM_EXPORT QOrmSession
 {
@@ -53,7 +55,7 @@ public:
     QOrmQueryResult<QObject> execute(const QOrmQuery& query);
 
     Q_REQUIRED_RESULT
-    QOrmQueryBuilder from(const QOrmQuery& query);
+    QOrmQueryBuilder<QObject> from(const QOrmQuery& query);
 
     template<typename T>
     bool merge(T* entityInstance)
@@ -95,19 +97,19 @@ public:
     }
 
     template<typename T>
-    bool remove(T*& entityInstance)
+    bool remove(T* entityInstance)
     {
         return doRemove(entityInstance, T::staticMetaObject);
     }
 
     template<typename T>
-    QOrmQueryBuilder from()
+    QOrmQueryBuilder<T> from()
     {
         return queryBuilderFor(T::staticMetaObject);
     }
 
     template<typename T>
-    QOrmQueryBuilder into()
+    QOrmQueryBuilder<T> into()
     {
         return queryBuilderFor(T::staticMetaObject);
     }
@@ -135,9 +137,9 @@ public:
 
 private:
     bool doMerge(QObject* entityInstance, const QMetaObject& qMetaObject);
-    bool doRemove(QObject*& entityInstance, const QMetaObject& qMetaObject);
+    bool doRemove(QObject* entityInstance, const QMetaObject& qMetaObject);
 
-    QOrmQueryBuilder queryBuilderFor(const QMetaObject& relationMetaObject);
+    QOrmQueryBuilder<QObject> queryBuilderFor(const QMetaObject& relationMetaObject);
 
 private:
     QOrmSessionPrivate* d_ptr{nullptr};

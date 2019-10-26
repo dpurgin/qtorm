@@ -31,8 +31,11 @@ private slots:
     void testSelectWithOneToMany();
     void testSelectWithManyToOne();
     void testSelectReturnsCachedInstances();
+    void testSelectWithSingleStringFilter();
 
     void testMergeFailsWithInconsistentReferences();
+
+    void testRemoveInstance();
 
     void testTransactionRollback();
 };
@@ -128,7 +131,7 @@ void SqliteSessionTest::testSelectWithOneToMany()
     QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
     QOrmSession session{sessionConfiguration};
 
-    QOrmQueryResult result = session.from<Province>().select<Province>();
+    QOrmQueryResult result = session.from<Province>().select();
 
     QCOMPARE(result.error().type(), QOrm::ErrorType::None);
 
@@ -180,21 +183,23 @@ void SqliteSessionTest::testSelectWithManyToOne()
     QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
     QOrmSession session{sessionConfiguration};
 
-    QOrmQueryResult result = session.from<Person>().select<Person>();
+    auto result = session.from<Person>().select();
+    QVERIFY((std::is_same_v<decltype(result)::Projection, Person>));
 
     QCOMPARE(result.error().type(), QOrm::ErrorType::None);
 
     auto data = result.toVector();
     QCOMPARE(data.size(), 2);
 
-    auto franzHuber = qobject_cast<Person*>(data[0]);
+    Person* franzHuber{data[0]};
+
     QCOMPARE(franzHuber->id(), 1);
     QCOMPARE(franzHuber->firstName(), QString::fromUtf8("Franz"));
     QCOMPARE(franzHuber->lastName(), QString::fromUtf8("Huber"));
     QVERIFY(franzHuber->town() != nullptr);
     QCOMPARE(franzHuber->town()->name(), QString::fromUtf8("Hagenberg"));
 
-    auto lisaMaier = qobject_cast<Person*>(data[1]);
+    Person* lisaMaier{data[1]};
     QCOMPARE(lisaMaier->id(), 2);
     QCOMPARE(lisaMaier->firstName(), QString::fromUtf8("Lisa"));
     QCOMPARE(lisaMaier->lastName(), QString::fromUtf8("Maier"));
@@ -211,10 +216,29 @@ void SqliteSessionTest::testSelectReturnsCachedInstances()
 
     QVERIFY(session.merge(upperAustria, lowerAustria));
 
-    auto result = session.from<Province>().select<Province>().toVector();
+    auto result = session.from<Province>().select().toVector();
+    QVERIFY((std::is_same_v<QVector<Province*>, decltype(result)>));
     QCOMPARE(result.size(), 2);
     QVERIFY(result.contains(upperAustria));
     QVERIFY(result.contains(lowerAustria));
+}
+
+void SqliteSessionTest::testSelectWithSingleStringFilter()
+{
+    QOrmSession session;
+    session.merge(new Province(QString::fromUtf8("Oberösterreich")),
+                  new Province(QString::fromUtf8("Niederösterreich")),
+                  new Province(QString::fromUtf8("Salzburg")));
+
+    auto result = session.from<Province>()
+                      .filter(Q_ORM_CLASS_PROPERTY(name) == QString::fromUtf8("Oberösterreich"))
+                      .select();
+
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(result.toVector().size(), 1);
+
+    auto upperAustria = result.toVector().front();
+    QCOMPARE(upperAustria->name(), QString::fromUtf8("Oberösterreich"));
 }
 
 void SqliteSessionTest::testMergeFailsWithInconsistentReferences()
@@ -262,6 +286,16 @@ void SqliteSessionTest::testTransactionRollback()
     }
 
     QCOMPARE(upperAustria->name(), QString::fromUtf8("Oberösterreich"));
+}
+
+void SqliteSessionTest::testRemoveInstance()
+{
+    QOrmSession session;
+
+    Province* upperAustria = new Province{QString::fromUtf8("Oberösterreich")};
+    QVERIFY(session.merge(upperAustria));
+    QVERIFY(session.remove(upperAustria));
+    QVERIFY(session.from<Province>().select().toVector().empty());
 }
 
 QTEST_GUILESS_MAIN(SqliteSessionTest)

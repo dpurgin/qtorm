@@ -556,6 +556,7 @@ QOrmError QOrmSqliteProvider::disconnectFromBackend()
     Q_D(QOrmSqliteProvider);
 
     d->m_database.close();
+    QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
 
     return QOrmError{QOrm::ErrorType::None, {}};
 }

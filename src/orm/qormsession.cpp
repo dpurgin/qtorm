@@ -162,18 +162,18 @@ QOrmQueryResult<QObject> QOrmSession::execute(const QOrmQuery& query)
     return providerResult;
 }
 
-QOrmQueryBuilder QOrmSession::from(const QOrmQuery& query)
+QOrmQueryBuilder<QObject> QOrmSession::from(const QOrmQuery& query)
 {
     Q_ASSERT(query.operation() == QOrm::Operation::Read);
 
-    return QOrmQueryBuilder{this, QOrmRelation{query}};
+    return QOrmQueryBuilder<QObject>{this, QOrmRelation{query}};
 }
 
-QOrmQueryBuilder QOrmSession::queryBuilderFor(const QMetaObject& relationMetaObject)
+QOrmQueryBuilder<QObject> QOrmSession::queryBuilderFor(const QMetaObject& relationMetaObject)
 {
     Q_D(QOrmSession);
 
-    return QOrmQueryBuilder{this, QOrmRelation{d->m_metadataCache[relationMetaObject]}};
+    return QOrmQueryBuilder<QObject>{this, QOrmRelation{d->m_metadataCache[relationMetaObject]}};
 }
 
 bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObject)
@@ -267,35 +267,17 @@ bool QOrmSession::doMerge(QObject* entityInstance, const QMetaObject& qMetaObjec
     return d->m_lastError.type() == QOrm::ErrorType::None;
 }
 
-bool QOrmSession::doRemove(QObject*& entityInstance, const QMetaObject& qMetaObject)
+bool QOrmSession::doRemove(QObject* entityInstance, const QMetaObject& qMetaObject)
 {
     Q_D(QOrmSession);
 
     d->clearLastError();
     d->ensureProviderConnected();
 
-    const QOrmMetadata& relation = d->m_metadataCache[qMetaObject];
-
-    QOrmQueryBuilder queryBuilder = queryBuilderFor(qMetaObject);
-
-    if (relation.objectIdMapping() != nullptr)
-    {
-        QOrmFilterTerminalPredicate predicate{
-            *relation.objectIdMapping(),
-            QOrm::Comparison::Equal,
-            QOrmPrivate::propertyValue(entityInstance,
-                                       relation.objectIdMapping()->tableFieldName())};
-
-        queryBuilder.filter(predicate);
-    }
-    else
-    {
-        qCritical() << "QtOrm: Unable to remove from" << relation << "without object ID property";
-        qFatal("QtOrm: Consistency check failure");
-    }
-
     QOrmQueryResult result =
-        d->m_sessionConfiguration.provider()->execute(queryBuilder.build(QOrm::Operation::Delete),
+        d->m_sessionConfiguration.provider()->execute(queryBuilderFor(qMetaObject)
+                                                          .instance(qMetaObject, entityInstance)
+                                                          .build(QOrm::Operation::Delete),
                                                       d->m_entityInstanceCache);
 
     d->setLastError(result.error());
@@ -303,7 +285,6 @@ bool QOrmSession::doRemove(QObject*& entityInstance, const QMetaObject& qMetaObj
     if (d->m_lastError.type() == QOrm::ErrorType::None)
     {
         delete d->m_entityInstanceCache.take(entityInstance);
-        entityInstance = nullptr;
     }
 
     return d->m_lastError.type() == QOrm::ErrorType::None;

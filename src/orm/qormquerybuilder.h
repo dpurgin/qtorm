@@ -32,6 +32,8 @@
 #include <QtCore/qshareddata.h>
 #include <QtCore/qvector.h>
 
+#include <memory>
+
 QT_BEGIN_NAMESPACE
 
 class QOrmAbstractProvider;
@@ -42,56 +44,81 @@ class QOrmQueryBuilderPrivate;
 class QOrmRelation;
 class QOrmSession;
 
-class Q_ORM_EXPORT QOrmQueryBuilder
+namespace QOrmPrivate
 {
+    class QueryBuilderHelperPrivate;
+
+    class Q_ORM_EXPORT QueryBuilderHelper
+    {
+    public:
+        QueryBuilderHelper(QOrmSession* session, const QOrmRelation& relation);
+        QueryBuilderHelper(const QueryBuilderHelper&) = delete;
+        QueryBuilderHelper(QueryBuilderHelper&&);
+        ~QueryBuilderHelper();
+
+        QueryBuilderHelper& operator=(const QueryBuilderHelper&) = delete;
+        QueryBuilderHelper& operator=(QueryBuilderHelper&&);
+
+        void setInstance(const QMetaObject& qMetaObject, QObject* instance);
+        void addFilter(const QOrmFilter& filter);
+
+        Q_REQUIRED_RESULT
+        QOrmQuery build(QOrm::Operation operation) const;
+
+        Q_REQUIRED_RESULT
+        QOrmQueryResult<QObject> select() const;
+
+    private:
+        std::unique_ptr<QueryBuilderHelperPrivate> d;
+    };
+} // namespace QOrmPrivate
+
+template<typename T>
+class QOrmQueryBuilder
+{
+    template<typename>
+    friend class QOrmQueryBuilder;
+
 public:
-    QOrmQueryBuilder(QOrmSession* ormSession, const QOrmRelation& relation);
-    QOrmQueryBuilder(const QOrmQueryBuilder&);
-    QOrmQueryBuilder(QOrmQueryBuilder&&);
-    ~QOrmQueryBuilder();
+    using Projection = T;
 
-    QOrmQueryBuilder& operator=(const QOrmQueryBuilder&);
-    QOrmQueryBuilder& operator=(QOrmQueryBuilder&&);
-
-    QOrmQueryBuilder& filter(QOrmFilterExpression expression);
-    QOrmQueryBuilder& order(QOrmOrderBuilder orderBuilder);
-    QOrmQueryBuilder& instance(const QMetaObject& qMetaObject, QObject* instance);
-
-    template<typename T>
-    QOrmQueryBuilder& instance(T* entityInstance)
+    explicit QOrmQueryBuilder(QOrmSession* session, const QOrmRelation& relation)
+        : m_helper{session, relation}
     {
-        return instance(T::staticMetaObject, entityInstance);
     }
 
-    QOrmQuery build(QOrm::Operation operation) const;
+    QOrmQueryBuilder(const QOrmQueryBuilder&) = delete;
 
-    template<typename T>
-    QOrmQueryBuilder& projection()
+    template<typename U,
+             typename = std::enable_if_t<std::is_same_v<U, QObject> || std::is_same_v<U, T>>>
+    QOrmQueryBuilder(QOrmQueryBuilder<U>&& other)
+        : m_helper{std::move(other.m_helper)}
     {
-        return projection(T::staticMetaObject);
     }
 
-    template<typename T>
-    QOrmQueryResult<T> select() const
+    QOrmQueryBuilder& operator=(const QOrmQueryBuilder&) = delete;
+    QOrmQueryBuilder& operator=(QOrmQueryBuilder&&) = default;
+
+    QOrmQueryBuilder& filter(QOrmFilterExpression expression)
     {
-        return select(T::staticMetaObject);
+        m_helper.addFilter(QOrmFilter{expression});
+        return *this;
     }
 
-    QOrmQueryResult<QObject> remove(
-        QOrm::RemoveMode removeMode = QOrm::RemoveMode::PreventRemoveAll) const;
-
-    template<typename T>
-    QOrmQueryResult<T> merge(T* entityInstance)
+    QOrmQueryBuilder& instance(const QMetaObject& qMetaObject, QObject* instance)
     {
-        return merge(T::staticMetaObject, entityInstance);
+        m_helper.setInstance(qMetaObject, instance);
+        return *this;
     }
+
+    Q_REQUIRED_RESULT
+    QOrmQueryResult<Projection> select() const { return m_helper.select(); }
+
+    Q_REQUIRED_RESULT
+    QOrmQuery build(QOrm::Operation operation) const { return m_helper.build(operation); }
 
 private:
-    QOrmQueryBuilder& projection(const QMetaObject& projectionMetaObject);
-    QOrmQueryResult<QObject> select(const QMetaObject& projectionMetaObject) const;
-    QOrmQueryResult<QObject> merge(const QMetaObject& qMetaObject, QObject* entityInstance);
-
-    QSharedDataPointer<QOrmQueryBuilderPrivate> d;
+    QOrmPrivate::QueryBuilderHelper m_helper;
 };
 
 QT_END_NAMESPACE

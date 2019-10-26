@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
         upperAustria =
             session.from<Province>()
                 .filter(Q_ORM_CLASS_PROPERTY(name) == QString::fromUtf8("Oberösterreich"))
-                .select<Province>()
+                .select()
                 .toVector()
                 .first();
 
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 
     auto upperAustrianCommunities = session.from<Community>()
                                         .filter(Q_ORM_CLASS_PROPERTY(province) == upperAustria)
-                                        .select<Community>()
+                                        .select()
                                         .toVector();
 
     qDebug() << "size:" << upperAustrianCommunities.size();
