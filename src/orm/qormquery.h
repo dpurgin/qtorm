@@ -27,6 +27,8 @@
 #include <QtOrm/qormglobal.h>
 #include <QtOrm/qormqueryresult.h>
 
+#include <vector>
+
 QT_BEGIN_NAMESPACE
 
 class QOrmFilter;
@@ -42,7 +44,7 @@ public:
               const QOrmRelation& relation,
               const std::optional<QOrmMetadata>& projection,
               const std::optional<QOrmFilter>& filter,
-              const std::optional<QOrmOrder>& order,
+              const std::vector<QOrmOrder>& order,
               const QFlags<QOrm::QueryFlags>& flags);
     QOrmQuery(QOrm::Operation operation, const QOrmMetadata& relation, QObject* entityInstance);
     QOrmQuery(const QOrmQuery&);
@@ -65,7 +67,7 @@ public:
     const std::optional<QOrmFilter>& filter() const;
 
     Q_REQUIRED_RESULT
-    const std::optional<QOrmOrder>& order() const;
+    const std::vector<QOrmOrder>& order() const;
 
     Q_REQUIRED_RESULT
     const QObject* entityInstance() const;

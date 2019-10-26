@@ -28,6 +28,7 @@
 #include <QtCore/qshareddata.h>
 
 #include <utility>
+#include <vector>
 
 QT_BEGIN_NAMESPACE
 
@@ -37,6 +38,7 @@ class QOrmFilterExpression;
 class QOrmFilterTerminalPredicate;
 class QOrmFilterUnaryPredicate;
 class QOrmMetadata;
+class QOrmOrder;
 class QOrmQuery;
 class QOrmRelation;
 
@@ -77,6 +79,9 @@ public:
 
     Q_REQUIRED_RESULT
     static QString generateWhereClause(const QOrmFilter& filter, QVariantMap& boundParameters);
+
+    Q_REQUIRED_RESULT
+    static QString generateOrderClause(const std::vector<QOrmOrder>& order);
 
     Q_REQUIRED_RESULT
     static QString generateCondition(const QOrmFilterExpression& expression,

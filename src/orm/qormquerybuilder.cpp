@@ -88,7 +88,7 @@ namespace QOrmPrivate
         std::optional<QOrmMetadata> m_projection;
         QObject* m_entityInstance{nullptr};
         std::vector<QOrmFilter> m_filters;
-        std::optional<QOrmOrderBuilder> m_orderBuilder;
+        std::vector<QOrmOrder> m_order;
     };
 
     QueryBuilderHelper::QueryBuilderHelper(QOrmSession* ormSession, const QOrmRelation& relation)
@@ -113,6 +113,18 @@ namespace QOrmPrivate
 
     void QueryBuilderHelper::addFilter(const QOrmFilter& filter) { d->m_filters.push_back(filter); }
 
+    void QueryBuilderHelper::addOrder(const QOrmClassProperty& classProperty,
+                                      Qt::SortOrder direction)
+    {
+        Q_ASSERT(d->m_projection.has_value());
+
+        const QOrmPropertyMapping* mapping =
+            d->m_projection->classPropertyMapping(classProperty.descriptor());
+        Q_ASSERT(mapping != nullptr);
+
+        d->m_order.emplace_back(*mapping, direction);
+    }
+
     QOrmQuery QueryBuilderHelper::build(QOrm::Operation operation) const
     {
         if (operation == QOrm::Operation::Merge || operation == QOrm::Operation::Create ||
@@ -131,7 +143,7 @@ namespace QOrmPrivate
                              d->m_relation,
                              d->m_projection,
                              foldFilters(d->m_relation, d->m_filters),
-                             d->m_orderBuilder->build(),
+                             d->m_order,
                              QOrm::QueryFlags::None};
         }
 

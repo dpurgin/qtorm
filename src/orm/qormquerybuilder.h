@@ -24,7 +24,6 @@
 #include <QtOrm/qormfilter.h>
 #include <QtOrm/qormfilterexpression.h>
 #include <QtOrm/qormglobal.h>
-#include <QtOrm/qormorderbuilder.h>
 #include <QtOrm/qormquery.h>
 #include <QtOrm/qormqueryresult.h>
 
@@ -39,7 +38,6 @@ QT_BEGIN_NAMESPACE
 class QOrmAbstractProvider;
 class QOrmFilterExpression;
 class QOrmMetadataCache;
-class QOrmOrderBuilder;
 class QOrmQueryBuilderPrivate;
 class QOrmRelation;
 class QOrmSession;
@@ -61,6 +59,7 @@ namespace QOrmPrivate
 
         void setInstance(const QMetaObject& qMetaObject, QObject* instance);
         void addFilter(const QOrmFilter& filter);
+        void addOrder(const QOrmClassProperty& classProperty, Qt::SortOrder direction);
 
         Q_REQUIRED_RESULT
         QOrmQuery build(QOrm::Operation operation) const;
@@ -102,6 +101,13 @@ public:
     QOrmQueryBuilder& filter(QOrmFilterExpression expression)
     {
         m_helper.addFilter(QOrmFilter{expression});
+        return *this;
+    }
+
+    QOrmQueryBuilder& order(const QOrmClassProperty& classProperty,
+                            Qt::SortOrder direction = Qt::AscendingOrder)
+    {
+        m_helper.addOrder(classProperty, direction);
         return *this;
     }
 

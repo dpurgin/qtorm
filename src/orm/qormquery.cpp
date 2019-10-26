@@ -35,7 +35,7 @@ public:
                      const QOrmRelation& relation,
                      const std::optional<QOrmMetadata>& projection,
                      const std::optional<QOrmFilter>& filter,
-                     const std::optional<QOrmOrder>& order,
+                     const std::vector<QOrmOrder>& order,
                      const QFlags<QOrm::QueryFlags>& flags)
         : m_operation{operation}
         , m_relation{relation}
@@ -59,7 +59,7 @@ public:
     QOrmRelation m_relation;
     std::optional<QOrmMetadata> m_projection;
     std::optional<QOrmFilter> m_filter;
-    std::optional<QOrmOrder> m_order;
+    std::vector<QOrmOrder> m_order;
     QObject* m_entityInstance{nullptr};
     QFlags<QOrm::QueryFlags> m_flags;
 };
@@ -68,7 +68,7 @@ QOrmQuery::QOrmQuery(QOrm::Operation operation,
                      const QOrmRelation& relation,
                      const std::optional<QOrmMetadata>& projection,
                      const std::optional<QOrmFilter>& filter,
-                     const std::optional<QOrmOrder>& order,
+                     const std::vector<QOrmOrder>& order,
                      const QFlags<QOrm::QueryFlags>& flags)
     : d{new QOrmQueryPrivate{operation, relation, projection, filter, order, flags}}
 {
@@ -111,7 +111,7 @@ const std::optional<QOrmFilter>& QOrmQuery::filter() const
     return d->m_filter;
 }
 
-const std::optional<QOrmOrder>& QOrmQuery::order() const
+const std::vector<QOrmOrder>& QOrmQuery::order() const
 {
     return d->m_order;
 }
@@ -138,8 +138,8 @@ QDebug operator<<(QDebug dbg, const QOrmQuery& query)
     if (query.filter().has_value())
         dbg << ", " << *query.filter();
 
-    if (query.order().has_value())
-        dbg << ", " << *query.order();
+    if (!query.order().empty())
+        dbg << ", " << query.order();
 
     if (query.entityInstance() != nullptr)
         dbg << ", " << query.entityInstance();

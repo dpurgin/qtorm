@@ -188,7 +188,7 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                                 referencedRelation,
                                 *mapping.referencedEntity(),
                                 filter,
-                                std::nullopt,
+                                {},
                                 queryFlags};
 
                 QOrmQueryResult<QObject> result = read(query, entityInstanceCache);
@@ -258,7 +258,7 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                                     referencedRelation,
                                     *mapping.referencedEntity(),
                                     filter,
-                                    std::nullopt,
+                                    {},
                                     queryFlags};
 
                     QOrmQueryResult<QObject> result = read(query, entityInstanceCache);

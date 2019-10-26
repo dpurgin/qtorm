@@ -24,6 +24,7 @@
 #include "qormglobal_p.h"
 #include "qormmetadata.h"
 #include "qormmetadatacache.h"
+#include "qormorder.h"
 #include "qormquery.h"
 #include "qormrelation.h"
 
@@ -184,6 +185,8 @@ QString QOrmSqliteStatementGenerator::generateSelectStatement(const QOrmQuery& q
     if (query.filter().has_value())
         parts += generateWhereClause(*query.filter(), boundParameters);
 
+    parts += generateOrderClause(query.order());
+
     return parts.join(QChar{' '});
 }
 
@@ -244,6 +247,20 @@ QString QOrmSqliteStatementGenerator::generateWhereClause(const QOrmFilter& filt
     }
 
     return whereClause;
+}
+
+QString QOrmSqliteStatementGenerator::generateOrderClause(const std::vector<QOrmOrder>& order)
+{
+    QStringList parts;
+
+    for (const QOrmOrder& element : order)
+    {
+        parts += element.mapping().tableFieldName() % (element.direction() == Qt::AscendingOrder
+                                                           ? QStringLiteral(" ASC")
+                                                           : QStringLiteral(" DESC"));
+    }
+
+    return parts.empty() ? QString{} : QStringLiteral("ORDER BY ") % parts.join(',');
 }
 
 QString QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterExpression& expression,
