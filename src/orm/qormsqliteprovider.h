@@ -21,13 +21,13 @@
 #ifndef QORMSQLITEPROVIDER_H
 #define QORMSQLITEPROVIDER_H
 
-#include <QtOrm/qormglobal.h>
 #include <QtOrm/qormabstractprovider.h>
+#include <QtOrm/qormglobal.h>
+#include <QtOrm/qormqueryresult.h>
 
 QT_BEGIN_NAMESPACE
 
 class QOrmEntityInstanceCache;
-class QOrmQueryResult;
 class QOrmSqliteConfiguration;
 class QOrmSqliteProviderPrivate;
 class QSqlDatabase;
@@ -46,8 +46,8 @@ public:
     QOrmError commitTransaction() override;
     QOrmError rollbackTransaction() override;
 
-    QOrmQueryResult execute(const QOrmQuery& query,
-                            QOrmEntityInstanceCache& entityInstanceCache) override;
+    QOrmQueryResult<QObject> execute(const QOrmQuery& query,
+                                     QOrmEntityInstanceCache& entityInstanceCache) override;
 
     QOrmSqliteConfiguration configuration() const;
     QSqlDatabase database() const;

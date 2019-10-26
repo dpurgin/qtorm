@@ -85,9 +85,10 @@ class QOrmSqliteProviderPrivate
     QOrmError updateSchema(const QOrmRelation& entityMetadata);
     QOrmError validateSchema(const QOrmRelation& validateSchema);
 
-    QOrmQueryResult read(const QOrmQuery& query, QOrmEntityInstanceCache& entityInstanceCache);
-    QOrmQueryResult merge(const QOrmQuery& query);
-    QOrmQueryResult remove(const QOrmQuery& query);
+    QOrmQueryResult<QObject> read(const QOrmQuery& query,
+                                  QOrmEntityInstanceCache& entityInstanceCache);
+    QOrmQueryResult<QObject> merge(const QOrmQuery& query);
+    QOrmQueryResult<QObject> remove(const QOrmQuery& query);
 };
 
 QOrmError QOrmSqliteProviderPrivate::lastDatabaseError() const
@@ -190,7 +191,7 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                                 std::nullopt,
                                 queryFlags};
 
-                QOrmQueryResult result = read(query, entityInstanceCache);
+                QOrmQueryResult<QObject> result = read(query, entityInstanceCache);
 
                 // error during read: return this error and do not continue
                 if (result.error().type() != QOrm::ErrorType::None)
@@ -260,7 +261,7 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                                     std::nullopt,
                                     queryFlags};
 
-                    QOrmQueryResult result = read(query, entityInstanceCache);
+                    QOrmQueryResult<QObject> result = read(query, entityInstanceCache);
 
                     // error during read: return this error and do not continue
                     if (result.error().type() != QOrm::ErrorType::None)
@@ -387,8 +388,9 @@ QOrmError QOrmSqliteProviderPrivate::validateSchema(const QOrmRelation& relation
     Q_ORM_NOT_IMPLEMENTED;
 }
 
-QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
-                                                QOrmEntityInstanceCache& entityInstanceCache)
+QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(
+    const QOrmQuery& query,
+    QOrmEntityInstanceCache& entityInstanceCache)
 {
     Q_ASSERT(query.projection().has_value());
 
@@ -397,7 +399,8 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
     QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
 
     if (sqlQuery.lastError().type() != QSqlError::NoError)
-        return QOrmQueryResult{QOrmError{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
+        return QOrmQueryResult<QObject>{
+            QOrmError{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
 
     QVector<QObject*> resultSet;
 
@@ -428,7 +431,7 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
                                "OR-mapper. "
                                "Merge this instance or discard changes before reading.";
 
-                        return QOrmQueryResult{
+                        return QOrmQueryResult<QObject>{
                             QOrmError{QOrm::ErrorType::UnsynchronizedEntity, errorString}};
                 }
                 else if (query.flags().testFlag(QOrm::QueryFlags::OverwriteCachedInstances))
@@ -440,7 +443,7 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
                                                          query.flags());
 
                     if (error != QOrm::ErrorType::None)
-                        return QOrmQueryResult{error};
+                        return QOrmQueryResult<QObject>{error};
                 }
 
                 resultSet.push_back(cachedInstance);
@@ -457,7 +460,7 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
                 }
                 else
                 {
-                    return QOrmQueryResult{entityInstance.error()};
+                    return QOrmQueryResult<QObject>{entityInstance.error()};
                 }
             }
         }
@@ -479,15 +482,15 @@ QOrmQueryResult QOrmSqliteProviderPrivate::read(const QOrmQuery& query,
                 // if error occurred, delete everything that was read from the database since no
                 // caching was involved
                 qDeleteAll(resultSet);
-                return QOrmQueryResult{entityInstance.error()};
+                return QOrmQueryResult<QObject>{entityInstance.error()};
             }
         }
     }
 
-    return QOrmQueryResult{resultSet};
+    return QOrmQueryResult<QObject>{resultSet};
 }
 
-QOrmQueryResult QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)
+QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)
 {
     Q_ASSERT(query.relation().type() == QOrm::RelationType::Mapping);
     Q_ASSERT(query.entityInstance() != nullptr);
@@ -497,27 +500,27 @@ QOrmQueryResult QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)
     QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
 
     if (sqlQuery.lastError().type() != QSqlError::NoError)
-        return QOrmQueryResult{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
+        return QOrmQueryResult<QObject>{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
 
     if (sqlQuery.numRowsAffected() != 1)
     {
-        return QOrmQueryResult{
+        return QOrmQueryResult<QObject>{
             {QOrm::ErrorType::UnsynchronizedEntity, "Unexpected number of rows affected"}};
     }
 
-    return QOrmQueryResult{sqlQuery.lastInsertId()};
+    return QOrmQueryResult<QObject>{sqlQuery.lastInsertId()};
 }
 
-QOrmQueryResult QOrmSqliteProviderPrivate::remove(const QOrmQuery& query)
+QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::remove(const QOrmQuery& query)
 {
     auto [statement, boundParameters] = QOrmSqliteStatementGenerator::generate(query);
 
     QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
 
     if (sqlQuery.lastError().type() != QSqlError::NoError)
-        return QOrmQueryResult{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
+        return QOrmQueryResult<QObject>{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
 
-    return QOrmQueryResult{sqlQuery.numRowsAffected()};
+    return QOrmQueryResult<QObject>{sqlQuery.numRowsAffected()};
 }
 
 QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqliteConfiguration& sqlConfiguration)
@@ -617,8 +620,8 @@ QOrmError QOrmSqliteProvider::rollbackTransaction()
     return QOrmError{QOrm::ErrorType::None, {}};
 }
 
-QOrmQueryResult QOrmSqliteProvider::execute(const QOrmQuery& query,
-                                            QOrmEntityInstanceCache& entityInstanceCache)
+QOrmQueryResult<QObject> QOrmSqliteProvider::execute(const QOrmQuery& query,
+                                                     QOrmEntityInstanceCache& entityInstanceCache)
 {
     Q_D(QOrmSqliteProvider);
 

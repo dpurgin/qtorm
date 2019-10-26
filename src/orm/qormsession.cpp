@@ -148,14 +148,14 @@ QOrmSession::~QOrmSession()
     delete d_ptr;
 }
 
-QOrmQueryResult QOrmSession::execute(const QOrmQuery& query)
+QOrmQueryResult<QObject> QOrmSession::execute(const QOrmQuery& query)
 {
     Q_D(QOrmSession);
 
     d->clearLastError();
     d->ensureProviderConnected();
 
-    QOrmQueryResult providerResult =
+    QOrmQueryResult<QObject> providerResult =
         d->m_sessionConfiguration.provider()->execute(query, d->m_entityInstanceCache);
 
     d->setLastError(providerResult.error());

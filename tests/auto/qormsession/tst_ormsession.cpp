@@ -128,7 +128,7 @@ void SqliteSessionTest::testSelectWithOneToMany()
     QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
     QOrmSession session{sessionConfiguration};
 
-    QOrmQueryResult result = session.from<Province>().select();
+    QOrmQueryResult result = session.from<Province>().select<Province>();
 
     QCOMPARE(result.error().type(), QOrm::ErrorType::None);
 
@@ -180,7 +180,7 @@ void SqliteSessionTest::testSelectWithManyToOne()
     QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
     QOrmSession session{sessionConfiguration};
 
-    QOrmQueryResult result = session.from<Person>().select();
+    QOrmQueryResult result = session.from<Person>().select<Person>();
 
     QCOMPARE(result.error().type(), QOrm::ErrorType::None);
 
@@ -211,7 +211,7 @@ void SqliteSessionTest::testSelectReturnsCachedInstances()
 
     QVERIFY(session.merge(upperAustria, lowerAustria));
 
-    auto result = session.from<Province>().select().toVector<Province>();
+    auto result = session.from<Province>().select<Province>().toVector();
     QCOMPARE(result.size(), 2);
     QVERIFY(result.contains(upperAustria));
     QVERIFY(result.contains(lowerAustria));

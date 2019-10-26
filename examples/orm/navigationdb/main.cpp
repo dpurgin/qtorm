@@ -23,29 +23,50 @@ int main(int argc, char* argv[])
 
     QOrmSession session;
 
+    Province* upperAustria = nullptr;
+
     QElapsedTimer timer;
     timer.start();
     {
         auto token = session.declareTransaction(QOrm::TransactionPropagation::Require,
                                                 QOrm::TransactionAction::Commit);
 
-        for (int i = 0; i < 100; ++i)
-        {
-            session.merge(new Province{QString::fromUtf8("Burgenland")});
-            session.merge(new Province{QString::fromUtf8("Kärnten")});
-            session.merge(new Province{QString::fromUtf8("Salzburg")});
-            session.merge(new Province{QString::fromUtf8("Steiermark")});
-            session.merge(new Province{QString::fromUtf8("Tirol")});
-            session.merge(new Province{QString::fromUtf8("Vorarlberg")});
-            session.merge(new Province{QString::fromUtf8("Wien")});
+        session.merge(new Province{QString::fromUtf8("Burgenland")});
+        session.merge(new Province{QString::fromUtf8("Kärnten")});
+        session.merge(new Province{QString::fromUtf8("Niederösterreich")});
+        session.merge(new Province{QString::fromUtf8("Oberösterreich")});
+        session.merge(new Province{QString::fromUtf8("Salzburg")});
+        session.merge(new Province{QString::fromUtf8("Steiermark")});
+        session.merge(new Province{QString::fromUtf8("Tirol")});
+        session.merge(new Province{QString::fromUtf8("Vorarlberg")});
+        session.merge(new Province{QString::fromUtf8("Wien")});
 
-            session.merge(new Community{QString::fromUtf8("Hagenberg"), nullptr});
-        }
+        upperAustria =
+            session.from<Province>()
+                .filter(Q_ORM_CLASS_PROPERTY(name) == QString::fromUtf8("Oberösterreich"))
+                .select<Province>()
+                .toVector()
+                .first();
+
+        auto communities = {new Community{QString::fromUtf8("Freistadt"), upperAustria},
+                            new Community{QString::fromUtf8("Hagenberg im Mühlkreis"),
+                                          upperAustria},
+                            new Community{QString::fromUtf8("Kefermarkt"), upperAustria},
+                            new Community{QString::fromUtf8("Neumarkt im Mühlkreis"), upperAustria},
+                            new Community{QString::fromUtf8("Pregarten"), upperAustria}};
+
+        upperAustria->setCommunityList(communities);
+
+        session.merge(upperAustria, communities);
     }
     qDebug() << "Elapsed:" << timer.elapsed();
 
-    auto provinces = session.from<Province>().select();
-    qDebug() << "size:" << provinces.toVector<Province>().size();
+    auto upperAustrianCommunities = session.from<Community>()
+                                        .filter(Q_ORM_CLASS_PROPERTY(province) == upperAustria)
+                                        .select<Community>()
+                                        .toVector();
+
+    qDebug() << "size:" << upperAustrianCommunities.size();
 
     return 0;
 }

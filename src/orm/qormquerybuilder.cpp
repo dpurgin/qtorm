@@ -167,22 +167,7 @@ QOrmQuery QOrmQueryBuilder::build(QOrm::Operation operation) const
     qFatal("Unexpected state");
 }
 
-QOrmQueryResult QOrmQueryBuilder::select()
-{
-    std::optional<QOrmFilter> filter =
-        QOrmQueryBuilderPrivate::foldFilters(d->m_relation, d->m_filters);
-
-    QOrmQuery query{QOrm::Operation::Read,
-                    d->m_relation,
-                    d->m_projection,
-                    filter,
-                    d->m_orderBuilder->build(),
-                    QOrm::QueryFlags::None};
-
-    return d->m_session->execute(query);
-}
-
-QOrmQueryResult QOrmQueryBuilder::select(const QMetaObject& projectionMetaObject) const
+QOrmQueryResult<QObject> QOrmQueryBuilder::select(const QMetaObject& projectionMetaObject) const
 {
     const QOrmMetadata& projection = (*d->m_session->metadataCache())[projectionMetaObject];
 
@@ -199,7 +184,7 @@ QOrmQueryResult QOrmQueryBuilder::select(const QMetaObject& projectionMetaObject
     return d->m_session->execute(query);
 }
 
-QOrmQueryResult QOrmQueryBuilder::remove(QOrm::RemoveMode removeMode) const
+QOrmQueryResult<QObject> QOrmQueryBuilder::remove(QOrm::RemoveMode removeMode) const
 {
     if (removeMode != QOrm::RemoveMode::ForceRemoveAll && d->m_filters.empty())
     {
@@ -221,7 +206,8 @@ QOrmQueryResult QOrmQueryBuilder::remove(QOrm::RemoveMode removeMode) const
     return d->m_session->execute(query);
 }
 
-QOrmQueryResult QOrmQueryBuilder::merge(const QMetaObject& qMetaObject, QObject* entityInstance)
+QOrmQueryResult<QObject> QOrmQueryBuilder::merge(const QMetaObject& qMetaObject,
+                                                 QObject* entityInstance)
 {
     QOrmQuery query{
         QOrm::Operation::Merge, d->m_session->metadataCache()->get(qMetaObject), entityInstance};

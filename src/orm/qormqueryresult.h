@@ -21,10 +21,12 @@
 #ifndef QORMQUERYRESULT_H
 #define QORMQUERYRESULT_H
 
+#include <QtOrm/qormerror.h>
 #include <QtOrm/qormglobal.h>
 
 #include <QtCore/qobject.h>
 #include <QtCore/qshareddata.h>
+#include <QtCore/qvariant.h>
 #include <QtCore/qvector.h>
 
 QT_BEGIN_NAMESPACE
@@ -32,42 +34,87 @@ QT_BEGIN_NAMESPACE
 class QOrmError;
 class QOrmQueryResultPrivate;
 
+template<typename T>
 class Q_ORM_EXPORT QOrmQueryResult
 {
+    using Projection = T;
+    static_assert(std::is_convertible_v<Projection*, QObject*>,
+                  "Projection entity must be inherited from QObject");
+
 public:
-    QOrmQueryResult();    
-    QOrmQueryResult(const QOrmQueryResult&);
-    QOrmQueryResult(QOrmQueryResult&&);
-    ~QOrmQueryResult();
+    QOrmQueryResult(const QOrmQueryResult&) = delete;
+    QOrmQueryResult(QOrmQueryResult&& other) = default;
 
-    explicit QOrmQueryResult(QOrmError error, QVector<QObject*> resultSet, QVariant lastInsertedId);
-    explicit QOrmQueryResult(QOrmError error);
-    explicit QOrmQueryResult(QVector<QObject*> resultSet);
-    explicit QOrmQueryResult(QVariant lastInsertedId);
-
-    QOrmQueryResult& operator=(const QOrmQueryResult&);
-    QOrmQueryResult& operator=(QOrmQueryResult&&);
-
-    Q_REQUIRED_RESULT
-    const QOrmError& error() const;
-    Q_REQUIRED_RESULT
-    const QVariant& lastInsertedId() const;
-
-    Q_REQUIRED_RESULT
-    const QVector<QObject*>& toVector() const;
-
-    template<typename T>
-    Q_REQUIRED_RESULT QVector<T*> toVector() const
+    template<typename U>
+    QOrmQueryResult(const QOrmQueryResult<U>& other)
+        : m_error{other.error()}
+        , m_result{convertVector<U, T>(other.toVector())}
+        , m_lastInsertedId{other.lastInsertedId()}
     {
-        QVector<T*> result;
-        std::transform(std::begin(toVector()),
-                       std::end(toVector()),
-                       std::back_inserter(result),
-                       [](QObject* v) { return qobject_cast<T*>(v); });
+    }
+
+    explicit QOrmQueryResult(const QOrmError& error,
+                             const QVector<T*>& result,
+                             const QVariant& lastInsertedId)
+        : m_error{error}
+        , m_result{result}
+        , m_lastInsertedId{lastInsertedId}
+    {
+    }
+
+    explicit QOrmQueryResult(const QOrmError& error)
+        : QOrmQueryResult<T>{error, {}, {}}
+    {
+    }
+
+    explicit QOrmQueryResult(const QVector<T*>& result)
+        : QOrmQueryResult<T>{{QOrm::ErrorType::None, {}}, result, {}}
+    {
+    }
+    explicit QOrmQueryResult(QVariant lastInsertedId)
+        : QOrmQueryResult<T>{{QOrm::ErrorType::None, {}}, {}, lastInsertedId}
+    {
+    }
+
+    QOrmQueryResult& operator=(const QOrmQueryResult&) = delete;
+    QOrmQueryResult& operator=(QOrmQueryResult&&) = default;
+
+    Q_REQUIRED_RESULT
+    const QOrmError& error() const { return m_error; }
+    Q_REQUIRED_RESULT
+    const QVariant& lastInsertedId() const { return m_lastInsertedId; }
+    Q_REQUIRED_RESULT
+    const QVector<Projection*>& toVector() const { return m_result; }
+
+    Q_REQUIRED_RESULT
+    std::vector<Projection*> toStdVector() const { return m_result.toStdVector(); }
+    Q_REQUIRED_RESULT
+    QSet<Projection*> toSet() const
+    {
+        QSet<Projection*> result;
+
+        for (Projection* instance : m_result)
+            result.insert(instance);
+
         return result;
     }
 
-    QSharedDataPointer<QOrmQueryResultPrivate> d;
+private:
+    template<typename From, typename To>
+    static QVector<To*> convertVector(const QVector<From*>& from)
+    {
+        QVector<To*> to;
+        to.reserve(from.size());
+
+        for (From* instance : from)
+            to.push_back(qobject_cast<To*>(instance));
+
+        return to;
+    }
+
+    QOrmError m_error;
+    QVector<Projection*> m_result;
+    QVariant m_lastInsertedId;
 };
 
 QT_END_NAMESPACE

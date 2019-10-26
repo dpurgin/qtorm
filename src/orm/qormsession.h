@@ -25,6 +25,7 @@
 #include <QtOrm/qormglobal.h>
 #include <QtOrm/qormmetadata.h>
 #include <QtOrm/qormquerybuilder.h>
+#include <QtOrm/qormqueryresult.h>
 #include <QtOrm/qormsessionconfiguration.h>
 #include <QtOrm/qormtransactiontoken.h>
 
@@ -37,7 +38,6 @@ class QOrmEntityInstanceCache;
 class QOrmError;
 class QOrmQuery;
 class QOrmQueryBuilder;
-class QOrmQueryResult;
 class QOrmSessionPrivate;
 
 class Q_ORM_EXPORT QOrmSession
@@ -50,7 +50,7 @@ public:
     ~QOrmSession();
 
     Q_REQUIRED_RESULT
-    QOrmQueryResult execute(const QOrmQuery& query);
+    QOrmQueryResult<QObject> execute(const QOrmQuery& query);
 
     Q_REQUIRED_RESULT
     QOrmQueryBuilder from(const QOrmQuery& query);
@@ -59,6 +59,24 @@ public:
     bool merge(T* entityInstance)
     {
         return doMerge(entityInstance, T::staticMetaObject);
+    }
+
+    template<typename T>
+    bool merge(std::initializer_list<T*> instances)
+    {
+        QOrmTransactionToken token = declareTransaction(QOrm::TransactionPropagation::Require,
+                                                        QOrm::TransactionAction::Commit);
+
+        for (T* instance : instances)
+        {
+            if (!merge(instance))
+            {
+                token.rollback();
+                return false;
+            }
+        }
+
+        return true;
     }
 
     template<typename... Ts>

@@ -21,11 +21,12 @@
 #ifndef QORMQUERYBUILDER_H
 #define QORMQUERYBUILDER_H
 
-#include <QtOrm/qormglobal.h>
 #include <QtOrm/qormfilter.h>
 #include <QtOrm/qormfilterexpression.h>
+#include <QtOrm/qormglobal.h>
 #include <QtOrm/qormorderbuilder.h>
 #include <QtOrm/qormquery.h>
+#include <QtOrm/qormqueryresult.h>
 
 #include <QtCore/qobject.h>
 #include <QtCore/qshareddata.h>
@@ -70,26 +71,25 @@ public:
         return projection(T::staticMetaObject);
     }
 
-    QOrmQueryResult select();
-
     template<typename T>
-    QOrmQueryResult select() const
+    QOrmQueryResult<T> select() const
     {
         return select(T::staticMetaObject);
     }
 
-    QOrmQueryResult remove(QOrm::RemoveMode removeMode = QOrm::RemoveMode::PreventRemoveAll) const;
+    QOrmQueryResult<QObject> remove(
+        QOrm::RemoveMode removeMode = QOrm::RemoveMode::PreventRemoveAll) const;
 
     template<typename T>
-    QOrmQueryResult merge(T* entityInstance)
+    QOrmQueryResult<T> merge(T* entityInstance)
     {
         return merge(T::staticMetaObject, entityInstance);
     }
 
 private:
     QOrmQueryBuilder& projection(const QMetaObject& projectionMetaObject);
-    QOrmQueryResult select(const QMetaObject& projectionMetaObject) const;
-    QOrmQueryResult merge(const QMetaObject& qMetaObject, QObject* entityInstance);
+    QOrmQueryResult<QObject> select(const QMetaObject& projectionMetaObject) const;
+    QOrmQueryResult<QObject> merge(const QMetaObject& qMetaObject, QObject* entityInstance);
 
     QSharedDataPointer<QOrmQueryBuilderPrivate> d;
 };
