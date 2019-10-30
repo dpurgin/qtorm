@@ -33,6 +33,7 @@ private slots:
     void testSelectReturnsCachedInstances();
     void testSelectWithSingleStringFilter();
     void testSelectWithOrder();
+    void testSelectFromNestedSelect();
 
     void testMergeFailsWithInconsistentReferences();
 
@@ -273,6 +274,32 @@ void SqliteSessionTest::testSelectWithOrder()
         QCOMPARE(result[2]->name(), QString::fromUtf8("Oberösterreich"));
         QCOMPARE(result[3]->name(), QString::fromUtf8("Niederösterreich"));
     }
+}
+
+void SqliteSessionTest::testSelectFromNestedSelect()
+{
+    QOrmSession session;
+
+    auto upperAustria = new Province{QString::fromUtf8("Oberösterreich")};
+    auto lowerAustria = new Province{QString::fromUtf8("Niederösterreich")};
+
+    auto freistadt = new Town{QString::fromUtf8("Freistadt"), upperAustria};
+    auto hagenberg = new Town{QString::fromUtf8("Hagenberg im Mühlkreis"), upperAustria};
+    auto melk = new Town{QString::fromUtf8("Melk"), lowerAustria};
+
+    upperAustria->setTowns({freistadt, hagenberg});
+    lowerAustria->setTowns({melk});
+
+    session.merge(upperAustria, lowerAustria, freistadt, hagenberg, melk);
+
+    auto nested = session.from<Town>()
+                      .filter(Q_ORM_CLASS_PROPERTY(province) == upperAustria)
+                      .build(QOrm::Operation::Read);
+
+    auto result =
+        session.from(nested).order(Q_ORM_CLASS_PROPERTY(name), Qt::DescendingOrder).select();
+
+    QCOMPARE(result.toVector().size(), 2);
 }
 
 void SqliteSessionTest::testMergeFailsWithInconsistentReferences()

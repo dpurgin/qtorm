@@ -78,7 +78,7 @@ namespace QOrmPrivate
             , m_relation{relation}
             , m_projection{relation.type() == QOrm::RelationType::Mapping
                                ? std::make_optional(*relation.mapping())
-                               : std::nullopt}
+                               : *relation.query()->projection()}
         {
             Q_ASSERT(ormSession != nullptr);
         }
