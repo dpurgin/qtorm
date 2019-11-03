@@ -20,13 +20,13 @@
 
 #include "qormsessionconfiguration.h"
 
+#include <QCoreApplication>
 #include <QDebug>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QCoreApplication>
 #include <QOrmMetadataCache>
-#include <QOrmSqlConfiguration>
+#include <QOrmSqliteConfiguration>
 #include <QOrmSqliteProvider>
 
 QT_BEGIN_NAMESPACE

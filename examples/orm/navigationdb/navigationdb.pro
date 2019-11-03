@@ -5,6 +5,8 @@ CONFIG += c++17 # required by QtOrm
 TARGET = navigationdb
 TEMPLATE = app
 
+QT -= gui
+
 HEADERS += \
     domain/province.h \
     domain/community.h \

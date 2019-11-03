@@ -3,7 +3,7 @@
 #include <QOrmError>
 #include <QOrmMetadataCache>
 #include <QOrmSession>
-#include <QOrmSqlConfiguration>
+#include <QOrmSqliteConfiguration>
 #include <QOrmSqliteProvider>
 #include <QSqlDatabase>
 #include <QSqlQuery>
