@@ -4,6 +4,8 @@ QtOrm is an unofficial object-relational mapping module for the Qt Framework (ht
 
 The current version is a prototype and a proof-of-concept. 
 
+Refer to qws19.pdf for more examples.
+
 ## License
 
 Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
