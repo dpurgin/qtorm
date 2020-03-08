@@ -21,6 +21,7 @@ steps:
 - script: |
     pip install wheel
     pip install aqtinstall
-    python -m aqt install 5.12.7 linux desktop
+    7z --help
+    python -m aqt install 5.12.7 linux desktop -E 7z
     ls
   displayName: 'Install dependencies'
