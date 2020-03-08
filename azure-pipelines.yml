@@ -36,7 +36,7 @@ steps:
   condition: ne(variables.QT_5_12_7_INSTALLED, 'true')
 
 - script: |
-    PATH=$(pwd)/5.12.7/gcc_64/bin;$PATH
+    PATH="$(pwd)/5.12.7/gcc_64/bin;$PATH"
     echo $PATH    
     qmake 
     make    
