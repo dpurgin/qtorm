@@ -23,22 +23,19 @@ steps:
 - task: Cache@2
   inputs:
     key: 'QT_5_12_7'
-    path: '5.12.7'
+    path: $(Pipeline.Workspace)/5.12.7
     cacheHitVar: 'QT_5_12_7_INSTALLED'
 
 - script: |
     pip install wheel
     pip install aqtinstall==0.8a4    
     aqt install -E 7z 5.12.7 linux desktop
-    ls 5.12.7
-    ls 5.12.7/gcc_64    
   displayName: 'Install Qt'
   condition: ne(variables.QT_5_12_7_INSTALLED, 'true')
 
 - script: |
-    PATH="$(pwd)/5.12.7/gcc_64/bin;$PATH"
     echo $PATH    
-    qmake 
+    5.12.7/gcc_64/bin/qmake 
     make    
   displayName: 'Build'
   
