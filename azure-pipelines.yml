@@ -9,25 +9,31 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
-
 - task: UsePythonVersion@0
   inputs:
     versionSpec: '3.6'
     addToPath: true
     architecture: 'x64'
+- task: Cache@2
+  inputs:
+    key: 'qt_5_12_7'
+    path: '5.12.7'
+    cacheHitVar: 'QT_5_12_7'
 
 - script: |
     pip install wheel
     pip install aqtinstall==0.8a4
-    sudo apt-get -y install perl    
-    aqt install -E 7z 5.12.7 linux desktop
-    ls    
+    if [ "${QT_5_12_7}" != "true" ];
+      aqt install -E 7z 5.12.7 linux desktop
+    fi
+    ls 5.12.7
+    ls 5.12.7/gcc_64    
   displayName: 'Install dependencies'
+
+- script: |
+    PATH=5.12.7/gcc_64/bin;/$PATH
+    qmake --version
+    g++ --version
+  displayName: 'Build'
