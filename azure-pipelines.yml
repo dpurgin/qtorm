@@ -17,6 +17,9 @@ steps:
     addToPath: true
     architecture: 'x64'
 
+- script: sudo apt install build-essential
+  displayName: 'Install Build Essentials'
+
 - task: Cache@2
   inputs:
     key: 'QT_5_12_7'
@@ -29,7 +32,7 @@ steps:
     aqt install -E 7z 5.12.7 linux desktop
     ls 5.12.7
     ls 5.12.7/gcc_64    
-  displayName: 'Install dependencies'
+  displayName: 'Install Qt'
   condition: ne(variables.QT_5_12_7_INSTALLED, 'true')
 
 - script: |
@@ -39,5 +42,3 @@ steps:
     make    
   displayName: 'Build'
   
-- script: make check
-  displayName: 'Test'
