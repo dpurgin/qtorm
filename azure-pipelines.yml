@@ -26,7 +26,7 @@ steps:
 
 - script: |
     pip install wheel
-    pip install aqtinstall
+    pip install aqtinstall==0.8a4
     sudo apt-get -y install perl    
     aqt install -E 7z 5.12.7 linux desktop
     ls    
