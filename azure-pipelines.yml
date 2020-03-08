@@ -29,13 +29,14 @@ steps:
 - script: |
     pip install wheel
     pip install aqtinstall==0.8a4    
-    aqt install -E 7z 5.12.7 linux desktop
+    aqt install -E 7z -O ${PIPELINE_WORKSPACE} 5.12.7 linux desktop
   displayName: 'Install Qt'
   condition: ne(variables.QT_5_12_7_INSTALLED, 'true')
 
 - script: |
-    echo $PATH    
-    5.12.7/gcc_64/bin/qmake 
+    ${PIPELINE_WORKSPACE}/5.12.7/gcc_64/bin/qmake 
     make    
   displayName: 'Build'
-  
+
+- script: make check
+  displayName: 'Test'
