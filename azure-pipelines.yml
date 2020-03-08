@@ -33,7 +33,11 @@ steps:
   condition: ne(variables.QT_5_12_7_INSTALLED, 'true')
 
 - script: |
-    PATH=5.12.7/gcc_64/bin;/$PATH
-    qmake --version
-    g++ --version
+    PATH=$(pwd)/5.12.7/gcc_64/bin;$PATH
+    echo $PATH    
+    qmake 
+    make    
   displayName: 'Build'
+  
+- script: make check
+  displayName: 'Test'
