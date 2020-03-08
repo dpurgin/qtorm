@@ -16,18 +16,11 @@ steps:
     versionSpec: '3.6'
     addToPath: true
     architecture: 'x64'
-- task: Cache@2
-  inputs:
-    key: 'qt_5_12_7'
-    path: '5.12.7'
-    cacheHitVar: 'QT_5_12_7'
 
 - script: |
     pip install wheel
-    pip install aqtinstall==0.8a4
-    if [ "${QT_5_12_7}" != "true" ];
-      aqt install -E 7z 5.12.7 linux desktop
-    fi
+    pip install aqtinstall==0.8a4    
+    aqt install -E 7z 5.12.7 linux desktop
     ls 5.12.7
     ls 5.12.7/gcc_64    
   displayName: 'Install dependencies'
