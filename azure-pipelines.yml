@@ -27,6 +27,8 @@ steps:
 - script: |
     pip install wheel
     pip install aqtinstall
+    sudo apt-get -y install perl
+    aqt -h
     aqt --external=7z install 5.12.7 linux desktop 
-    ls
+    ls    
   displayName: 'Install dependencies'
