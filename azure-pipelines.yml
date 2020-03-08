@@ -19,6 +19,7 @@ steps:
   displayName: 'Run a multi-line script'
 
 - script: |
+    sudo apt-get -y install 7zip
     pip install aqtinstall
     python -m aqt -h
-  displayName: 'Install aqtinstall'
+  displayName: 'Install dependencies'
