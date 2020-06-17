@@ -447,7 +447,10 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(
                                                          query.flags());
 
                     if (error != QOrm::ErrorType::None)
+                    {
+                        entityInstanceCache.markUnmodified(cachedInstance);
                         return QOrmQueryResult<QObject>{error};
+                    }
                 }
 
                 resultSet.push_back(cachedInstance);
