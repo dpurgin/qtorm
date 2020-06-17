@@ -235,7 +235,8 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                 // corresponding property
                 if (referencedEntityInstance != nullptr)
                 {
-                    if (entityInstanceCache.isModified(referencedEntityInstance))
+                    if (entityInstanceCache.isModified(referencedEntityInstance) &&
+                        !queryFlags.testFlag(QOrm::QueryFlags::OverwriteCachedInstances))
                     {
                         Q_ORM_UNEXPECTED_STATE;
                     }
@@ -290,6 +291,9 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                                                mapping.classPropertyName(),
                                                record.value(mapping.tableFieldName())))
             {
+                qDebug("Unable to setPropertyValue() for %s <-> %s",
+                       qPrintable(mapping.classPropertyName()),
+                       qPrintable(mapping.tableFieldName()));
                 Q_ORM_UNEXPECTED_STATE;
             }
         }

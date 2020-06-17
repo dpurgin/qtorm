@@ -62,10 +62,10 @@ namespace QOrmPrivate
         void addOrder(const QOrmClassProperty& classProperty, Qt::SortOrder direction);
 
         Q_REQUIRED_RESULT
-        QOrmQuery build(QOrm::Operation operation) const;
+        QOrmQuery build(QOrm::Operation operation, QOrm::QueryFlags flags) const;
 
         Q_REQUIRED_RESULT
-        QOrmQueryResult<QObject> select() const;
+        QOrmQueryResult<QObject> select(QOrm::QueryFlags flags) const;
 
     private:
         std::unique_ptr<QueryBuilderHelperPrivate> d;
@@ -118,10 +118,10 @@ public:
     }
 
     Q_REQUIRED_RESULT
-    QOrmQueryResult<Projection> select() const { return m_helper.select(); }
+    QOrmQueryResult<Projection> select(QOrm::QueryFlags flags = QOrm::QueryFlags::None) const { return m_helper.select(flags); }
 
     Q_REQUIRED_RESULT
-    QOrmQuery build(QOrm::Operation operation) const { return m_helper.build(operation); }
+    QOrmQuery build(QOrm::Operation operation, QOrm::QueryFlags flags = QOrm::QueryFlags::None) const { return m_helper.build(operation, flags); }
 
 private:
     QOrmPrivate::QueryBuilderHelper m_helper;

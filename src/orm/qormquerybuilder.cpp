@@ -125,7 +125,7 @@ namespace QOrmPrivate
         d->m_order.emplace_back(*mapping, direction);
     }
 
-    QOrmQuery QueryBuilderHelper::build(QOrm::Operation operation) const
+    QOrmQuery QueryBuilderHelper::build(QOrm::Operation operation, QOrm::QueryFlags flags) const
     {
         if (operation == QOrm::Operation::Merge || operation == QOrm::Operation::Create ||
             operation == QOrm::Operation::Update ||
@@ -144,15 +144,15 @@ namespace QOrmPrivate
                              d->m_projection,
                              foldFilters(d->m_relation, d->m_filters),
                              d->m_order,
-                             QOrm::QueryFlags::None};
+                             flags};
         }
 
         qFatal("Unexpected state");
     }
 
-    QOrmQueryResult<QObject> QueryBuilderHelper::select() const
+    QOrmQueryResult<QObject> QueryBuilderHelper::select(QOrm::QueryFlags flags) const
     {
-        return d->m_session->execute(build(QOrm::Operation::Read));
+        return d->m_session->execute(build(QOrm::Operation::Read, flags));
     }
 } // namespace QOrmPrivate
 
