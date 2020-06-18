@@ -35,6 +35,7 @@ QT_BEGIN_NAMESPACE
 class QOrmFilterExpression;
 class QOrmRelation;
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
 namespace std
 {
     template<>
@@ -49,6 +50,7 @@ namespace std
         size_t operator()(const QByteArray& ba) const { return qHash(ba); }
     };
 } // namespace std
+#endif
 
 namespace QOrmPrivate
 {
