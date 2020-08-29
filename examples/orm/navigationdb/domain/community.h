@@ -42,28 +42,60 @@ class Community : public QObject
     Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(Province* province READ province WRITE setProvince NOTIFY provinceChanged)
+    Q_PROPERTY(QString postCode READ postCode WRITE setPostCode NOTIFY postCodeChanged)
+    Q_PROPERTY(int population READ population WRITE setPopulation NOTIFY populationChanged)
+    Q_PROPERTY(qreal latitude READ latitude WRITE setLatitude NOTIFY latitudeChanged)
+    Q_PROPERTY(qreal longitude READ longitude WRITE setLongitude NOTIFY longitudeChanged)
 
     int m_id;
     QString m_name;
     Province* m_province{nullptr};
+    QString m_postCode;
+    int m_population{0};
+    qreal m_latitude{0};
+    qreal m_longitude{0};
 
 public:
     Q_INVOKABLE explicit Community(QObject* parent = nullptr);
-    explicit Community(QString name, Province* province, QObject* parent = nullptr);
+    explicit Community(QString name,
+                       Province* province,
+                       QString postCode,
+                       int population,
+                       qreal latitude,
+                       qreal longitude,
+                       QObject* parent = nullptr);
 
-    int id() const { return m_id; }
+    int id() const;
     void setId(int id);
 
-    QString name() const { return m_name; }
+    QString name() const;
     void setName(QString name);
 
-    Province* province() const { return m_province; }
+    Province* province() const;
     void setProvince(Province* province);
+
+    QString postCode() const;
+    void setPostCode(QString postCode);
+
+    int population() const;
+    void setPopulation(int population);
+
+    qreal latitude() const;
+    void setLatitude(qreal latitude);
+
+    qreal longitude() const;
+    void setLongitude(qreal longitude);
+
+public slots:
 
 signals:
     void idChanged();
     void nameChanged();
     void provinceChanged();
+    void postCodeChanged();
+    void populationChanged();
+    void latitudeChanged();
+    void longitudeChanged();    
 };
 
 #endif // COMMUNITY_H

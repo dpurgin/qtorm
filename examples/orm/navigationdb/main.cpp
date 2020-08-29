@@ -30,17 +30,18 @@
 
 #include <QVector>
 
-#include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QGuiApplication>
+#include <QOrmEntityListModel>
 #include <QOrmError>
 #include <QOrmSession>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
 
 #include "domain/community.h"
 #include "domain/province.h"
 
 #include <QDebug>
-
-
 #include <QOrmFilterExpression>
 
 
@@ -48,8 +49,7 @@ int main(int argc, char* argv[])
 {
     qRegisterOrmEntity<Province, Community>();
 
-    qDebug() << __PRETTY_FUNCTION__;
-    QCoreApplication app{argc, argv};
+    QGuiApplication app{argc, argv};
 
     QOrmSession session;
 
@@ -78,12 +78,25 @@ int main(int argc, char* argv[])
                 .toVector()
                 .first();
 
-        auto communities = {new Community{QString::fromUtf8("Freistadt"), upperAustria},
-                            new Community{QString::fromUtf8("Hagenberg im Mühlkreis"),
-                                          upperAustria},
-                            new Community{QString::fromUtf8("Kefermarkt"), upperAustria},
-                            new Community{QString::fromUtf8("Neumarkt im Mühlkreis"), upperAustria},
-                            new Community{QString::fromUtf8("Pregarten"), upperAustria}};
+        auto communities = {
+            new Community{
+                QString::fromUtf8("Freistadt"), upperAustria, "4240", 7981, 48.501961, 14.502536},
+            new Community{QString::fromUtf8("Hagenberg im Mühlkreis"),
+                          upperAustria,
+                          "4232",
+                          2764,
+                          48.366733,
+                          14.516947},
+            new Community{
+                QString::fromUtf8("Kefermarkt"), upperAustria, "4292", 2136, 48.441826, 14.539221},
+            new Community{QString::fromUtf8("Neumarkt im Mühlkreis"),
+                          upperAustria,
+                          "4212",
+                          3173,
+                          48.427728,
+                          14.483987},
+            new Community{
+                QString::fromUtf8("Pregarten"), upperAustria, "4230", 5544, 48.349205, 14.527262}};
 
         upperAustria->setCommunityList(communities);
 
@@ -98,5 +111,17 @@ int main(int argc, char* argv[])
 
     qDebug() << "size:" << upperAustrianCommunities.size();
 
-    return 0;
+    QOrmEntityListModel<Community> communityListModel{session};
+    QOrmEntityListModel<Province> provinceListModel{session};
+
+    qmlRegisterType<Province>("QtOrm.NavigationDb.Domain", 1, 0, "Province");
+    qmlRegisterType<Community>("QtOrm.NavigationDb.Domain", 1, 0, "Community");
+
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("gCommunityListModel", &communityListModel);
+    engine.rootContext()->setContextProperty("gProvinceListModel", &provinceListModel);
+
+    engine.load(QUrl{"qrc:///main.qml"});
+
+    return app.exec();
 }
