@@ -53,6 +53,7 @@ int main(int argc, char* argv[])
 
     QOrmSession session;
 
+    Province* lowerAustria = nullptr;
     Province* upperAustria = nullptr;
 
     QElapsedTimer timer;
@@ -63,22 +64,15 @@ int main(int argc, char* argv[])
 
         session.merge(new Province{QString::fromUtf8("Burgenland")});
         session.merge(new Province{QString::fromUtf8("Kärnten")});
-        session.merge(new Province{QString::fromUtf8("Niederösterreich")});
-        session.merge(new Province{QString::fromUtf8("Oberösterreich")});
+        session.merge(lowerAustria = new Province{QString::fromUtf8("Niederösterreich")});
+        session.merge(upperAustria = new Province{QString::fromUtf8("Oberösterreich")});
         session.merge(new Province{QString::fromUtf8("Salzburg")});
         session.merge(new Province{QString::fromUtf8("Steiermark")});
         session.merge(new Province{QString::fromUtf8("Tirol")});
         session.merge(new Province{QString::fromUtf8("Vorarlberg")});
         session.merge(new Province{QString::fromUtf8("Wien")});
 
-        upperAustria =
-            session.from<Province>()
-                .filter(Q_ORM_CLASS_PROPERTY(name) == QString::fromUtf8("Oberösterreich"))
-                .select()
-                .toVector()
-                .first();
-
-        auto communities = {
+        auto upperAustrianCommunities = {
             new Community{
                 QString::fromUtf8("Freistadt"), upperAustria, "4240", 7981, 48.501961, 14.502536},
             new Community{QString::fromUtf8("Hagenberg im Mühlkreis"),
@@ -98,9 +92,17 @@ int main(int argc, char* argv[])
             new Community{
                 QString::fromUtf8("Pregarten"), upperAustria, "4230", 5544, 48.349205, 14.527262}};
 
-        upperAustria->setCommunityList(communities);
+        upperAustria->setCommunityList(upperAustrianCommunities);
 
-        session.merge(upperAustria, communities);
+        auto lowerAustrianCommunities = {
+            new Community{"Gmünd", lowerAustria, "3950", 2855, 48.771633, 14.985019},
+            new Community{"Weitra", lowerAustria, "3970", 4092, 48.701348, 14.897371}};
+        lowerAustria->setCommunityList(lowerAustrianCommunities);
+
+        session.merge(upperAustria,
+                      lowerAustria,
+                      upperAustrianCommunities,
+                      lowerAustrianCommunities);
     }
     qDebug() << "Elapsed:" << timer.elapsed();
 
