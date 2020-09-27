@@ -1,11 +1,10 @@
-QT += orm  # enable the ORM module
+QT += orm orm-private # enable the ORM module
+QT += quick
 
 CONFIG += c++17 # required by QtOrm
 
 TARGET = navigationdb
 TEMPLATE = app
-
-QT -= gui
 
 HEADERS += \
     domain/province.h \

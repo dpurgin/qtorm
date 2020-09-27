@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>qtorm.json</file>
+        <file>main.qml</file>
+        <file>marker.png</file>
     </qresource>
 </RCC>

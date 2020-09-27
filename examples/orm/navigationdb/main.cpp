@@ -30,17 +30,18 @@
 
 #include <QVector>
 
-#include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QGuiApplication>
+#include <QOrmEntityListModel>
 #include <QOrmError>
 #include <QOrmSession>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
 
 #include "domain/community.h"
 #include "domain/province.h"
 
 #include <QDebug>
-
-
 #include <QOrmFilterExpression>
 
 
@@ -48,11 +49,11 @@ int main(int argc, char* argv[])
 {
     qRegisterOrmEntity<Province, Community>();
 
-    qDebug() << __PRETTY_FUNCTION__;
-    QCoreApplication app{argc, argv};
+    QGuiApplication app{argc, argv};
 
     QOrmSession session;
 
+    Province* lowerAustria = nullptr;
     Province* upperAustria = nullptr;
 
     QElapsedTimer timer;
@@ -63,31 +64,45 @@ int main(int argc, char* argv[])
 
         session.merge(new Province{QString::fromUtf8("Burgenland")});
         session.merge(new Province{QString::fromUtf8("Kärnten")});
-        session.merge(new Province{QString::fromUtf8("Niederösterreich")});
-        session.merge(new Province{QString::fromUtf8("Oberösterreich")});
+        session.merge(lowerAustria = new Province{QString::fromUtf8("Niederösterreich")});
+        session.merge(upperAustria = new Province{QString::fromUtf8("Oberösterreich")});
         session.merge(new Province{QString::fromUtf8("Salzburg")});
         session.merge(new Province{QString::fromUtf8("Steiermark")});
         session.merge(new Province{QString::fromUtf8("Tirol")});
         session.merge(new Province{QString::fromUtf8("Vorarlberg")});
         session.merge(new Province{QString::fromUtf8("Wien")});
 
-        upperAustria =
-            session.from<Province>()
-                .filter(Q_ORM_CLASS_PROPERTY(name) == QString::fromUtf8("Oberösterreich"))
-                .select()
-                .toVector()
-                .first();
+        auto upperAustrianCommunities = {
+            new Community{
+                QString::fromUtf8("Freistadt"), upperAustria, "4240", 7981, 48.501961, 14.502536},
+            new Community{QString::fromUtf8("Hagenberg im Mühlkreis"),
+                          upperAustria,
+                          "4232",
+                          2764,
+                          48.366733,
+                          14.516947},
+            new Community{
+                QString::fromUtf8("Kefermarkt"), upperAustria, "4292", 2136, 48.441826, 14.539221},
+            new Community{QString::fromUtf8("Neumarkt im Mühlkreis"),
+                          upperAustria,
+                          "4212",
+                          3173,
+                          48.427728,
+                          14.483987},
+            new Community{
+                QString::fromUtf8("Pregarten"), upperAustria, "4230", 5544, 48.349205, 14.527262}};
 
-        auto communities = {new Community{QString::fromUtf8("Freistadt"), upperAustria},
-                            new Community{QString::fromUtf8("Hagenberg im Mühlkreis"),
-                                          upperAustria},
-                            new Community{QString::fromUtf8("Kefermarkt"), upperAustria},
-                            new Community{QString::fromUtf8("Neumarkt im Mühlkreis"), upperAustria},
-                            new Community{QString::fromUtf8("Pregarten"), upperAustria}};
+        upperAustria->setCommunityList(upperAustrianCommunities);
 
-        upperAustria->setCommunityList(communities);
+        auto lowerAustrianCommunities = {
+            new Community{"Gmünd", lowerAustria, "3950", 2855, 48.771633, 14.985019},
+            new Community{"Weitra", lowerAustria, "3970", 4092, 48.701348, 14.897371}};
+        lowerAustria->setCommunityList(lowerAustrianCommunities);
 
-        session.merge(upperAustria, communities);
+        session.merge(upperAustria,
+                      lowerAustria,
+                      upperAustrianCommunities,
+                      lowerAustrianCommunities);
     }
     qDebug() << "Elapsed:" << timer.elapsed();
 
@@ -98,5 +113,17 @@ int main(int argc, char* argv[])
 
     qDebug() << "size:" << upperAustrianCommunities.size();
 
-    return 0;
+    QOrmEntityListModel<Community> communityListModel{session};
+    QOrmEntityListModel<Province> provinceListModel{session};
+
+    qmlRegisterType<Province>("QtOrm.NavigationDb.Domain", 1, 0, "Province");
+    qmlRegisterType<Community>("QtOrm.NavigationDb.Domain", 1, 0, "Community");
+
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("gCommunityListModel", &communityListModel);
+    engine.rootContext()->setContextProperty("gProvinceListModel", &provinceListModel);
+
+    engine.load(QUrl{"qrc:///main.qml"});
+
+    return app.exec();
 }

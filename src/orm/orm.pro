@@ -8,6 +8,7 @@ PUBLIC_HEADERS += \
     qormabstractprovider.h \
     qormclassproperty.h \
     qormentityinstancecache.h \
+    qormentitylistmodel.h \
     qormerror.h \
     qormfilter.h \
     qormfilterexpression.h \
@@ -35,6 +36,7 @@ SOURCES += \
     qormabstractprovider.cpp \
     qormclassproperty.cpp \
     qormentityinstancecache.cpp \
+    qormentitylistmodel.cpp \
     qormerror.cpp \
     qormfilter.cpp \
     qormfilterexpression.cpp \
