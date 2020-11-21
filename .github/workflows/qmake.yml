@@ -20,7 +20,7 @@ jobs:
     - name: Configure QMake
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: qmake ${{runner.workspace}}/qtorm.pro
+      run: qmake ${GITHUB_WORKSPACE}/qtorm.pro
       
     - name: Build
       working-directory: ${{runner.workspace}}/build
