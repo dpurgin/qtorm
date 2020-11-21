@@ -28,9 +28,9 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 
-#include <domain/person.h>
-#include <domain/province.h>
-#include <domain/town.h>
+#include "domain/person.h"
+#include "domain/province.h"
+#include "domain/town.h"
 
 #include "private/qormglobal_p.h"
 

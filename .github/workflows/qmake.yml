@@ -1,0 +1,33 @@
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v2.9.0
+      with: 
+        version: '5.12.9'        
+        extra: '--archives qt qtbase qtdeclarative qtquickcontrols2 icu'
+   
+    - name: Create Build Environment
+      shell: bash 
+      run: mkdir -p ${{runner.workspace}}/build
+      
+    - name: Configure QMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: qmake ${GITHUB_WORKSPACE}/qtorm.pro
+      
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash     
+      run: make
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: make check

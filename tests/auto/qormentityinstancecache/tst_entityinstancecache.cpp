@@ -23,8 +23,8 @@
 #include <QOrmMetadataCache>
 #include <QtTest>
 
-#include <domain/province.h>
-#include <domain/town.h>
+#include "domain/province.h"
+#include "domain/town.h"
 
 // add necessary includes here
 

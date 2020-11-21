@@ -28,6 +28,8 @@
 #include "qormquery.h"
 #include "qormrelation.h"
 
+#include <QtCore/qstringbuilder.h>
+
 QT_BEGIN_NAMESPACE
 
 static QString insertParameter(QVariantMap& boundParameters, QString name, QVariant value)
