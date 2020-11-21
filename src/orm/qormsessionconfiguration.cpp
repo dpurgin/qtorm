@@ -29,6 +29,8 @@
 #include <QOrmSqliteConfiguration>
 #include <QOrmSqliteProvider>
 
+#include <QtCore/qstringbuilder.h>
+
 QT_BEGIN_NAMESPACE
 
 class QOrmSessionConfigurationData : public QSharedData

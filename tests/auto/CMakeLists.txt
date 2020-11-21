@@ -1,0 +1,5 @@
+add_subdirectory(qormentityinstancecache)
+add_subdirectory(qormfilterexpression)
+add_subdirectory(qormmetadatacache)
+add_subdirectory(qormsession)
+add_subdirectory(qormsqlitestatementgenerator)
