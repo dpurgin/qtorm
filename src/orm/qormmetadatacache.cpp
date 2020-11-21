@@ -184,7 +184,8 @@ QOrmMetadataCachePrivate::MappingDescriptor QOrmMetadataCachePrivate::mappingDes
                 typeName.chop(1);
 
             qFatal("QtOrm: An unregistered type %s is used in %s::%s. If this is a referenced "
-                   "entity register it with qRegisterOrmEntity<%s>()",
+                   "entity, it should be registered with qRegisterOrmEntity<%s>(). If this is a "
+                   "type alias for a container type, this is currently not supported.",
                    typeName.data(),
                    qMetaObject.className(),
                    property.name(),
@@ -228,7 +229,7 @@ void QOrmMetadataCachePrivate::validateConstructor(const QMetaObject& qMetaObjec
     if (hasError)
     {
         qFatal("QtOrm: Entity %s requires a metaobject-invokable public default constructor, "
-               "e.g.: Q_INVOKABLE explicit %s(QObject* parent = nullptr) = default;",
+               "e.g.: Q_INVOKABLE explicit %s(QObject* parent = nullptr): QObject{parent} {}",
                qMetaObject.className(),
                qMetaObject.className());
     }
