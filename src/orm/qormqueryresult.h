@@ -84,13 +84,41 @@ public:
     Q_REQUIRED_RESULT
     const QVariant& lastInsertedId() const { return m_lastInsertedId; }
     Q_REQUIRED_RESULT
-    const QVector<Projection*>& toVector() const { return m_result; }
+    const QVector<Projection*>& toVector() const
+    {
+        if (m_error.type() != QOrm::ErrorType::None)
+        {
+            qFatal("qtorm: QOrmQueryResult::toVector() has been called but the result contains an "
+                   "error: %s",
+                   qPrintable(m_error.text()));
+        }
+
+        return m_result;
+    }
 
     Q_REQUIRED_RESULT
-    std::vector<Projection*> toStdVector() const { return m_result.toStdVector(); }
+    std::vector<Projection*> toStdVector() const
+    {
+        if (m_error.type() != QOrm::ErrorType::None)
+        {
+            qFatal(
+                "qtorm: QOrmQueryResult::toStdVector() has been called but the result contains an "
+                "error: %s",
+                qPrintable(m_error.text()));
+        }
+
+        return m_result.toStdVector();
+    }
     Q_REQUIRED_RESULT
     QSet<Projection*> toSet() const
     {
+        if (m_error.type() != QOrm::ErrorType::None)
+        {
+            qFatal("qtorm: QOrmQueryResult::toSet() has been called but the result contains an "
+                   "error: %s",
+                   qPrintable(m_error.text()));
+        }
+
         QSet<Projection*> result;
 
         for (Projection* instance : m_result)
