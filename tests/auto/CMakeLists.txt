@@ -1,3 +1,4 @@
+add_subdirectory(domainclasses)
 add_subdirectory(qormentityinstancecache)
 add_subdirectory(qormfilterexpression)
 add_subdirectory(qormmetadatacache)

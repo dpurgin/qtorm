@@ -1,6 +1,7 @@
 TEMPLATE = subdirs
 
 SUBDIRS += \
+    domainclasses \
     qormentityinstancecache \
     qormmetadatacache \
     qormsession \
