@@ -56,6 +56,7 @@ private slots:
     void testSelectFromNestedSelect();
 
     void testMergeFailsWithInconsistentReferences();
+    void testMergeOfExistingEntitiesWithExplicitIdsUpdates();
 
     void testRemoveInstance();
 
@@ -349,6 +350,39 @@ void SqliteSessionTest::testMergeFailsWithInconsistentReferences()
                  .has_value());
     QVERIFY(!QOrmPrivate::crossReferenceError(metadataCache->get<Province>(), lowerAustria)
                  .has_value());
+}
+
+void SqliteSessionTest::testMergeOfExistingEntitiesWithExplicitIdsUpdates()
+{    
+    int idUpperAustria = -1;
+    int idLowerAustria = -1;
+
+    {
+        QOrmSession session;
+
+        Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
+        Province* lowerAustria = new Province(QString::fromUtf8("Niederösterreich"));
+
+        session.merge(upperAustria, lowerAustria);
+
+        idUpperAustria = upperAustria->id();
+        idLowerAustria = lowerAustria->id();
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_bypass_schema.json")};
+
+        Province* upperAustria = new Province(idUpperAustria, QString::fromUtf8("Oberösterreich"));
+        Province* lowerAustria =
+            new Province(idLowerAustria, QString::fromUtf8("Niederösterreich"));
+
+        session.merge(upperAustria, lowerAustria);
+
+        QEXPECT_FAIL("", "Not supported yet", TestFailMode::Abort);
+        QCOMPARE(upperAustria->id(), idUpperAustria);
+        QCOMPARE(lowerAustria->id(), idLowerAustria);
+        QCOMPARE(session.from<Province>().select().toVector().size(), 2);
+    }
 }
 
 void SqliteSessionTest::testTransactionRollback()
