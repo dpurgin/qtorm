@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>qtorm.json</file>
+        <file>qtorm_bypass_schema.json</file>
     </qresource>
 </RCC>

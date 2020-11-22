@@ -339,7 +339,22 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
             Q_ASSERT(error.has_value());
 
             if (error->type() == QOrm::ErrorType::None)
+            {
                 m_schemaSyncCache.insert(relation.mapping()->className());
+
+                for (const QOrmPropertyMapping& propertyMapping :
+                     relation.mapping()->propertyMappings())
+                {
+                    if (propertyMapping.isReference())
+                    {
+                        QOrmError referencedError = ensureSchemaSynchronized(
+                            QOrmRelation{*propertyMapping.referencedEntity()});
+
+                        if (referencedError.type() != QOrm::ErrorType::None)
+                            return referencedError;
+                    }
+                }
+            }
 
             return *error;
         }

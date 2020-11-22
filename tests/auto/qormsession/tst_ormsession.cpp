@@ -60,6 +60,8 @@ private slots:
     void testRemoveInstance();
 
     void testTransactionRollback();
+
+    void testSchemaCreatedForReferencedEntities();
 };
 
 SqliteSessionTest::SqliteSessionTest()
@@ -340,7 +342,7 @@ void SqliteSessionTest::testMergeFailsWithInconsistentReferences()
     QVERIFY(!QOrmPrivate::crossReferenceError(metadataCache->get<Town>(), pregarten).has_value());
     QVERIFY(QOrmPrivate::crossReferenceError(metadataCache->get<Town>(), melk).has_value());
 
-    // Provine instances to have a cross-reference error but it cannot be detected because the
+    // Province instances to have a cross-reference error but it cannot be detected because the
     // referencing issues are not in the list. The cross-reference is detected on the other side
     // of the relation.
     QVERIFY(!QOrmPrivate::crossReferenceError(metadataCache->get<Province>(), upperAustria)
@@ -367,6 +369,21 @@ void SqliteSessionTest::testTransactionRollback()
     }
 
     QCOMPARE(upperAustria->name(), QString::fromUtf8("Oberösterreich"));
+}
+
+void SqliteSessionTest::testSchemaCreatedForReferencedEntities()
+{
+    {
+        QOrmSession session;
+        QVERIFY(session.merge(new Province("Oberösterreich")));
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_bypass_schema.json")};
+
+        auto result = session.from<Province>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    }
 }
 
 void SqliteSessionTest::testRemoveInstance()

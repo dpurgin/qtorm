@@ -44,9 +44,15 @@ public:
     Q_INVOKABLE Province(QObject* parent = nullptr)
         : QObject(parent)
     {
-    }
+    }    
     explicit Province(const QString& name, QObject* parent = nullptr)
         : QObject{parent}
+        , m_name{name}
+    {
+    }
+    Province(int id, const QString& name, QObject* parent = nullptr)
+        : QObject{parent}
+        , m_id{id}
         , m_name{name}
     {
     }
