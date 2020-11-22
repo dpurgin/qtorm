@@ -19,6 +19,7 @@
  */
 
 #include "qormsessionconfiguration.h"
+#include "qormglobal_p.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -98,35 +99,45 @@ QOrmSessionConfiguration QOrmSessionConfiguration::defaultConfiguration()
     {
         QString filePath{searchPath % "/qtorm.json"};
 
-        QFile file{filePath};
-
-        if (file.open(QFile::ReadOnly | QFile::Text))
+        if (QFile::exists(filePath))
         {
-            QJsonParseError jsonParseError;
-            QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &jsonParseError);
-
-            if (jsonParseError.error == QJsonParseError::NoError && doc.isObject())
-            {
-                QJsonObject rootObject = doc.object();
-
-                std::unique_ptr<QOrmAbstractProvider> provider;
-                bool isVerbose = rootObject["verbose"].toBool(false);
-
-                if (rootObject["provider"].toString().compare("sqlite") == 0)
-                {
-                    QOrmSqliteConfiguration sqlConfiguration =
-                        _build_json_sqlite_configuration(rootObject["sqlite"].toObject());
-                    provider = std::make_unique<QOrmSqliteProvider>(sqlConfiguration);
-                }
-
-                return QOrmSessionConfiguration{provider.release(), isVerbose};
-            }
+            return fromFile(filePath);
         }
     }
 
     qFatal(
         "QtOrm: Unable to find a valid qtorm.json in resource, working directory, or application "
         "directory");
+}
+
+QOrmSessionConfiguration QOrmSessionConfiguration::fromFile(const QString& filePath)
+{
+    QFile file{filePath};
+
+    if (file.open(QFile::ReadOnly | QFile::Text))
+    {
+        QJsonParseError jsonParseError;
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &jsonParseError);
+
+        if (jsonParseError.error == QJsonParseError::NoError && doc.isObject())
+        {
+            QJsonObject rootObject = doc.object();
+
+            std::unique_ptr<QOrmAbstractProvider> provider;
+            bool isVerbose = rootObject["verbose"].toBool(false);
+
+            if (rootObject["provider"].toString().compare("sqlite") == 0)
+            {
+                QOrmSqliteConfiguration sqlConfiguration =
+                    _build_json_sqlite_configuration(rootObject["sqlite"].toObject());
+                provider = std::make_unique<QOrmSqliteProvider>(sqlConfiguration);
+            }
+
+            return QOrmSessionConfiguration{provider.release(), isVerbose};
+        }
+    }
+
+    qFatal("qtorm: Unable to open session configuration file %s", qPrintable(filePath));
 }
 
 QOrmSessionConfiguration::QOrmSessionConfiguration(QOrmAbstractProvider* provider, bool isVerbose)

@@ -37,6 +37,7 @@ class Q_ORM_EXPORT QOrmSessionConfiguration
 {
 public:
     static QOrmSessionConfiguration defaultConfiguration();
+    static QOrmSessionConfiguration fromFile(const QString& filePath);
 
 public:
     QOrmSessionConfiguration(QOrmAbstractProvider* provider, bool isVerbose);
