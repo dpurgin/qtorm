@@ -122,76 +122,100 @@ extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterTerminalPredic
 extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterBinaryPredicate& predicate);
 extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterUnaryPredicate& predicate);
 
-Q_REQUIRED_RESULT
-Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator==(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                       const QVariant& value);
-
-Q_REQUIRED_RESULT
-Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator!=(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                       const QVariant& value);
-
-Q_REQUIRED_RESULT
-Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator<(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                      const QVariant& value);
-
-Q_REQUIRED_RESULT
-Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator<=(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                       const QVariant& value);
-
-Q_REQUIRED_RESULT
-Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator>(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                      const QVariant& value);
-
-Q_REQUIRED_RESULT
-Q_ORM_EXPORT
-QOrmFilterTerminalPredicate operator>=(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                       const QVariant& value);
-
-template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
-operator==(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
+namespace QtOrmPrivate
 {
-    return operator==(property, QVariant::fromValue(value));
+    template<typename T, bool IsEntityType = std::is_convertible_v<T, const QObject*>>
+    struct FilterTerminalPredicateFactory;
+
+    template<typename T>
+    struct FilterTerminalPredicateFactory<T, false>
+    {
+        [[nodiscard]] static QOrmFilterTerminalPredicate create(
+            const QOrmFilterTerminalPredicate::FilterProperty& property,
+            QOrm::Comparison comparison,
+            const T& value)
+        {
+            return {property, comparison, value};
+        }
+    };
+
+    template<>
+    struct FilterTerminalPredicateFactory<long, false>
+    {
+        [[nodiscard]] static QOrmFilterTerminalPredicate create(
+            const QOrmFilterTerminalPredicate::FilterProperty& property,
+            QOrm::Comparison comparison,
+            long value)
+        {
+            return {property, comparison, QVariant::fromValue(value)};
+        }
+    };
+
+    template<typename T>
+    struct FilterTerminalPredicateFactory<T, true>
+    {
+        [[nodiscard]] static QOrmFilterTerminalPredicate create(
+            const QOrmFilterTerminalPredicate::FilterProperty& property,
+            QOrm::Comparison comparison,
+            QObject* value)
+        {
+            return {property, comparison, QVariant::fromValue(value)};
+        }
+    };
+} // namespace QtOrmPrivate
+
+template<typename T>
+[[nodiscard]] inline QOrmFilterTerminalPredicate
+operator==(const QOrmFilterTerminalPredicate::FilterProperty& property, T&& value)
+{
+    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(property,
+                                                                   QOrm::Comparison::Equal,
+                                                                   std::forward<T>(value));
 }
 
-template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
-operator!=(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
+template<typename T>
+[[nodiscard]] inline QOrmFilterTerminalPredicate
+operator!=(const QOrmFilterTerminalPredicate::FilterProperty& property, T&& value)
 {
-    return operator!=(property, QVariant::fromValue(value));
+    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(property,
+                                                                   QOrm::Comparison::NotEqual,
+                                                                   std::forward<T>(value));
 }
 
-template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
-operator<(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
+template<typename T>
+[[nodiscard]] inline QOrmFilterTerminalPredicate
+operator<(const QOrmFilterTerminalPredicate::FilterProperty& property, T&& value)
 {
-    return operator<(property, QVariant::fromValue(value));
+    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(property,
+                                                                   QOrm::Comparison::Less,
+                                                                   std::forward<T>(value));
 }
 
-template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
-operator<=(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
+template<typename T>
+[[nodiscard]] inline QOrmFilterTerminalPredicate
+operator<=(const QOrmFilterTerminalPredicate::FilterProperty& property, T&& value)
 {
-    return operator<=(property, QVariant::fromValue(value));
+    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(property,
+                                                                   QOrm::Comparison::LessOrEqual,
+                                                                   std::forward<T>(value));
 }
 
-template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
-operator>(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
+template<typename T>
+[[nodiscard]] inline QOrmFilterTerminalPredicate
+operator>(const QOrmFilterTerminalPredicate::FilterProperty& property, T&& value)
 {
-    return operator>(property, QVariant::fromValue(value));
+    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(property,
+                                                                   QOrm::Comparison::Greater,
+                                                                   std::forward<T>(value));
 }
 
-template<typename T, typename std::enable_if_t<std::is_convertible_v<T*, QObject*>, int> = 0>
-Q_REQUIRED_RESULT inline QOrmFilterTerminalPredicate
-operator>=(const QOrmFilterTerminalPredicate::FilterProperty& property, T* value)
+template<typename T>
+[[nodiscard]] inline QOrmFilterTerminalPredicate
+operator>=(const QOrmFilterTerminalPredicate::FilterProperty& property, T&& value)
 {
-    return operator>=(property, QVariant::fromValue(value));
+    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(property,
+                                                                   QOrm::Comparison::GreaterOrEqual,
+                                                                   std::forward<T>(value));
 }
 
 Q_REQUIRED_RESULT
