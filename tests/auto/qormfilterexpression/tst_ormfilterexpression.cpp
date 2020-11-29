@@ -27,14 +27,41 @@ class QOrmFilterExpressionTest : public QObject
     Q_OBJECT
 
 private slots:
+    void initTestCase();
+
     void init();
     void cleanup();
 
     void testTerminalPredicateGeneration();
+    void testTerminalPredicateGenerationLong();
+    void testTerminalPredicateGenerationEntity();
     void testUnaryPredicateGeneration();
     void testBinaryPredicateGeneration();
     void testNestedPredicateGeneration();
 };
+
+class Entity : public QObject
+{
+    Q_OBJECT
+
+    Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+
+    int m_id{0};
+
+public:
+    Entity(QObject* parent)
+        : QObject{parent}
+    {
+    }
+
+signals:
+    void idChanged();
+};
+
+void QOrmFilterExpressionTest::initTestCase()
+{
+    qRegisterOrmEntity<Entity>();
+}
 
 void QOrmFilterExpressionTest::init()
 {
@@ -43,7 +70,6 @@ void QOrmFilterExpressionTest::init()
 void QOrmFilterExpressionTest::cleanup()
 {
 }
-
 
 void QOrmFilterExpressionTest::testTerminalPredicateGeneration()
 {
@@ -90,6 +116,97 @@ void QOrmFilterExpressionTest::testTerminalPredicateGeneration()
     }
 }
 
+void QOrmFilterExpressionTest::testTerminalPredicateGenerationLong()
+{
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) == 3L);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::Equal);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) != 3L);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::NotEqual);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) < 3L);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::Less);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) <= 3L);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::LessOrEqual);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) > 3L);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::Greater);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) >= 3L);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::GreaterOrEqual);
+        QCOMPARE(predicate.value(), 3);
+    }
+}
+
+void QOrmFilterExpressionTest::testTerminalPredicateGenerationEntity()
+{
+    Entity* e = new Entity{this};
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) == e);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::Equal);
+        QCOMPARE(predicate.value(), QVariant::fromValue(e));
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) != e);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::NotEqual);
+        QCOMPARE(predicate.value(), QVariant::fromValue(e));
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) < e);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::Less);
+        QCOMPARE(predicate.value(), QVariant::fromValue(e));
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) <= e);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::LessOrEqual);
+        QCOMPARE(predicate.value(), QVariant::fromValue(e));
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) > e);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::Greater);
+        QCOMPARE(predicate.value(), QVariant::fromValue(e));
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) >= e);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::GreaterOrEqual);
+        QCOMPARE(predicate.value(), QVariant::fromValue(e));
+    }
+}
 void QOrmFilterExpressionTest::testUnaryPredicateGeneration()
 {
     {

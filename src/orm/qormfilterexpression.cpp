@@ -251,42 +251,6 @@ QDebug operator<<(QDebug dbg, const QOrmFilterBinaryPredicate& predicate)
     return dbg;
 }
 
-QOrmFilterTerminalPredicate operator==(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                       const QVariant& value)
-{
-    return {property, QOrm::Comparison::Equal, value};
-}
-
-QOrmFilterTerminalPredicate operator!=(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                       const QVariant& value)
-{
-    return {property, QOrm::Comparison::NotEqual, value};
-}
-
-QOrmFilterTerminalPredicate operator<(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                      const QVariant& value)
-{
-    return {property, QOrm::Comparison::Less, value};
-}
-
-QOrmFilterTerminalPredicate operator<=(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                       const QVariant& value)
-{
-    return {property, QOrm::Comparison::LessOrEqual, value};
-}
-
-QOrmFilterTerminalPredicate operator>(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                      const QVariant& value)
-{
-    return {property, QOrm::Comparison::Greater, value};
-}
-
-QOrmFilterTerminalPredicate operator>=(const QOrmFilterTerminalPredicate::FilterProperty& property,
-                                       const QVariant& value)
-{
-    return {property, QOrm::Comparison::GreaterOrEqual, value};
-}
-
 QOrmFilterUnaryPredicate operator!(const QOrmFilterExpression& rhs)
 {
     return {QOrm::UnaryLogicalOperator::Not, rhs};
