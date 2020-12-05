@@ -2,11 +2,25 @@ on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    
     strategy:
+      fail-fast: false
       matrix:
+        os: [ 'ubuntu-latest', 'windows-2019', 'windows-2016' ]
         qtversion: [ '5.12.9', '5.15.1' ]
+        include:
+        - os: windows-2019
+          qtversion: '5.15.1'
+          arch: 'win64_msvc2019_64'
+        - os: windows-2016 
+          qtversion: '5.12.9'
+          arch: 'win64_msvc2017_64'
+        exclude:
+        - os: windows-2019
+          qtversion: '5.12.9'
+        - os: windows-2016
+          qtversion: '5.15.1'
+        
+    runs-on: ${{ matrix.os }}    
     
     steps:
     - uses: actions/checkout@v2
