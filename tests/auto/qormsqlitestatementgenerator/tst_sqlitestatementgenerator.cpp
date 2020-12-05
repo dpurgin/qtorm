@@ -26,6 +26,7 @@
 
 #include "domain/province.h"
 #include "domain/town.h"
+#include "domain/person.h"
 
 #include "private/qormglobal_p.h"
 #include "private/qormsqlitestatementgenerator_p.h"
@@ -47,11 +48,12 @@ private slots:
     void testUpdateWithOneToManyNullReference();
     void testCreateTableWithReference();
     void testCreateTableWithManyToOne();
+    void testCreateTableWithLong();
 };
 
 void SqliteStatementGenerator::init()
 {
-    qRegisterOrmEntity<Town, Province>();
+    qRegisterOrmEntity<Town, Province, Person>();
 }
 
 void SqliteStatementGenerator::testGenerateConditionTerminalPredicate()
@@ -193,6 +195,13 @@ void SqliteStatementGenerator::testCreateTableWithManyToOne()
 
     QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Province>()),
              "CREATE TABLE Province(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT)");
+}
+
+void SqliteStatementGenerator::testCreateTableWithLong()
+{
+    QOrmMetadataCache cache;
+    QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Person>()),
+             "CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT)");
 }
 
 QTEST_APPLESS_MAIN(SqliteStatementGenerator)

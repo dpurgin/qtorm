@@ -1,11 +1,14 @@
 add_executable(tst_sqlitestatementgenerator
     tst_sqlitestatementgenerator.cpp
 
-    domain/province.cpp
-    domain/town.cpp    
-
     domain/province.h
+    domain/province.cpp
+
     domain/town.h
+    domain/town.cpp            
+
+    domain/person.h
+    domain/person.cpp
 )
 
 target_link_libraries(tst_sqlitestatementgenerator

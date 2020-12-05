@@ -428,6 +428,14 @@ QString QOrmSqliteStatementGenerator::toSqliteType(QVariant::Type type)
             return QStringLiteral("TEXT");
 
         default:
+            // Additional check for type long.
+            // There is no QVariant::Long but the type returned for long properties is
+            // QMetaType::Long which is 32.
+            if (static_cast<int>(type) == 32)
+            {
+                return QStringLiteral("INTEGER");
+            }
+
             return QStringLiteral("BLOB");
     }
 }
