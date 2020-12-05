@@ -4,13 +4,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     
+    strategy:
+      matrix:
+        qtversion: [ '5.12.9', '5.15.1' ]
+    
     steps:
     - uses: actions/checkout@v2
     
     - name: Install Qt
       uses: jurplel/install-qt-action@v2.9.0
       with: 
-        version: '5.12.9'        
+        version: ${{ matrix.qtversion }}
         extra: '--archives qt qtbase qtdeclarative qtquickcontrols2 icu'
    
     - name: Create Build Environment
