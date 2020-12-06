@@ -350,7 +350,7 @@ bool QOrmSession::beginTransaction()
     if (d->m_transactionCounter == 0)
     {
         if (d->m_sessionConfiguration.isVerbose())
-            qDebug() << "Beginning transaction";
+            qCDebug(qtorm) << "Beginning transaction";
 
         d->ensureProviderConnected();
         d->setLastError(d->m_sessionConfiguration.provider()->beginTransaction());
@@ -361,7 +361,7 @@ bool QOrmSession::beginTransaction()
         }
         else if (d->m_sessionConfiguration.isVerbose())
         {
-            qWarning() << "Unable to begin transaction:" << d->m_lastError.text();
+            qCWarning(qtorm) << "Unable to begin transaction:" << d->m_lastError.text();
         }
     }
     else
@@ -385,7 +385,7 @@ bool QOrmSession::commitTransaction()
     else if (d->m_transactionCounter == 1)
     {
         if (d->m_sessionConfiguration.isVerbose())
-            qDebug() << "Committing transaction";
+            qCDebug(qtorm) << "Committing transaction";
 
         d->ensureProviderConnected();
         d->setLastError(d->m_sessionConfiguration.provider()->commitTransaction());
@@ -397,7 +397,7 @@ bool QOrmSession::commitTransaction()
         }
         else if (d->m_sessionConfiguration.isVerbose())
         {
-            qWarning() << "Unable to commit transaction:" << d->m_lastError.text();
+            qCWarning(qtorm) << "Unable to commit transaction:" << d->m_lastError.text();
         }
     }
     else
@@ -421,7 +421,7 @@ bool QOrmSession::rollbackTransaction()
     else if (d->m_transactionCounter == 1)
     {
         if (d->m_sessionConfiguration.isVerbose())
-            qDebug() << "Rolling back transaction";
+            qCDebug(qtorm) << "Rolling back transaction";
 
         d->ensureProviderConnected();
         d->setLastError(d->m_sessionConfiguration.provider()->rollbackTransaction());
@@ -433,7 +433,7 @@ bool QOrmSession::rollbackTransaction()
         }
         else if (d->m_sessionConfiguration.isVerbose())
         {
-            qWarning() << "Unable to rollback transaction:" << d->m_lastError.text();
+            qCWarning(qtorm) << "Unable to rollback transaction:" << d->m_lastError.text();
         }
     }
     else

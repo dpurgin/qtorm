@@ -80,7 +80,8 @@ static QOrmSqliteConfiguration _build_json_sqlite_configuration(const QJsonObjec
     }
     else
     {
-        qWarning() << "QtORM: Invalid schemaMode in SQL provider configuration. Falling back to validate mode";
+        qCWarning(qtorm)
+            << "Invalid schemaMode in SQL provider configuration. Falling back to validate mode";
         sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Validate);
     }
 

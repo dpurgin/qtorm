@@ -237,15 +237,15 @@ namespace QOrm
         switch (propagation)
         {
             case TransactionPropagation::Require:
-                qDebug() << "Require";
+                dbg << "Require";
                 break;
 
             case TransactionPropagation::Support:
-                qDebug() << "Support";
+                dbg << "Support";
                 break;
 
             case TransactionPropagation::DontSupport:
-                qDebug() << "DontSupport";
+                dbg << "DontSupport";
                 break;
         }
 
@@ -261,11 +261,11 @@ namespace QOrm
         switch (action)
         {
             case TransactionAction::Commit:
-                qDebug() << "Commit";
+                dbg << "Commit";
                 break;
 
             case TransactionAction::Rollback:
-                qDebug() << "Action";
+                dbg << "Action";
                 break;
         }
 

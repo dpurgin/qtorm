@@ -102,7 +102,7 @@ QSqlQuery QOrmSqliteProviderPrivate::prepareAndExecute(const QString& statement,
     QSqlQuery query{m_database};
 
     if (m_sqlConfiguration.verbose())
-        qDebug() << "Executing:" << statement;
+        qCDebug(qtorm) << "Executing:" << statement;
 
     if (!query.prepare(statement))
         return query;
@@ -110,7 +110,7 @@ QSqlQuery QOrmSqliteProviderPrivate::prepareAndExecute(const QString& statement,
     if (!parameters.isEmpty())
     {
         if (m_sqlConfiguration.verbose())
-            qDebug() << "Bound parameters:" << parameters;
+            qCDebug(qtorm) << "Bound parameters:" << parameters;
 
         for (auto it = parameters.begin(); it != parameters.end(); ++it)
             query.bindValue(it.key(), it.value());
@@ -291,9 +291,10 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                                                mapping.classPropertyName(),
                                                record.value(mapping.tableFieldName())))
             {
-                qDebug("Unable to setPropertyValue() for %s <-> %s",
-                       qPrintable(mapping.classPropertyName()),
-                       qPrintable(mapping.tableFieldName()));
+                qCDebug(qtorm,
+                        "Unable to setPropertyValue() for %s <-> %s",
+                        qPrintable(mapping.classPropertyName()),
+                        qPrintable(mapping.tableFieldName()));
                 Q_ORM_UNEXPECTED_STATE;
             }
         }
