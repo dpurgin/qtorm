@@ -35,7 +35,7 @@ class QOrmError;
 class QOrmQueryResultPrivate;
 
 template<typename T>
-class Q_ORM_EXPORT QOrmQueryResult
+class QOrmQueryResult
 {
 public:
     using Projection = T;

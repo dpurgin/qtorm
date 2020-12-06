@@ -103,3 +103,8 @@ target_include_directories(qtorm
         "${GENERATED_INCLUDE_DIRECTORY}"
         "${GENERATED_INCLUDE_DIRECTORY}/QtOrm"
 )
+target_compile_features(qtorm PUBLIC cxx_std_17)
+
+if (MSVC)
+    target_compile_definitions(qtorm PRIVATE __PRETTY_FUNCTION__=__FUNCTION__)
+endif()

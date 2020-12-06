@@ -13,8 +13,6 @@ message("    Shared libs (LGPLv3): ${QTORM_BUILD_SHARED_LIBS}")
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON) 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(Qt5 COMPONENTS Core Sql REQUIRED)
 
