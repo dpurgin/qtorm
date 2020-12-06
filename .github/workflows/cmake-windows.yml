@@ -29,7 +29,7 @@ jobs:
       
     - name: Configure CMake
       working-directory: ${{runner.workspace}}/build      
-      run: cmake ${env:GITHUB_WORKSPACE} -DQTORM_BUILD_EXAMPLES=ON -DQTORM_BUILD_TESTS=ON -DQTORM_BUILD_SHARED_LIBS=ON
+      run: cmake ${env:GITHUB_WORKSPACE} -A x64 -DQTORM_BUILD_EXAMPLES=ON -DQTORM_BUILD_TESTS=ON -DQTORM_BUILD_SHARED_LIBS=ON
       
     - name: Build
       working-directory: ${{runner.workspace}}/build
@@ -39,5 +39,6 @@ jobs:
     - name: Test
       working-directory: ${{runner.workspace}}/build            
       run: |
-        ${env:Path} = "${env:GITHUB_WORKSPACE}/build/src/Debug;$env:Path"
+        ${env:Path} = "${env:GITHUB_WORKSPACE}/build/src/Debug;${env:Qt5_Dir}/bin;${env:Path}"
+        Write-Host ${env:Path}
         ctest -C Debug
