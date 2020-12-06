@@ -40,5 +40,4 @@ jobs:
       working-directory: ${{runner.workspace}}/build            
       run: |
         ${env:Path} = "${{runner.workspace}}/build/src/Debug;${env:Path}"
-        Write-Host ${env:Path}
         ctest -C Debug
