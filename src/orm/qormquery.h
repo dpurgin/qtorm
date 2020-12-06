@@ -28,6 +28,7 @@
 #include <QtOrm/qormqueryresult.h>
 
 #include <vector>
+#include <optional>
 
 QT_BEGIN_NAMESPACE
 

@@ -25,10 +25,12 @@
 #include <QtOrm/qormmetadata.h>
 
 #include <QtCore/qhashfunctions.h>
+#include <QtCore/qloggingcategory.h>
 #include <QtCore/qstring.h>
 #include <QtCore/qvariant.h>
 
 #include <variant>
+#include <optional>
 
 QT_BEGIN_NAMESPACE
 
@@ -164,6 +166,8 @@ namespace QOrmPrivate
     };
 
 } // namespace QOrmPrivate
+
+Q_DECLARE_LOGGING_CATEGORY(qtorm);
 
 #define Q_ORM_UNEXPECTED_STATE (qFatal("QtOrm: %s: unexpected state", __PRETTY_FUNCTION__))
 #define Q_ORM_NOT_IMPLEMENTED (qFatal("QtOrm: %s: not implemented", __PRETTY_FUNCTION__))

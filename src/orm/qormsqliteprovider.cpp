@@ -399,12 +399,14 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 {
     Q_UNUSED(relation)
     Q_ORM_NOT_IMPLEMENTED;
+    return {QOrm::ErrorType::Other, "Not implemented"};
 }
 
 QOrmError QOrmSqliteProviderPrivate::validateSchema(const QOrmRelation& relation)
 {
     Q_UNUSED(relation)
     Q_ORM_NOT_IMPLEMENTED;
+    return {QOrm::ErrorType::Other, "Not implemented"};
 }
 
 QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(

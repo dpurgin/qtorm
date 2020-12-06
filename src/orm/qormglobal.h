@@ -145,47 +145,49 @@ namespace QOrm
 
 namespace QOrmPrivate
 {
-    template<typename ContainerFrom,
-             typename ContainerTo,
-             typename ToValueType = typename ContainerTo::value_type>
-    inline ContainerTo convertContainer(const ContainerFrom& v)
+    template<typename From, typename To, typename ToValueType = typename To::value_type>
+    struct ContainerConverter
     {
-        ContainerTo result;
+        static To convert(const From& v)
+        {
+            To result;
 
-        std::transform(std::begin(v),
-                       std::end(v),
-                       std::inserter(result, std::end(result)),
-                       [](auto o) { return qobject_cast<ToValueType>(o); });
+            std::transform(std::begin(v),
+                           std::end(v),
+                           std::inserter(result, std::end(result)),
+                           [](auto o) { return qobject_cast<ToValueType>(o); });
 
-        return result;
-    }
+            return result;
+        }
+    };
 
-    template<typename ContainerFrom,
-             typename ContainerTo,
-             typename ToValueType = typename ContainerTo::value_type,
-             typename = std::enable_if_t<std::is_same_v<ContainerTo, QSet<ToValueType>>>>
-    inline QSet<ToValueType> convertContainer(const ContainerFrom& v)
+    template<typename From, typename ToValueType>
+    struct ContainerConverter<From, QSet<ToValueType>>
     {
-        QSet<ToValueType> result;
+        static QSet<ToValueType> convert(const From& v)
+        {
+            QSet<ToValueType> result;
 
-        for (auto o : v)
-            result.insert(qobject_cast<ToValueType>(o));
+            for (auto o : v)
+                result.insert(qobject_cast<ToValueType>(o));
 
-        return result;
-    }
+            return result;
+        }
+    };
+
     template<typename EntityContainer, typename Entity = typename EntityContainer::value_type>
     void registerContainerConverter()
     {
         if (!QMetaType::hasRegisteredConverterFunction<EntityContainer, QVector<QObject*>>())
         {
             QMetaType::registerConverter<EntityContainer, QVector<QObject*>>(
-                &convertContainer<EntityContainer, QVector<QObject*>>);
+                &ContainerConverter<EntityContainer, QVector<QObject*>>::convert);
         }
 
         if (!QMetaType::hasRegisteredConverterFunction<QVector<QObject*>, EntityContainer>())
         {
             QMetaType::registerConverter<QVector<QObject*>, EntityContainer>(
-                &convertContainer<QVector<QObject*>, EntityContainer>);
+                &ContainerConverter<QVector<QObject*>, EntityContainer>::convert);
         }
     }
 
