@@ -28,8 +28,8 @@ jobs:
       run: cmake -E make_directory ${{runner.workspace}}/build
       
     - name: Configure CMake
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DQTORM_BUILD_EXAMPLES=ON -DQTORM_BUILD_TESTS=ON -DQTORM_BUILD_SHARED_LIBS=ON
+      working-directory: ${{runner.workspace}}/build      
+      run: cmake ${env:GITHUB_WORKSPACE} -DQTORM_BUILD_EXAMPLES=ON -DQTORM_BUILD_TESTS=ON -DQTORM_BUILD_SHARED_LIBS=ON
       
     - name: Build
       working-directory: ${{runner.workspace}}/build
@@ -37,7 +37,7 @@ jobs:
       run: cmake --build . --config Debug
 
     - name: Test
-      working-directory: ${{runner.workspace}}/build      
+      working-directory: ${{runner.workspace}}/build            
       run: |
-        $env:Path = "${env:GITHUB_WORKSPACE}/build/src/Debug;$env:Path"
+        ${env:Path} = "${env:GITHUB_WORKSPACE}/build/src/Debug;$env:Path"
         ctest -C Debug
