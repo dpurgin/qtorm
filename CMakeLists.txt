@@ -2,9 +2,18 @@ cmake_minimum_required(VERSION 3.10)
 
 project(QtOrm LANGUAGES CXX)
 
-option(QTORM_BUILD_EXAMPLES "Build QtOrm examples" OFF)
-option(QTORM_BUILD_TESTS "Build QtOrm tests" OFF)
-option(QTORM_BUILD_SHARED_LIBS "Build QtOrm as shared library (LGPLv3)" ON)
+# https://stackoverflow.com/questions/25199677/how-to-detect-if-current-scope-has-a-parent-in-cmake
+get_directory_property(hasParent PARENT_DIRECTORY)
+
+if (hasParent)
+    option(QTORM_BUILD_EXAMPLES "Build QtOrm examples" OFF)
+    option(QTORM_BUILD_TESTS "Build QtOrm tests" OFF)
+    option(QTORM_BUILD_SHARED_LIBS "Build QtOrm as shared library (LGPLv3)" ON)
+else()
+    option(QTORM_BUILD_EXAMPLES "Build QtOrm examples" ON)
+    option(QTORM_BUILD_TESTS "Build QtOrm tests" ON)
+    option(QTORM_BUILD_SHARED_LIBS "Build QtOrm as shared library (LGPLv3)" ON)
+endif()
 
 message("QtOrm Configuration:")
 message("    Examples: ${QTORM_BUILD_EXAMPLES}")
