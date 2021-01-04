@@ -34,6 +34,7 @@ private slots:
 
     void testTerminalPredicateGeneration();
     void testTerminalPredicateGenerationLong();
+    void testTerminalPredicateGenerationLongRef();
     void testTerminalPredicateGenerationEntity();
     void testUnaryPredicateGeneration();
     void testBinaryPredicateGeneration();
@@ -155,6 +156,53 @@ void QOrmFilterExpressionTest::testTerminalPredicateGenerationLong()
 
     {
         QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) >= 3L);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::GreaterOrEqual);
+        QCOMPARE(predicate.value(), 3);
+    }
+}
+
+void QOrmFilterExpressionTest::testTerminalPredicateGenerationLongRef()
+{
+    long id = 3L;
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) == id);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::Equal);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) != id);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::NotEqual);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) < id);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::Less);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) <= id);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::LessOrEqual);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) > id);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::Greater);
+        QCOMPARE(predicate.value(), 3);
+    }
+
+    {
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) >= id);
         QCOMPARE(predicate.classProperty()->descriptor(), "id");
         QCOMPARE(predicate.comparison(), QOrm::Comparison::GreaterOrEqual);
         QCOMPARE(predicate.value(), 3);

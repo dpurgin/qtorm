@@ -124,32 +124,8 @@ extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterUnaryPredicate
 
 namespace QtOrmPrivate
 {
-    template<typename T, bool IsEntityType = std::is_convertible_v<T, const QObject*>>
+    template<typename T, bool IsConvertibleToQVariant = std::is_convertible_v<T, QVariant>>
     struct FilterTerminalPredicateFactory;
-
-    template<typename T>
-    struct FilterTerminalPredicateFactory<T, false>
-    {
-        [[nodiscard]] static QOrmFilterTerminalPredicate create(
-            const QOrmFilterTerminalPredicate::FilterProperty& property,
-            QOrm::Comparison comparison,
-            const T& value)
-        {
-            return {property, comparison, value};
-        }
-    };
-
-    template<>
-    struct FilterTerminalPredicateFactory<long, false>
-    {
-        [[nodiscard]] static QOrmFilterTerminalPredicate create(
-            const QOrmFilterTerminalPredicate::FilterProperty& property,
-            QOrm::Comparison comparison,
-            long value)
-        {
-            return {property, comparison, QVariant::fromValue(value)};
-        }
-    };
 
     template<typename T>
     struct FilterTerminalPredicateFactory<T, true>
@@ -157,9 +133,21 @@ namespace QtOrmPrivate
         [[nodiscard]] static QOrmFilterTerminalPredicate create(
             const QOrmFilterTerminalPredicate::FilterProperty& property,
             QOrm::Comparison comparison,
-            QObject* value)
+            T&& value)
         {
-            return {property, comparison, QVariant::fromValue(value)};
+            return {property, comparison, QVariant{std::forward<T>(value)}};
+        }
+    };
+
+    template<typename T>
+    struct FilterTerminalPredicateFactory<T, false>
+    {
+        [[nodiscard]] static QOrmFilterTerminalPredicate create(
+            const QOrmFilterTerminalPredicate::FilterProperty& property,
+            QOrm::Comparison comparison,
+            T&& value)
+        {
+            return {property, comparison, QVariant::fromValue(std::forward<T>(value))};
         }
     };
 } // namespace QtOrmPrivate
