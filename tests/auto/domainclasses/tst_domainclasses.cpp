@@ -1,3 +1,23 @@
+/*
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ *
+ * This file is part of QtOrm library.
+ *
+ * QtOrm is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * QtOrm is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <QFile>
 #include <QtTest>
 
@@ -13,6 +33,7 @@ private slots:
     void testQVectorReference();
     void testQSetReference();
     void testStdVectorReference();
+    void testNullValueToQDateTime();
 };
 
 void DomainClassesTest::init()
@@ -238,6 +259,43 @@ void DomainClassesTest::testStdVectorReference()
 
         QCOMPARE(result.size(), 1);
         QCOMPARE(result.first()->m_references.size(), 2);
+    }
+}
+
+class WithQDateTime : public QObject
+{
+    Q_OBJECT
+
+    Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+    Q_PROPERTY(QDateTime date MEMBER m_date NOTIFY dateChanged)
+
+public:
+    Q_INVOKABLE WithQDateTime() = default;
+
+    int m_id{0};
+    QDateTime m_date{QDateTime::currentDateTime()};
+
+signals:
+    void idChanged();
+    void dateChanged();
+};
+
+void DomainClassesTest::testNullValueToQDateTime()
+{
+    qRegisterOrmEntity<WithQDateTime>();
+
+    {
+        auto entity = new WithQDateTime;
+        entity->m_date = QDateTime{};
+        QOrmSession session;
+        QVERIFY(session.merge(entity));
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_bypass_schema.json")};
+        auto result = session.from<WithQDateTime>().select().toVector();
+        QCOMPARE(result.size(), 1);
+        QVERIFY(result.first()->m_date.isNull());
     }
 }
 

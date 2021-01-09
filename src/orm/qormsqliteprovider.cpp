@@ -287,9 +287,12 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
         // just a value: set the property value
         else
         {
+            bool isNull = record.isNull(mapping.tableFieldName());
+
             if (!QOrmPrivate::setPropertyValue(entityInstance,
                                                mapping.classPropertyName(),
-                                               record.value(mapping.tableFieldName())))
+                                               isNull ? QVariant{}
+                                                      : record.value(mapping.tableFieldName())))
             {
                 qCDebug(qtorm,
                         "Unable to setPropertyValue() for %s <-> %s",
