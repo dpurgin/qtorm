@@ -105,7 +105,7 @@ void QOrmEntityInstanceCache::finalize(const QOrmMetadata& metadata, QObject* in
 {
     for (const QOrmPropertyMapping& mapping : metadata.propertyMappings())
     {
-        if (mapping.isTransient())
+        if (mapping.isTransient() && !mapping.isReference())
             continue;
 
         // connect to NOTIFY signals of the entity to mark the instance dirty on any change
