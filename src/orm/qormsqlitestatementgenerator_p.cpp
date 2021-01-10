@@ -398,6 +398,28 @@ QString QOrmSqliteStatementGenerator::generateCreateTableStatement(const QOrmMet
     return QStringLiteral("CREATE TABLE %1(%2)").arg(entity.tableName(), fieldsStr);
 }
 
+QString QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
+    const QOrmMetadata& relation,
+    const QOrmPropertyMapping& propertyMapping)
+{
+    Q_ASSERT(!propertyMapping.isTransient());
+
+    QString dataType;
+
+    if (propertyMapping.isReference())
+    {
+        Q_ASSERT(propertyMapping.referencedEntity()->objectIdMapping() != nullptr);
+        dataType = toSqliteType(propertyMapping.referencedEntity()->objectIdMapping()->dataType());
+    }
+    else
+    {
+        dataType = toSqliteType(propertyMapping.dataType());
+    }
+
+    return QStringLiteral(R"(ALTER TABLE "%1" ADD COLUMN "%2" %3)")
+        .arg(relation.tableName(), propertyMapping.tableFieldName(), dataType);
+}
+
 QString QOrmSqliteStatementGenerator::generateDropTableStatement(const QOrmMetadata& entity)
 {
     return QStringLiteral("DROP TABLE %1").arg(entity.tableName());

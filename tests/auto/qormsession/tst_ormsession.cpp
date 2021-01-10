@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
  * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
  * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
  *
@@ -26,7 +27,9 @@
 #include <QOrmSqliteConfiguration>
 #include <QOrmSqliteProvider>
 #include <QSqlDatabase>
+#include <QSqlError>
 #include <QSqlQuery>
+#include <QSqlRecord>
 
 #include "domain/person.h"
 #include "domain/province.h"
@@ -63,6 +66,7 @@ private slots:
     void testTransactionRollback();
 
     void testSchemaCreatedForReferencedEntities();
+    void testSchemaUpdated();
 };
 
 SqliteSessionTest::SqliteSessionTest()
@@ -417,6 +421,48 @@ void SqliteSessionTest::testSchemaCreatedForReferencedEntities()
 
         auto result = session.from<Province>().select();
         QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    }
+}
+
+void SqliteSessionTest::testSchemaUpdated()
+{
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName("testdb.db");
+        QVERIFY(db.open());
+
+        QSqlQuery query = db.exec("CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT)");
+        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+
+        db.close();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_update_schema.json")};
+
+        auto result = session.from<Town>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    }
+
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName("testdb.db");
+        QVERIFY(db.open());
+
+        QVERIFY(db.tables().contains("Town"));
+        QSqlRecord record = db.record("Town");
+        QVERIFY(record.contains("id"));
+        QVERIFY(record.contains("name"));
+        QVERIFY(record.contains("province_id"));
+
+        QVERIFY(db.tables().contains("Province"));
+        record = db.record("Province");
+        QVERIFY(record.contains("id"));
+        QVERIFY(record.contains("name"));
+
+        db.close();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
     }
 }
 

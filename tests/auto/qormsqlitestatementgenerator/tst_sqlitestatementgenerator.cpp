@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
  * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
  * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
  *
@@ -49,6 +50,8 @@ private slots:
     void testCreateTableWithReference();
     void testCreateTableWithManyToOne();
     void testCreateTableWithLong();
+    void testAlterTableAddColumn();
+    void testAlterTableAddColumnWithReference();
 };
 
 void SqliteStatementGenerator::init()
@@ -202,6 +205,25 @@ void SqliteStatementGenerator::testCreateTableWithLong()
     QOrmMetadataCache cache;
     QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Person>()),
              "CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT)");
+}
+
+void SqliteStatementGenerator::testAlterTableAddColumn()
+{
+    QOrmMetadataCache cache;
+
+    QString actual = QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
+        cache.get<Person>(), *cache.get<Person>().classPropertyMapping("name"));
+
+    QCOMPARE(actual, R"(ALTER TABLE "Person" ADD COLUMN "name" TEXT)");
+}
+
+void SqliteStatementGenerator::testAlterTableAddColumnWithReference()
+{
+    QOrmMetadataCache cache;
+    QString actual = QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
+        cache.get<Town>(), *cache.get<Town>().classPropertyMapping("province"));
+
+    QCOMPARE(actual, R"(ALTER TABLE "Town" ADD COLUMN "province_id" INTEGER)");
 }
 
 QTEST_APPLESS_MAIN(SqliteStatementGenerator)

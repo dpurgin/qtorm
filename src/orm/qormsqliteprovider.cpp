@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
  * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
  * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
  *
@@ -401,9 +402,53 @@ QOrmError QOrmSqliteProviderPrivate::recreateSchema(const QOrmRelation& relation
 
 QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 {
-    Q_UNUSED(relation)
-    Q_ORM_NOT_IMPLEMENTED;
-    return {QOrm::ErrorType::Other, "Not implemented"};
+    Q_ASSERT(m_database.isOpen());
+    Q_ASSERT(relation.type() == QOrm::RelationType::Mapping);
+    Q_ASSERT(relation.mapping() != nullptr);
+
+    m_database.transaction();
+
+    // Create table if it does not exist.
+    if (!m_database.tables().contains(relation.mapping()->tableName()))
+    {
+        QString statement =
+            QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping());
+        QSqlQuery query = prepareAndExecute(statement);
+
+        if (query.lastError().type() != QSqlError::NoError)
+        {
+            m_database.rollback();
+            return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
+        }
+    }
+    // Alter existing tables. For now, only adding new columns is supported.
+    else
+    {
+        // Add missing columns, if any.
+        QSqlRecord record = m_database.record(relation.mapping()->tableName());
+
+        for (const QOrmPropertyMapping& mapping : relation.mapping()->propertyMappings())
+        {
+            if (!record.contains(mapping.tableFieldName()))
+            {
+                QString statement =
+                    QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
+                        *relation.mapping(), mapping);
+
+                QSqlQuery query = prepareAndExecute(statement);
+
+                if (query.lastError().type() != QSqlError::NoError)
+                {
+                    m_database.rollback();
+                    return QOrmError{QOrm::ErrorType::UnsynchronizedSchema,
+                                     query.lastError().text()};
+                }
+            }
+        }
+    }
+
+    m_database.commit();
+    return QOrmError{QOrm::ErrorType::None, {}};
 }
 
 QOrmError QOrmSqliteProviderPrivate::validateSchema(const QOrmRelation& relation)

@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2021 Dmitriy Purgin <dpurgin@gmail.com>
  * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
  * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
  *
@@ -39,6 +40,7 @@ class QOrmFilterTerminalPredicate;
 class QOrmFilterUnaryPredicate;
 class QOrmMetadata;
 class QOrmOrder;
+class QOrmPropertyMapping;
 class QOrmQuery;
 class QOrmRelation;
 
@@ -98,6 +100,10 @@ public:
 
     Q_REQUIRED_RESULT
     static QString generateCreateTableStatement(const QOrmMetadata& entity);
+
+    Q_REQUIRED_RESULT
+    static QString generateAlterTableAddColumnStatement(const QOrmMetadata& relation,
+                                                        const QOrmPropertyMapping& propertyMapping);
 
     Q_REQUIRED_RESULT
     static QString generateDropTableStatement(const QOrmMetadata& entity);
