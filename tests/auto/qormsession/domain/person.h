@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2021 Dmitriy Purgin <dpurgin@gmail.com>
  * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
  * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
  *
@@ -21,6 +22,7 @@
 #pragma once
 
 #include <QObject>
+#include <QVector>
 
 class Town;
 
@@ -32,11 +34,17 @@ class Person : public QObject
     Q_PROPERTY(QString firstName READ firstName WRITE setFirstName NOTIFY firstNameChanged)
     Q_PROPERTY(QString lastName READ lastName WRITE setLastName NOTIFY lastNameChanged)
     Q_PROPERTY(Town* town READ town WRITE setTown NOTIFY townChanged)
+    Q_PROPERTY(
+        Person* personParent READ personParent WRITE setPersonParent NOTIFY personParentChanged)
+    Q_PROPERTY(QVector<Person*> personChildren READ personChildren WRITE setPersonChildren NOTIFY
+                   personChildrenChanged)
 
     int m_id;
     QString m_firstName;
     QString m_lastName;
     Town* m_town{nullptr};
+    Person* m_personParent{nullptr};
+    QVector<Person*> m_personChildren;
 
 public:
     Q_INVOKABLE Person() = default;
@@ -60,9 +68,17 @@ public:
     QString lastName() const;
     void setLastName(QString lastName);
 
+    Person* personParent() const;
+    void setPersonParent(Person* personParent);
+
+    const QVector<Person*> personChildren() const;
+    void setPersonChildren(const QVector<Person*> personChildren);
+
 signals:
     void idChanged(int id);
     void firstNameChanged(QString firstName);
     void lastNameChanged(QString lastName);
     void townChanged(Town* town);
+    void personParentChanged(Person* personParent);
+    void personChildrenChanged(const QVector<Person*>& personChildren);
 };

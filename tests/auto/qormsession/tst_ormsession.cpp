@@ -434,6 +434,9 @@ void SqliteSessionTest::testSchemaUpdated()
         QSqlQuery query = db.exec("CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT)");
         QCOMPARE(query.lastError().type(), QSqlError::NoError);
 
+        query = db.exec("CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT)");
+        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+
         db.close();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
     }
@@ -442,6 +445,9 @@ void SqliteSessionTest::testSchemaUpdated()
         QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_update_schema.json")};
 
         auto result = session.from<Town>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+
+        result = session.from<Person>().select();
         QCOMPARE(result.error().type(), QOrm::ErrorType::None);
     }
 
@@ -460,6 +466,14 @@ void SqliteSessionTest::testSchemaUpdated()
         record = db.record("Province");
         QVERIFY(record.contains("id"));
         QVERIFY(record.contains("name"));
+
+        QVERIFY(db.tables().contains("Person"));
+        record = db.record("Person");
+        QVERIFY(record.contains("id"));
+        QVERIFY(record.contains("firstName"));
+        QVERIFY(record.contains("lastName"));
+        QVERIFY(record.contains("town_id"));
+        QVERIFY(record.contains("personParent_id"));
 
         db.close();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);

@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2021 Dmitriy Purgin <dpurgin@gmail.com>
  * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
  * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
  *
@@ -59,4 +60,32 @@ void Person::setLastName(QString lastName)
 
     m_lastName = lastName;
     emit lastNameChanged(m_lastName);
+}
+
+Person* Person::personParent() const
+{
+    return m_personParent;
+}
+
+void Person::setPersonParent(Person* personParent)
+{
+    if (m_personParent == personParent)
+        return;
+
+    m_personParent = personParent;
+    emit personParentChanged(personParent);
+}
+
+const QVector<Person*> Person::personChildren() const
+{
+    return m_personChildren;
+}
+
+void Person::setPersonChildren(const QVector<Person*> personChildren)
+{
+    if (m_personChildren == personChildren)
+        return;
+
+    m_personChildren = personChildren;
+    emit personChildrenChanged(personChildren);
 }

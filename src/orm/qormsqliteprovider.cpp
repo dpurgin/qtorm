@@ -429,7 +429,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 
         for (const QOrmPropertyMapping& mapping : relation.mapping()->propertyMappings())
         {
-            if (!record.contains(mapping.tableFieldName()))
+            if (!record.contains(mapping.tableFieldName()) && !mapping.isTransient())
             {
                 QString statement =
                     QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
