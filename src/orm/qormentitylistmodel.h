@@ -225,7 +225,18 @@ public:
         return false;
     }
 
-    bool update(QObject* instance) override { return m_session.merge(instance); }
+    bool update(QObject* instance) override {
+        T* t = qobject_cast<T*>(instance);
+        if (!t)
+            return false;
+        if (m_session.merge(t)) {
+            int row = indexOf(instance);
+            Q_ASSERT(row >= 0);
+            emit dataChanged(index(row), index(row));
+            return true;
+        }
+        return false;
+    }
 
     void read() override
     {
