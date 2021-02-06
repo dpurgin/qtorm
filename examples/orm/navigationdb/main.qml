@@ -90,6 +90,7 @@ ApplicationWindow {
 
                     Column {
                         id: contentColumn
+                        width: parent.width
                         padding: 6
 
                         Label {
@@ -97,7 +98,14 @@ ApplicationWindow {
                             font.pixelSize: 24
                         }
                         Label {
-                            text: root.forcedUpdate, qsTr("Communities: %2").arg(communityList.length)
+                            text: root.forcedUpdate,
+                                qsTr("Communities: %1").arg(
+                                    communityList.length > 0
+                                        ? communityList.map(community => community.name).join(', ')
+                                        : qsTr("none"))
+
+                            elide: Text.ElideRight
+                            width: parent.width - parent.padding
                         }
                     }
 
