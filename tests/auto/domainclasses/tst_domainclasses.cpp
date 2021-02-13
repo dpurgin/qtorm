@@ -30,10 +30,11 @@ class DomainClassesTest : public QObject
 private slots:
     void init();
 
-    void testQVectorReference();
-    void testQSetReference();
-    void testStdVectorReference();
+    void testBidirectionalReferenceQVector();
+    void testBidirectionalReferenceQSet();
+    void testBidirectionalReferenceStdVector();
     void testNullValueToQDateTime();
+    void testUnidirectionalReference();
 };
 
 void DomainClassesTest::init()
@@ -86,7 +87,7 @@ signals:
     void dummyChanged();
 };
 
-void DomainClassesTest::testQVectorReference()
+void DomainClassesTest::testBidirectionalReferenceQVector()
 {
     qRegisterOrmEntity<WithQVectorReference, ReferencedByQVector>();
 
@@ -157,7 +158,7 @@ signals:
     void otherSideChanged();
 };
 
-void DomainClassesTest::testQSetReference()
+void DomainClassesTest::testBidirectionalReferenceQSet()
 {
     QSKIP("QSet<T*> reference is not implemented");
 
@@ -230,7 +231,7 @@ signals:
     void dummyChanged();
 };
 
-void DomainClassesTest::testStdVectorReference()
+void DomainClassesTest::testBidirectionalReferenceStdVector()
 {
     QSKIP("std::vector<T*> reference is not implemented");
 
@@ -296,6 +297,81 @@ void DomainClassesTest::testNullValueToQDateTime()
         auto result = session.from<WithQDateTime>().select().toVector();
         QCOMPARE(result.size(), 1);
         QVERIFY(result.first()->m_date.isNull());
+    }
+}
+
+class ReferencedUnidirectional : public QObject
+{
+    Q_OBJECT
+
+    Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+    Q_PROPERTY(QString data MEMBER m_data NOTIFY dataChanged)
+
+public:
+    Q_INVOKABLE ReferencedUnidirectional() = default;
+
+    int m_id{0};
+    QString m_data;
+
+signals:
+    void idChanged();
+    void dataChanged();
+};
+
+class WithUnidirectionalReference : public QObject
+{
+    Q_OBJECT
+
+    Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+    Q_PROPERTY(ReferencedUnidirectional* otherSide MEMBER m_otherSide NOTIFY otherSideChanged)
+
+public:
+    Q_INVOKABLE WithUnidirectionalReference() = default;
+
+    int m_id;
+    ReferencedUnidirectional* m_otherSide{nullptr};
+
+signals:
+    void idChanged();
+    void otherSideChanged();
+};
+
+void DomainClassesTest::testUnidirectionalReference()
+{
+    qRegisterOrmEntity<ReferencedUnidirectional, WithUnidirectionalReference>();
+
+    {
+        ReferencedUnidirectional* referenced = new ReferencedUnidirectional;
+        WithUnidirectionalReference* withReference = new WithUnidirectionalReference;
+        withReference->m_otherSide = referenced;
+
+        QOrmSession session;
+        QVERIFY(session.merge(referenced, withReference));
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_bypass_schema.json")};
+
+        ReferencedUnidirectional* referenced = nullptr;
+        {
+            auto result = session.from<ReferencedUnidirectional>().select().toVector();
+            QCOMPARE(result.size(), 1);
+            referenced = result.first();
+        }
+
+        WithUnidirectionalReference* withReference = nullptr;
+        {
+            auto result = session.from<WithUnidirectionalReference>().select().toVector();
+            QCOMPARE(result.size(), 1);
+            withReference = result.first();
+        }
+
+        QVERIFY(referenced != nullptr);
+        QCOMPARE(referenced->m_id, 1);
+
+        QVERIFY(withReference != nullptr);
+        QCOMPARE(withReference->m_id, 1);
+        QCOMPARE(withReference->m_otherSide, referenced);
     }
 }
 
