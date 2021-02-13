@@ -264,9 +264,9 @@ public:
             {
                 QVariantList list;
 
-                for (const QObject* o : propertyValue.value<QVector<QObject*>>())
+                for (QObject* o : propertyValue.value<QVector<QObject*>>())
                 {
-                    list.push_back(o);
+                    list.push_back(QVariant::fromValue(o));
                 }
 
                 propertyValue = list;
