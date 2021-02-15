@@ -67,7 +67,7 @@ not be able to instantiate it when fetching data.
 
 A minimal entity declaration with all-default settings is as follows: 
 
-```
+```cpp
 class Community : public QObject
 {
     Q_OBJECT
@@ -112,7 +112,7 @@ This entity is mapped using the following SQLite statement: `CREATE TABLE Commun
 
 All entities must be registered at most once before the first `QOrmSession` instantiation: 
 
-```
+```cpp
 qRegisterOrmEntity<Community, Province, Town, ...>();
 ```
 
@@ -120,7 +120,7 @@ qRegisterOrmEntity<Community, Province, Town, ...>();
 
 The mapping defaults can be overriden by using `Q_ORM_CLASS()` and `Q_ORM_PROPERTY()`:
 
-```
+```cpp
 class Community : public QObject
 {
     Q_OBJECT
@@ -168,7 +168,7 @@ Restrictions and requirements:
 
 A 1:n relation can be created by declaring a `QVector` of related entities as follows: 
 
-```
+```cpp
 class Town;
 
 class Province : public QObject
@@ -190,7 +190,7 @@ corresponding Province.
 
 An n:1 relation can be created by declaring a pointer to the referenced entity as follows: 
 
-```
+```cpp
 class Province; 
 
 class Town : public QObject
@@ -218,7 +218,7 @@ the application executable directory.
 
 #### `qtorm.json` Example
 
-```
+```json
 {
     "provider": "sqlite",
     "verbose": true, 
