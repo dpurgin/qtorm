@@ -35,9 +35,7 @@ class Province : public QObject
     Q_PROPERTY(QVector<Town*> towns READ towns WRITE setTowns NOTIFY townsChanged)
 
     int m_id;
-
     QString m_name;
-
     QVector<Town*> m_towns;
 
 public:

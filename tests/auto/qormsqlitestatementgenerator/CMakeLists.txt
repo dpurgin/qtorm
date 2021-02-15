@@ -9,6 +9,9 @@ add_executable(tst_sqlitestatementgenerator
 
     domain/person.h
     domain/person.cpp
+
+    domain/community.h
+    domain/community.cpp
 )
 
 target_link_libraries(tst_sqlitestatementgenerator
