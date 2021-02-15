@@ -10,8 +10,10 @@ SOURCES +=  tst_sqlitestatementgenerator.cpp \
     domain/province.cpp \
     domain/town.cpp \
     domain/person.cpp \
+    domain/community.cpp \
 
 HEADERS += \
     domain/province.h \
     domain/town.h \
     domain/person.h \
+    domain/community.h \
