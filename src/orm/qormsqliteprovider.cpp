@@ -286,7 +286,7 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
             }
         }
         // just a value: set the property value
-        else
+        else if (!mapping.isTransient())
         {
             bool isNull = record.isNull(mapping.tableFieldName());
 
