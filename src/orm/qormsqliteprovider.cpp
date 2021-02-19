@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -37,14 +37,15 @@
 #include "qormglobal_p.h"
 #include "qormsqlitestatementgenerator_p.h"
 
-#include <QDebug>
-#include <QMetaObject>
-#include <QMetaProperty>
-#include <QObject>
-#include <QSqlDatabase>
-#include <QSqlError>
-#include <QSqlQuery>
-#include <QSqlRecord>
+#include <QtCore/qdebug.h>
+#include <QtCore/qmetaobject.h>
+#include <QtCore/qobject.h>
+#include <QtCore/quuid.h>
+#include <QtSql/qsqldatabase.h>
+#include <QtSql/qsqlerror.h>
+#include <QtSql/qsqlfield.h>
+#include <QtSql/qsqlquery.h>
+#include <QtSql/qsqlrecord.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -90,6 +91,10 @@ class QOrmSqliteProviderPrivate
                                   QOrmEntityInstanceCache& entityInstanceCache);
     QOrmQueryResult<QObject> merge(const QOrmQuery& query);
     QOrmQueryResult<QObject> remove(const QOrmQuery& query);
+
+    [[nodiscard]] bool foreignKeysEnabled();
+    [[nodiscard]] QOrmError setForeignKeysEnabled(bool enabled);
+    [[nodiscard]] QOrmError checkForeignKeys();
 };
 
 QOrmError QOrmSqliteProviderPrivate::lastDatabaseError() const
@@ -98,12 +103,12 @@ QOrmError QOrmSqliteProviderPrivate::lastDatabaseError() const
 }
 
 QSqlQuery QOrmSqliteProviderPrivate::prepareAndExecute(const QString& statement,
-                                                    const QVariantMap& parameters = {})
+                                                       const QVariantMap& parameters = {})
 {
     QSqlQuery query{m_database};
 
     if (m_sqlConfiguration.verbose())
-        qCDebug(qtorm) << "Executing:" << statement;
+        qCDebug(qtorm).noquote() << "Executing:" << statement;
 
     if (!query.prepare(statement))
         return query;
@@ -309,9 +314,6 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
 
 QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation& relation)
 {
-    if (m_sqlConfiguration.schemaMode() == QOrmSqliteConfiguration::SchemaMode::Bypass)
-        return {QOrm::ErrorType::None, ""};
-
     switch (relation.type())
     {
         case QOrm::RelationType::Mapping:
@@ -321,9 +323,35 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
             if (m_schemaSyncCache.contains(relation.mapping()->className()))
                 return {QOrm::ErrorType::None, ""};
 
-            std::optional<QOrmError> error;
+            QOrmError error{QOrm::ErrorType::None, {}};
 
-            switch (m_sqlConfiguration.schemaMode())
+            QOrmSqliteConfiguration::SchemaMode effectiveSchemaMode =
+                m_sqlConfiguration.schemaMode();
+
+            if (relation.mapping()->userMetadata().contains(QOrm::Keyword::Schema))
+            {
+                static QMap<QString, QOrmSqliteConfiguration::SchemaMode> schemaModes{
+                    {QString{"recreate"}, QOrmSqliteConfiguration::SchemaMode::Recreate},
+                    {QString("update"), QOrmSqliteConfiguration::SchemaMode::Update},
+                    {QString("validate"), QOrmSqliteConfiguration::SchemaMode::Validate},
+                    {QString("bypass"), QOrmSqliteConfiguration::SchemaMode::Bypass}};
+
+                QString schemaModeValue =
+                    relation.mapping()->userMetadata().value(QOrm::Keyword::Schema).toString();
+
+                if (!schemaModes.contains(schemaModeValue))
+                {
+                    qFatal("QtOrm: Unsupported schema mode in %s: Q_ORM_CLASS(SCHEMA %s)",
+                           qPrintable(relation.mapping()->className()),
+                           qPrintable(schemaModeValue));
+                }
+                else
+                {
+                    effectiveSchemaMode = schemaModes.value(schemaModeValue);
+                }
+            }
+
+            switch (effectiveSchemaMode)
             {
                 case QOrmSqliteConfiguration::SchemaMode::Recreate:
                     error = recreateSchema(relation);
@@ -338,12 +366,11 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
                     break;
 
                 case QOrmSqliteConfiguration::SchemaMode::Bypass:
-                    Q_ORM_UNEXPECTED_STATE;
+                    // no error
+                    break;
             }
 
-            Q_ASSERT(error.has_value());
-
-            if (error->type() == QOrm::ErrorType::None)
+            if (error.type() == QOrm::ErrorType::None)
             {
                 m_schemaSyncCache.insert(relation.mapping()->className());
 
@@ -361,7 +388,7 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
                 }
             }
 
-            return *error;
+            return error;
         }
 
         case QOrm::RelationType::Query:
@@ -406,11 +433,11 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
     Q_ASSERT(relation.type() == QOrm::RelationType::Mapping);
     Q_ASSERT(relation.mapping() != nullptr);
 
-    m_database.transaction();
-
     // Create table if it does not exist.
     if (!m_database.tables().contains(relation.mapping()->tableName()))
     {
+        m_database.transaction();
+
         QString statement =
             QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping());
         QSqlQuery query = prepareAndExecute(statement);
@@ -420,34 +447,193 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
             m_database.rollback();
             return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
         }
+
+        m_database.commit();
     }
-    // Alter existing tables. For now, only adding new columns is supported.
+    // If the table exists, check if an update is needed. An update is needed if not all columns
+    // appear in both the database and the entity metadata, or if their data types are not
+    // compatible.
     else
     {
-        // Add missing columns, if any.
+        bool updateNeeded = false;
         QSqlRecord record = m_database.record(relation.mapping()->tableName());
 
-        for (const QOrmPropertyMapping& mapping : relation.mapping()->propertyMappings())
+        // Check if all table columns are mapped by non-transient class properties, and there data
+        // types are compatible.
+        for (int i = 0; i < record.count() && !updateNeeded; ++i)
         {
-            if (!record.contains(mapping.tableFieldName()) && !mapping.isTransient())
+            QSqlField field = record.field(i);
+
+            const QOrmPropertyMapping* mapping =
+                relation.mapping()->tableFieldMapping(field.name());
+
+            if (mapping == nullptr)
             {
-                QString statement =
-                    QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
-                        *relation.mapping(), mapping);
+                qCDebug(qtorm).noquote().nospace()
+                    << "updating table " << relation.mapping()->tableName() << ": field "
+                    << field.name() << " has no mapping in entity "
+                    << relation.mapping()->className();
+                updateNeeded = true;
+            }
+            else if (mapping->isTransient())
+            {
+                qCDebug(qtorm).noquote().nospace()
+                    << "updating table " << relation.mapping()->tableName() << ": field "
+                    << field.name() << " is mapped to a transient property "
+                    << relation.mapping()->className() << "::" << mapping->classPropertyName();
+                updateNeeded = true;
+            }
+            else if (!QVariant{field.type()}.canConvert(mapping->dataType()))
+            {
+                qCDebug(qtorm).noquote().nospace()
+                    << "updating table " << relation.mapping()->tableName()
+                    << ": data types of field " << field.name() << " and its mapping "
+                    << relation.mapping()->className() << "::" << mapping->classPropertyName()
+                    << " are incompatible.";
+                updateNeeded = true;
+            }
+        }
 
-                QSqlQuery query = prepareAndExecute(statement);
+        // Check if there are non-transient class properties that are not mapped in the database.
+        for (size_t i = 0; i < relation.mapping()->propertyMappings().size() && !updateNeeded; ++i)
+        {
+            const QOrmPropertyMapping& mapping = relation.mapping()->propertyMappings()[i];
 
-                if (query.lastError().type() != QSqlError::NoError)
+            if (!mapping.isTransient() && !record.contains(mapping.tableFieldName()))
+            {
+                qCDebug(qtorm).noquote().nospace()
+                    << "updating table " << relation.mapping()->tableName()
+                    << ": a non-transient class property " << relation.mapping()->className()
+                    << "::" << mapping.classPropertyName() << " has no corresponding table field.";
+                updateNeeded = true;
+            }
+        }
+
+        if (updateNeeded)
+        {
+            qCInfo(qtorm).noquote() << "Updating schema for" << relation.mapping()->className()
+                                    << "<->" << relation.mapping()->tableName();
+
+            // Alter existing tables using the generalized 12-step process described in
+            // https://sqlite.org/lang_altertable.html
+            //
+            // 1. If foreign key constraints are enabled, disable them using PRAGMA
+            // foreign_keys=OFF.
+            bool withForeignKeys = foreignKeysEnabled();
+
+            QOrmError error = setForeignKeysEnabled(false);
+
+            if (error.type() != QOrm::ErrorType::None)
+            {
+                return {QOrm::ErrorType::UnsynchronizedSchema, error.text()};
+            }
+
+            // 2. Start a transaction.
+            m_database.transaction();
+
+            // 3. Remember the format of all indexes, triggers, and views associated with table X.
+            //
+            // QtOrm does not support indexes, triggers, and views yet.
+
+            // 4. Use CREATE TABLE to construct a new table "new_X" that is in the desired revised
+            // format of table X
+            QString newTableName = QString{"%1_%2"}.arg(relation.mapping()->tableName(),
+                                                        QUuid::createUuid().toString(QUuid::Id128));
+            QString statement =
+                QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping(),
+                                                                           newTableName);
+            QSqlQuery query = prepareAndExecute(statement);
+
+            if (query.lastError().type() != QSqlError::NoError)
+            {
+                m_database.rollback();
+                return {QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
+            }
+
+            // 5. Transfer content from X into new_X
+            QStringList tableColumns;
+            for (const QOrmPropertyMapping& mapping : relation.mapping()->propertyMappings())
+            {
+                if (!mapping.isTransient() && record.contains(mapping.tableFieldName()))
+                {
+                    tableColumns.push_back(mapping.tableFieldName());
+                }
+            }
+
+            statement = QOrmSqliteStatementGenerator::generateInsertIntoStatement(
+                newTableName, tableColumns, relation.mapping()->tableName(), tableColumns);
+            query = prepareAndExecute(statement);
+
+            if (query.lastError().type() != QSqlError::NoError)
+            {
+                m_database.rollback();
+                return {QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
+            }
+
+            // 6. Drop the old table X
+            statement =
+                QOrmSqliteStatementGenerator::generateDropTableStatement(*relation.mapping());
+            query = prepareAndExecute(statement);
+
+            if (query.lastError().type() != QSqlError::NoError)
+            {
+                m_database.rollback();
+                return {QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
+            }
+
+            // 7. Change the name of new_X to X
+            statement = QOrmSqliteStatementGenerator::generateRenameTableStatement(
+                newTableName, relation.mapping()->tableName());
+            query = prepareAndExecute(statement);
+
+            if (query.lastError().type() != QSqlError::NoError)
+            {
+                m_database.rollback();
+                return {QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
+            }
+
+            // 8. Use CREATE INDEX, CREATE TRIGGER, and CREATE VIEW to reconstruct indexes,
+            // triggers, and views associated with table X.
+            //
+            // QtOrm does not support indexes, triggers, and views yet.
+
+            // 9. If any views refer to table X in a way that is affected by the schema change, then
+            // drop those views using DROP VIEW and recreate them with whatever changes are
+            // necessary to accommodate the schema change using CREATE VIEW.
+            //
+            // QtOrm does not suport views yet.
+
+            // 10. If foreign key constraints were originally enabled then run PRAGMA
+            // foreign_key_check to verify that the schema change did not break any foreign key
+            // constraints.
+            if (withForeignKeys)
+            {
+                error = checkForeignKeys();
+
+                if (error.type() != QOrm::ErrorType::None)
                 {
                     m_database.rollback();
-                    return QOrmError{QOrm::ErrorType::UnsynchronizedSchema,
-                                     query.lastError().text()};
+                    return {QOrm::ErrorType::UnsynchronizedSchema, error.text()};
+                }
+            }
+
+            // 11. Commit the transaction started in step 2.
+            m_database.commit();
+
+            // 12. If foreign keys constraints were originally enabled, reenable them now.
+            if (withForeignKeys)
+            {
+                error = setForeignKeysEnabled(true);
+
+                if (error.type() != QOrm::ErrorType::None)
+                {
+                    m_database.rollback();
+                    return {QOrm::ErrorType::UnsynchronizedSchema, error.text()};
                 }
             }
         }
     }
 
-    m_database.commit();
     return QOrmError{QOrm::ErrorType::None, {}};
 }
 
@@ -494,15 +680,15 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(
                 if (entityInstanceCache.isModified(cachedInstance) &&
                     !query.flags().testFlag(QOrm::QueryFlags::OverwriteCachedInstances))
                 {
-                        QString errorString;
-                        QDebug dbg{&errorString};
-                        dbg << "Entity instance" << cachedInstance
-                            << "was read from the database but has unsaved changes in the "
-                               "OR-mapper. "
-                               "Merge this instance or discard changes before reading.";
+                    QString errorString;
+                    QDebug dbg{&errorString};
+                    dbg << "Entity instance" << cachedInstance
+                        << "was read from the database but has unsaved changes in the "
+                           "OR-mapper. "
+                           "Merge this instance or discard changes before reading.";
 
-                        return QOrmQueryResult<QObject>{
-                            QOrmError{QOrm::ErrorType::UnsynchronizedEntity, errorString}};
+                    return QOrmQueryResult<QObject>{
+                        QOrmError{QOrm::ErrorType::UnsynchronizedEntity, errorString}};
                 }
                 else if (query.flags().testFlag(QOrm::QueryFlags::OverwriteCachedInstances))
                 {
@@ -594,6 +780,43 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::remove(const QOrmQuery& quer
         return QOrmQueryResult<QObject>{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
 
     return QOrmQueryResult<QObject>{sqlQuery.numRowsAffected()};
+}
+
+bool QOrmSqliteProviderPrivate::foreignKeysEnabled()
+{
+    QSqlQuery query = m_database.exec("PRAGMA foreign_keys");
+
+    if (query.next())
+    {
+        return query.value("foreign_keys").toBool();
+    }
+
+    return false;
+}
+
+QOrmError QOrmSqliteProviderPrivate::setForeignKeysEnabled(bool enabled)
+{
+    QSqlQuery query = enabled ? m_database.exec("PRAGMA foreign_keys=ON")
+                              : m_database.exec("PRAGMA foreign_keys=OFF");
+
+    if (query.lastError().type() != QSqlError::NoError)
+    {
+        return {QOrm::ErrorType::Provider, query.lastError().text()};
+    }
+
+    return {QOrm::ErrorType::None, {}};
+}
+
+QOrmError QOrmSqliteProviderPrivate::checkForeignKeys()
+{
+    QSqlQuery query = prepareAndExecute("PRAGMA foreign_keys_check");
+
+    if (query.lastError().type() != QSqlError::NoError)
+    {
+        return {QOrm::ErrorType::Provider, query.lastError().text()};
+    }
+
+    return {QOrm::ErrorType::None, {}};
 }
 
 QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqliteConfiguration& sqlConfiguration)
@@ -699,7 +922,12 @@ QOrmQueryResult<QObject> QOrmSqliteProvider::execute(const QOrmQuery& query,
 {
     Q_D(QOrmSqliteProvider);
 
-    d->ensureSchemaSynchronized(query.relation());
+    QOrmError error = d->ensureSchemaSynchronized(query.relation());
+
+    if (error.type() != QOrm::ErrorType::None)
+    {
+        return QOrmQueryResult<QObject>{error};
+    }
 
     switch (query.operation())
     {

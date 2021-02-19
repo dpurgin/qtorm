@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -37,7 +37,6 @@ class QOrmMetadataPrivate;
 class Q_ORM_EXPORT QOrmMetadata
 {
 public:
-    //    explicit QOrmMetadata(const QMetaObject& qMetaObject);
     explicit QOrmMetadata(const QOrmMetadataPrivate* data);
 
     QOrmMetadata(const QOrmMetadata&);
@@ -47,19 +46,17 @@ public:
     QOrmMetadata& operator=(const QOrmMetadata&);
     QOrmMetadata& operator=(QOrmMetadata&&);
 
-    Q_REQUIRED_RESULT const QMetaObject& qMetaObject() const;
+    [[nodiscard]] const QMetaObject& qMetaObject() const;
 
-    Q_REQUIRED_RESULT QString className() const;
-    Q_REQUIRED_RESULT QString tableName() const;
+    [[nodiscard]] QString className() const;
+    [[nodiscard]] QString tableName() const;
 
-    Q_REQUIRED_RESULT
-    const std::vector<QOrmPropertyMapping>& propertyMappings() const;
-    Q_REQUIRED_RESULT
-    const QOrmPropertyMapping* tableFieldMapping(const QString& fieldName) const;
-    Q_REQUIRED_RESULT
-    const QOrmPropertyMapping* classPropertyMapping(const QString& classProperty) const;
-    Q_REQUIRED_RESULT
-    const QOrmPropertyMapping* objectIdMapping() const;
+    [[nodiscard]] const std::vector<QOrmPropertyMapping>& propertyMappings() const;
+    [[nodiscard]] const QOrmPropertyMapping* tableFieldMapping(const QString& fieldName) const;
+    [[nodiscard]] const QOrmPropertyMapping* classPropertyMapping(
+        const QString& classProperty) const;
+    [[nodiscard]] const QOrmPropertyMapping* objectIdMapping() const;
+    [[nodiscard]] const QOrmUserMetadata& userMetadata() const;
 
 private:
     QSharedDataPointer<const QOrmMetadataPrivate> d;

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -66,7 +66,8 @@ private slots:
     void testTransactionRollback();
 
     void testSchemaCreatedForReferencedEntities();
-    void testSchemaUpdated();
+    void testSchemaUpdateCreatesTablesAndAddsColumns();
+    void testSchemaUpdateRemovesColumns();
 };
 
 SqliteSessionTest::SqliteSessionTest()
@@ -89,7 +90,6 @@ void SqliteSessionTest::init()
 
 void SqliteSessionTest::cleanup()
 {
-
 }
 
 void SqliteSessionTest::testCascadedCreate()
@@ -357,7 +357,7 @@ void SqliteSessionTest::testMergeFailsWithInconsistentReferences()
 }
 
 void SqliteSessionTest::testMergeOfExistingEntitiesWithExplicitIdsUpdates()
-{    
+{
     int idUpperAustria = -1;
     int idLowerAustria = -1;
 
@@ -424,7 +424,7 @@ void SqliteSessionTest::testSchemaCreatedForReferencedEntities()
     }
 }
 
-void SqliteSessionTest::testSchemaUpdated()
+void SqliteSessionTest::testSchemaUpdateCreatesTablesAndAddsColumns()
 {
     {
         QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
@@ -432,6 +432,12 @@ void SqliteSessionTest::testSchemaUpdated()
         QVERIFY(db.open());
 
         QSqlQuery query = db.exec("CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT)");
+        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+
+        query = db.exec("INSERT INTO Town(id) VALUES(1)");
+        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+
+        query = db.exec("INSERT INTO Town(id) VALUES(2)");
         QCOMPARE(query.lastError().type(), QSqlError::NoError);
 
         query = db.exec("CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT)");
@@ -446,6 +452,13 @@ void SqliteSessionTest::testSchemaUpdated()
 
         auto result = session.from<Town>().select();
         QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+        auto townData = result.toVector();
+        QCOMPARE(townData.size(), 2);
+        QCOMPARE(townData[0]->id(), 1);
+        QCOMPARE(townData[1]->id(), 2);
+
+        result = session.from<Province>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
 
         result = session.from<Person>().select();
         QCOMPARE(result.error().type(), QOrm::ErrorType::None);
@@ -458,17 +471,109 @@ void SqliteSessionTest::testSchemaUpdated()
 
         QVERIFY(db.tables().contains("Town"));
         QSqlRecord record = db.record("Town");
+        QCOMPARE(record.count(), 3);
         QVERIFY(record.contains("id"));
         QVERIFY(record.contains("name"));
         QVERIFY(record.contains("province_id"));
 
         QVERIFY(db.tables().contains("Province"));
         record = db.record("Province");
+        QCOMPARE(record.count(), 2);
         QVERIFY(record.contains("id"));
         QVERIFY(record.contains("name"));
 
         QVERIFY(db.tables().contains("Person"));
         record = db.record("Person");
+        QCOMPARE(record.count(), 5);
+        QVERIFY(record.contains("id"));
+        QVERIFY(record.contains("firstName"));
+        QVERIFY(record.contains("lastName"));
+        QVERIFY(record.contains("town_id"));
+        QVERIFY(record.contains("personParent_id"));
+
+        db.close();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+    }
+}
+
+void SqliteSessionTest::testSchemaUpdateRemovesColumns()
+{
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName("testdb.db");
+        QVERIFY(db.open());
+
+        QStringList statements{"CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT"
+                               ", postalCode INTEGER"
+                               ", name TEXT"
+                               ", province_id INTEGER)",
+                               "INSERT INTO Town(postalCode, name, province_id) "
+                               "    VALUES(4232, 'Hagenberg', 1)",
+                               "INSERT INTO Town(postalCode, name, province_id) "
+                               "    VALUES(3860, 'Heidenreichstein', 2)",
+                               "CREATE TABLE Province(id INTEGER PRIMARY KEY AUTOINCREMENT"
+                               ", name TEXT)",
+                               "INSERT INTO Province(name) VALUES('Oberoesterreich')",
+                               "INSERT INTO Province(name) VALUES('Niederoesterreich')"};
+
+        for (const QString& statement : statements)
+        {
+            QSqlQuery query = db.exec(statement);
+            QCOMPARE(query.lastError().type(), QSqlError::NoError);
+        }
+
+        db.close();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_update_schema.json")};
+
+        auto result = session.from<Town>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+
+        auto townData = result.toVector();
+        QCOMPARE(townData.size(), 2);
+        QCOMPARE(townData[0]->id(), 1);
+        QCOMPARE(townData[0]->name(), "Hagenberg");
+        QVERIFY(townData[0]->province() != nullptr);
+        QCOMPARE(townData[0]->province()->id(), 1);
+        QCOMPARE(townData[0]->province()->name(), "Oberoesterreich");
+
+        QCOMPARE(townData[1]->id(), 2);
+        QCOMPARE(townData[1]->name(), "Heidenreichstein");
+        QVERIFY(townData[1]->province() != nullptr);
+        QCOMPARE(townData[1]->province()->id(), 2);
+        QCOMPARE(townData[1]->province()->name(), "Niederoesterreich");
+
+        result = session.from<Province>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+
+        result = session.from<Person>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    }
+
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName("testdb.db");
+        QVERIFY(db.open());
+
+        QVERIFY(db.tables().contains("Town"));
+        QSqlRecord record = db.record("Town");
+        QCOMPARE(record.count(), 3);
+        QVERIFY(record.contains("id"));
+        QVERIFY(record.contains("name"));
+        QVERIFY(record.contains("province_id"));
+
+        QVERIFY(db.tables().contains("Province"));
+        record = db.record("Province");
+        QCOMPARE(record.count(), 2);
+        QVERIFY(record.contains("id"));
+        QVERIFY(record.contains("name"));
+
+        QVERIFY(db.tables().contains("Person"));
+        record = db.record("Person");
+        QCOMPARE(record.count(), 5);
         QVERIFY(record.contains("id"));
         QVERIFY(record.contains("firstName"));
         QVERIFY(record.contains("lastName"));

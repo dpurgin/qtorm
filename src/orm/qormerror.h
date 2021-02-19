@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -34,15 +34,12 @@ class Q_ORM_EXPORT QOrmError
 public:
     QOrmError(QOrm::ErrorType type, const QString& text);
 
-    Q_REQUIRED_RESULT QOrm::ErrorType type() const;
-    Q_REQUIRED_RESULT QString text() const;
+    [[nodiscard]] QOrm::ErrorType type() const;
+    [[nodiscard]] QString text() const;
 
-    Q_REQUIRED_RESULT bool operator==(QOrm::ErrorType errorType) const
-    {
-        return m_type == errorType;
-    }
+    [[nodiscard]] bool operator==(QOrm::ErrorType errorType) const { return m_type == errorType; }
 
-    Q_REQUIRED_RESULT bool operator!=(QOrm::ErrorType errorType) const
+    [[nodiscard]] bool operator!=(QOrm::ErrorType errorType) const
     {
         return !operator==(errorType);
     }

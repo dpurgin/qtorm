@@ -41,7 +41,7 @@ static QString insertParameter(QVariantMap& boundParameters, QString name, QVari
 
     boundParameters.insert(key, value);
 
-    return key;    
+    return key;
 }
 
 static QVariant propertyValueForQuery(const QObject* entityInstance,
@@ -146,12 +146,32 @@ QString QOrmSqliteStatementGenerator::generateInsertStatement(const QOrmMetadata
     return statement;
 }
 
+QString QOrmSqliteStatementGenerator::generateInsertIntoStatement(
+    const QString& destinationTableName,
+    const QStringList& destinationColumns,
+    const QString& sourceTableName,
+    const QStringList& sourceColumns)
+{
+    QStringList columnList;
+
+    for (const QString& destinationColumn : destinationColumns)
+    {
+        if (sourceColumns.contains(destinationColumn))
+        {
+            columnList += QString{R"("%1")"}.arg(destinationColumn);
+        }
+    }
+
+    return QString(R"(INSERT INTO "%1"(%2) SELECT %2 FROM "%3")")
+        .arg(destinationTableName, columnList.join(','), sourceTableName);
+}
+
 QString QOrmSqliteStatementGenerator::generateUpdateStatement(const QOrmMetadata& relation,
                                                               const QObject* entityInstance,
                                                               QVariantMap& boundParameters)
 {
     if (relation.objectIdMapping() == nullptr)
-        qFatal("QtORM: Unable to update entity without object ID property");
+        qFatal("QtOrm: Unable to update entity without object ID property");
 
     QStringList setList;
 
@@ -286,9 +306,9 @@ QString QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterExpressi
     Q_ORM_UNEXPECTED_STATE;
 }
 
-QString
-QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterTerminalPredicate& predicate,
-                                                QVariantMap& boundParameters)
+QString QOrmSqliteStatementGenerator::generateCondition(
+    const QOrmFilterTerminalPredicate& predicate,
+    QVariantMap& boundParameters)
 {
     Q_ASSERT(predicate.isResolved());
 
@@ -361,7 +381,9 @@ QString QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterUnaryPre
     return QString{"NOT (%1)"}.arg(rhsExpr);
 }
 
-QString QOrmSqliteStatementGenerator::generateCreateTableStatement(const QOrmMetadata& entity)
+QString QOrmSqliteStatementGenerator::generateCreateTableStatement(
+    const QOrmMetadata& entity,
+    std::optional<QString> overrideTableName)
 {
     QStringList fields;
 
@@ -395,7 +417,10 @@ QString QOrmSqliteStatementGenerator::generateCreateTableStatement(const QOrmMet
 
     QString fieldsStr = fields.join(',');
 
-    return QStringLiteral("CREATE TABLE %1(%2)").arg(entity.tableName(), fieldsStr);
+    Q_ASSERT(!overrideTableName.has_value() || !overrideTableName->isEmpty());
+    QString effectiveTableName = overrideTableName.value_or(entity.tableName());
+
+    return QStringLiteral("CREATE TABLE %1(%2)").arg(effectiveTableName, fieldsStr);
 }
 
 QString QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
@@ -422,7 +447,13 @@ QString QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
 
 QString QOrmSqliteStatementGenerator::generateDropTableStatement(const QOrmMetadata& entity)
 {
-    return QStringLiteral("DROP TABLE %1").arg(entity.tableName());
+    return QStringLiteral(R"(DROP TABLE "%1")").arg(entity.tableName());
+}
+
+QString QOrmSqliteStatementGenerator::generateRenameTableStatement(const QString& oldName,
+                                                                   const QString& newName)
+{
+    return QStringLiteral(R"(ALTER TABLE "%1" RENAME TO "%2")").arg(oldName, newName);
 }
 
 QString QOrmSqliteStatementGenerator::toSqliteType(QVariant::Type type)
