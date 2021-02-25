@@ -50,6 +50,8 @@ private slots:
     void cleanup();
 
     void testCascadedCreate();
+    void testCreateWithTransientProperties();
+    void testReadWithTransientProperties();
 
     void testSelectWithOneToMany();
     void testSelectWithManyToOne();
@@ -131,6 +133,75 @@ void SqliteSessionTest::testCascadedCreate()
     QVERIFY(
         query.exec(QString::fromUtf8("SELECT * FROM Province WHERE name = 'Niederösterreich'")));
     QCOMPARE(query.numRowsAffected(), 1);
+}
+
+class TownWithTransient : public Town
+{
+    Q_OBJECT
+
+    Q_PROPERTY(bool hasLargePopulation READ hasLargePopulation NOTIFY hasLargePopulationChanged)
+    Q_ORM_PROPERTY(hasLargePopulation TRANSIENT)
+
+public:
+    Q_INVOKABLE TownWithTransient(QObject* parent = nullptr)
+        : Town{parent}
+    {
+    }
+
+    bool hasLargePopulation() const { return false; }
+
+signals:
+    void hasLargePopulationChanged();
+};
+
+void SqliteSessionTest::testCreateWithTransientProperties()
+{
+    qRegisterOrmEntity<TownWithTransient>();
+
+    QOrmSqliteConfiguration sqliteConfiguration{};
+    sqliteConfiguration.setVerbose(true);
+    sqliteConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Recreate);
+    sqliteConfiguration.setDatabaseName(":memory:");
+    QOrmSqliteProvider* sqliteProvider = new QOrmSqliteProvider{sqliteConfiguration};
+    QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
+    QOrmSession session{sessionConfiguration};
+
+    TownWithTransient* town = new TownWithTransient;
+    town->setName("Hagenberg");
+    QVERIFY(session.merge(town));
+
+    QSqlQuery query{sqliteProvider->database()};
+
+    QVERIFY(
+        query.exec(QString::fromUtf8("SELECT * FROM TownWithTransient WHERE name = 'Hagenberg'")));
+    QCOMPARE(query.numRowsAffected(), 1);
+}
+
+void SqliteSessionTest::testReadWithTransientProperties()
+{
+    qRegisterOrmEntity<TownWithTransient>();
+
+    QOrmSqliteConfiguration sqliteConfiguration{};
+    sqliteConfiguration.setVerbose(true);
+    sqliteConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Bypass);
+    sqliteConfiguration.setDatabaseName(":memory:");
+    QOrmSqliteProvider* sqliteProvider = new QOrmSqliteProvider{sqliteConfiguration};
+    sqliteProvider->connectToBackend();
+
+    QSqlQuery query{sqliteProvider->database()};
+    QVERIFY(query.exec(
+        "CREATE TABLE TownWithTransient(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)"));
+    QVERIFY(query.exec("INSERT INTO TownWithTransient(name) VALUES('Hagenberg')"));
+
+    QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
+    QOrmSession session{sessionConfiguration};
+
+    auto result = session.from<TownWithTransient>().select();
+    QCOMPARE(result.error(), QOrm::ErrorType::None);
+    auto data = result.toVector();
+    QCOMPARE(data.size(), 1);
+    QCOMPARE(data[0]->id(), 1);
+    QCOMPARE(data[0]->name(), "Hagenberg");
 }
 
 void SqliteSessionTest::testSelectWithOneToMany()
