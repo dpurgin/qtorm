@@ -106,6 +106,8 @@ public:
                                                               const QString& newName);
 
     [[nodiscard]] static QString toSqliteType(QVariant::Type type);
+
+    [[nodiscard]] static QString escapeIdentifier(const QString& identifier);
 };
 
 QT_END_NAMESPACE
