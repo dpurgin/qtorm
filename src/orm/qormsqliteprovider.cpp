@@ -89,7 +89,8 @@ class QOrmSqliteProviderPrivate
     QOrmError ensureSchemaSynchronized(const QOrmRelation& entityMetadata);
     QOrmError recreateSchema(const QOrmRelation& entityMetadata);
     QOrmError updateSchema(const QOrmRelation& entityMetadata);
-    QOrmError validateSchema(const QOrmRelation& validateSchema);
+    QOrmError validateSchema(const QOrmRelation& entityMetadata);
+    QOrmError appendSchema(const QOrmRelation& entityMetadata);
 
     QOrmQueryResult<QObject> read(const QOrmQuery& query,
                                   QOrmEntityInstanceCache& entityInstanceCache);
@@ -335,10 +336,11 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
             if (relation.mapping()->userMetadata().contains(QOrm::Keyword::Schema))
             {
                 static QMap<QString, QOrmSqliteConfiguration::SchemaMode> schemaModes{
-                    {QString{"recreate"}, QOrmSqliteConfiguration::SchemaMode::Recreate},
-                    {QString("update"), QOrmSqliteConfiguration::SchemaMode::Update},
-                    {QString("validate"), QOrmSqliteConfiguration::SchemaMode::Validate},
-                    {QString("bypass"), QOrmSqliteConfiguration::SchemaMode::Bypass}};
+                    {"recreate", QOrmSqliteConfiguration::SchemaMode::Recreate},
+                    {"update", QOrmSqliteConfiguration::SchemaMode::Update},
+                    {"validate", QOrmSqliteConfiguration::SchemaMode::Validate},
+                    {"bypass", QOrmSqliteConfiguration::SchemaMode::Bypass},
+                    {"append", QOrmSqliteConfiguration::SchemaMode::Append}};
 
                 QString schemaModeValue =
                     relation.mapping()->userMetadata().value(QOrm::Keyword::Schema).toString();
@@ -371,6 +373,10 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
 
                 case QOrmSqliteConfiguration::SchemaMode::Bypass:
                     // no error
+                    break;
+
+                case QOrmSqliteConfiguration::SchemaMode::Append:
+                    error = appendSchema(relation);
                     break;
             }
 
@@ -648,6 +654,59 @@ QOrmError QOrmSqliteProviderPrivate::validateSchema(const QOrmRelation& relation
     Q_UNUSED(relation)
     Q_ORM_NOT_IMPLEMENTED;
     return {QOrm::ErrorType::Other, "Not implemented"};
+}
+
+QOrmError QOrmSqliteProviderPrivate::appendSchema(const QOrmRelation& relation)
+{
+    Q_ASSERT(m_database.isOpen());
+    Q_ASSERT(relation.type() == QOrm::RelationType::Mapping);
+    Q_ASSERT(relation.mapping() != nullptr);
+
+    Q_Q(QOrmSqliteProvider);
+
+    q->beginTransaction();
+
+    // Create table if it does not exist.
+    if (!m_database.tables().contains(relation.mapping()->tableName()))
+    {
+        QString statement =
+            QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping());
+        QSqlQuery query = prepareAndExecute(statement);
+
+        if (query.lastError().type() != QSqlError::NoError)
+        {
+            q->rollbackTransaction();
+            return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
+        }
+    }
+    // If the table exists, add missing columns, if any.
+    else
+    {
+        QSqlRecord record = m_database.record(relation.mapping()->tableName());
+
+        for (const QOrmPropertyMapping& mapping : relation.mapping()->propertyMappings())
+        {
+            if (!record.contains(mapping.tableFieldName()) && !mapping.isTransient())
+            {
+                QString statement =
+                    QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
+                        *relation.mapping(), mapping);
+
+                QSqlQuery query = prepareAndExecute(statement);
+
+                if (query.lastError().type() != QSqlError::NoError)
+                {
+                    q->rollbackTransaction();
+                    return QOrmError{QOrm::ErrorType::UnsynchronizedSchema,
+                                     query.lastError().text()};
+                }
+            }
+        }
+    }
+
+    q->commitTransaction();
+
+    return QOrmError{QOrm::ErrorType::None, {}};
 }
 
 QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(

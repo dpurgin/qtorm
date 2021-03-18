@@ -70,6 +70,7 @@ private slots:
     void testTransactionRollback();
 
     void testSchemaCreatedForReferencedEntities();
+    void testSchemaAppendCreatesTablesAndAddsColumns();
     void testSchemaUpdateCreatesTablesAndAddsColumns();
     void testSchemaUpdateRemovesColumns();
 };
@@ -563,6 +564,80 @@ void SqliteSessionTest::testSchemaCreatedForReferencedEntities()
 
         auto result = session.from<Province>().select();
         QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    }
+}
+
+void SqliteSessionTest::testSchemaAppendCreatesTablesAndAddsColumns()
+{
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName("testdb.db");
+        QVERIFY(db.open());
+
+        QSqlQuery query =
+            db.exec("CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT, population INTEGER)");
+        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+
+        query = db.exec("INSERT INTO Town(id, population) VALUES(1, 1000)");
+        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+
+        query = db.exec("INSERT INTO Town(id, population) VALUES(2, 20000)");
+        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+
+        query = db.exec("CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT)");
+        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+
+        db.close();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_append_schema.json")};
+
+        auto result = session.from<Town>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+        auto townData = result.toVector();
+        QCOMPARE(townData.size(), 2);
+        QCOMPARE(townData[0]->id(), 1);
+        QCOMPARE(townData[1]->id(), 2);
+
+        result = session.from<Province>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+
+        result = session.from<Person>().select();
+        QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    }
+
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName("testdb.db");
+        QVERIFY(db.open());
+
+        QVERIFY(db.tables().contains("Town"));
+        QSqlRecord record = db.record("Town");
+        QCOMPARE(record.count(), 4);
+        QVERIFY(record.contains("id"));
+        QVERIFY(record.contains("name"));
+        QVERIFY(record.contains("population"));
+        QVERIFY(record.contains("province_id"));
+
+        QVERIFY(db.tables().contains("Province"));
+        record = db.record("Province");
+        QCOMPARE(record.count(), 2);
+        QVERIFY(record.contains("id"));
+        QVERIFY(record.contains("name"));
+
+        QVERIFY(db.tables().contains("Person"));
+        record = db.record("Person");
+        QCOMPARE(record.count(), 5);
+        QVERIFY(record.contains("id"));
+        QVERIFY(record.contains("firstName"));
+        QVERIFY(record.contains("lastName"));
+        QVERIFY(record.contains("town_id"));
+        QVERIFY(record.contains("personParent_id"));
+
+        db.close();
+        QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
     }
 }
 
