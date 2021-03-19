@@ -30,10 +30,12 @@ class DomainClassesTest : public QObject
 private slots:
     void init();
 
-    void testQVectorReference();
-    void testQSetReference();
-    void testStdVectorReference();
+    void testBidirectionalReferenceQVector();
+    void testBidirectionalReferenceQSet();
+    void testBidirectionalReferenceStdVector();
     void testNullValueToQDateTime();
+    void testUnidirectionalReferenceOnNSide();
+    void testUnidirectionalReferenceOn1Side();
 };
 
 void DomainClassesTest::init()
@@ -86,7 +88,7 @@ signals:
     void dummyChanged();
 };
 
-void DomainClassesTest::testQVectorReference()
+void DomainClassesTest::testBidirectionalReferenceQVector()
 {
     qRegisterOrmEntity<WithQVectorReference, ReferencedByQVector>();
 
@@ -157,7 +159,7 @@ signals:
     void otherSideChanged();
 };
 
-void DomainClassesTest::testQSetReference()
+void DomainClassesTest::testBidirectionalReferenceQSet()
 {
     QSKIP("QSet<T*> reference is not implemented");
 
@@ -230,7 +232,7 @@ signals:
     void dummyChanged();
 };
 
-void DomainClassesTest::testStdVectorReference()
+void DomainClassesTest::testBidirectionalReferenceStdVector()
 {
     QSKIP("std::vector<T*> reference is not implemented");
 
@@ -296,6 +298,164 @@ void DomainClassesTest::testNullValueToQDateTime()
         auto result = session.from<WithQDateTime>().select().toVector();
         QCOMPARE(result.size(), 1);
         QVERIFY(result.first()->m_date.isNull());
+    }
+}
+
+class ProvinceN : public QObject
+{
+    Q_OBJECT
+
+    Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+    Q_PROPERTY(QString name MEMBER m_name NOTIFY nameChanged)
+
+public:
+    Q_INVOKABLE ProvinceN() = default;
+
+    int m_id{0};
+    QString m_name;
+
+signals:
+    void idChanged();
+    void nameChanged();
+};
+
+class TownN : public QObject
+{
+    Q_OBJECT
+
+    Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+    Q_PROPERTY(ProvinceN* province MEMBER m_province NOTIFY provinceChanged)
+
+public:
+    Q_INVOKABLE TownN() = default;
+
+    int m_id;
+    ProvinceN* m_province{nullptr};
+
+signals:
+    void idChanged();
+    void provinceChanged();
+};
+
+void DomainClassesTest::testUnidirectionalReferenceOnNSide()
+{
+    qRegisterOrmEntity<ProvinceN, TownN>();
+
+    {
+        ProvinceN* province = new ProvinceN;
+        TownN* town = new TownN;
+        town->m_province = province;
+
+        QOrmSession session;
+        QVERIFY(session.merge(province, town));
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_bypass_schema.json")};
+
+        ProvinceN* province = nullptr;
+        {
+            auto result = session.from<ProvinceN>().select().toVector();
+            QCOMPARE(result.size(), 1);
+            province = result.first();
+        }
+
+        TownN* town = nullptr;
+        {
+            auto result = session.from<TownN>().select().toVector();
+            QCOMPARE(result.size(), 1);
+            town = result.first();
+        }
+
+        QVERIFY(province != nullptr);
+        QCOMPARE(province->m_id, 1);
+
+        QVERIFY(town != nullptr);
+        QCOMPARE(town->m_id, 1);
+        QCOMPARE(town->m_province, province);
+    }
+}
+
+class Town1;
+
+class Province1 : public QObject
+{
+    Q_OBJECT
+
+    Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+    Q_PROPERTY(QString name MEMBER m_name NOTIFY nameChanged)
+    Q_PROPERTY(QVector<Town1*> towns MEMBER m_towns NOTIFY townsChanged)
+
+public:
+    Q_INVOKABLE Province1() = default;
+
+    int m_id{0};
+    QVector<Town1*> m_towns;
+    QString m_name;
+
+signals:
+    void idChanged();
+    void nameChanged();
+    void townsChanged();
+};
+
+class Town1 : public QObject
+{
+    Q_OBJECT
+
+    Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+    Q_PROPERTY(QString name MEMBER m_name NOTIFY nameChanged)
+
+public:
+    Q_INVOKABLE Town1() = default;
+
+    int m_id;
+    QString m_name;
+
+signals:
+    void idChanged();
+    void nameChanged();
+};
+
+void DomainClassesTest::testUnidirectionalReferenceOn1Side()
+{
+    QSKIP("Unidirectional references on the 1 side of 1:n relationships are not supported");
+
+    qRegisterOrmEntity<Province1, Town1>();
+
+    {
+        Province1* province = new Province1;
+        Town1* town = new Town1;
+        province->m_towns.push_back(town);
+
+        QOrmSession session;
+        QVERIFY(session.merge(province, town));
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_bypass_schema.json")};
+
+        Province1* province = nullptr;
+        {
+            auto result = session.from<Province1>().select().toVector();
+            QCOMPARE(result.size(), 1);
+            province = result.first();
+        }
+
+        Town1* town = nullptr;
+        {
+            auto result = session.from<Town1>().select().toVector();
+            QCOMPARE(result.size(), 1);
+            town = result.first();
+        }
+
+        QVERIFY(province != nullptr);
+        QCOMPARE(province->m_id, 1);
+        QCOMPARE(province->m_towns.size(), 1);
+        QVERIFY(province->m_towns.contains(town));
+
+        QVERIFY(town != nullptr);
+        QCOMPARE(town->m_id, 1);
     }
 }
 
