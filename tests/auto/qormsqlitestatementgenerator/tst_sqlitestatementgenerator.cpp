@@ -25,9 +25,10 @@
 #include <QOrmRelation>
 #include <QtTest>
 
+#include "domain/community.h"
+#include "domain/person.h"
 #include "domain/province.h"
 #include "domain/town.h"
-#include "domain/person.h"
 
 #include "private/qormglobal_p.h"
 #include "private/qormsqlitestatementgenerator_p.h"
@@ -50,6 +51,7 @@ private slots:
     void testCreateTableWithReference();
     void testCreateTableWithManyToOne();
     void testCreateTableWithLong();
+    void testCreateTableForCustomizedEntity();
     void testAlterTableAddColumn();
     void testAlterTableAddColumnWithReference();
 };
@@ -205,6 +207,14 @@ void SqliteStatementGenerator::testCreateTableWithLong()
     QOrmMetadataCache cache;
     QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Person>()),
              "CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT)");
+}
+
+void SqliteStatementGenerator::testCreateTableForCustomizedEntity()
+{
+    QOrmMetadataCache cache;
+    QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Community>()),
+             "CREATE TABLE communities(community_id INTEGER PRIMARY KEY,name TEXT,population "
+             "INTEGER,province_id INTEGER)");
 }
 
 void SqliteStatementGenerator::testAlterTableAddColumn()

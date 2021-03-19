@@ -211,4 +211,7 @@ inline constexpr void qRegisterOrmEntity()
 
 QT_END_NAMESPACE
 
+#define Q_ORM_CLASS(arg) Q_CLASSINFO("QtOrmClassInfo", #arg)
+#define Q_ORM_PROPERTY(arg) Q_CLASSINFO("QtOrmPropertyInfo", #arg)
+
 #endif
