@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -29,6 +29,7 @@
 #include "domain/person.h"
 #include "domain/province.h"
 #include "domain/town.h"
+#include "domain/withqvariant.h"
 
 #include "private/qormglobal_p.h"
 #include "private/qormsqlitestatementgenerator_p.h"
@@ -40,30 +41,30 @@ class SqliteStatementGenerator : public QObject
 private slots:
     void init();
 
-    void testGenerateConditionTerminalPredicate();
     void testInsertWithManyToOne();
     void testInsertWithOneToMany();
     void testInsertWithOneToManyNullReference();
+
     void testFilterWithReference();
+    void testFilterWithNull();
+
     void testUpdateWithManyToOne();
     void testUpdateWithOneToMany();
     void testUpdateWithOneToManyNullReference();
+
     void testCreateTableWithReference();
     void testCreateTableWithManyToOne();
     void testCreateTableWithLong();
     void testCreateTableForCustomizedEntity();
+    void testCreateTableWithQVariant();
+
     void testAlterTableAddColumn();
     void testAlterTableAddColumnWithReference();
 };
 
 void SqliteStatementGenerator::init()
 {
-    qRegisterOrmEntity<Town, Province, Person>();
-}
-
-void SqliteStatementGenerator::testGenerateConditionTerminalPredicate()
-{
-
+    qRegisterOrmEntity<Town, Province, Person, WithQVariant>();
 }
 
 void SqliteStatementGenerator::testInsertWithManyToOne()
@@ -132,6 +133,34 @@ void SqliteStatementGenerator::testFilterWithReference()
 
     QCOMPARE(statement, "WHERE province_id = :province_id");
     QCOMPARE(boundParameters[":province_id"], 1);
+}
+
+void SqliteStatementGenerator::testFilterWithNull()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    {
+        QOrmFilter filter{
+            QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<WithQVariant>()},
+                                                  Q_ORM_CLASS_PROPERTY(data) == QVariant{})};
+
+        QVariantMap boundParameters;
+        QString statement = generator.generateWhereClause(filter, boundParameters);
+
+        QCOMPARE(statement, R"(WHERE "data" IS NULL)");
+    }
+
+    {
+        QOrmFilter filter{
+            QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<WithQVariant>()},
+                                                  Q_ORM_CLASS_PROPERTY(data) != QVariant{})};
+
+        QVariantMap boundParameters;
+        QString statement = generator.generateWhereClause(filter, boundParameters);
+
+        QCOMPARE(statement, R"(WHERE "data" IS NOT NULL)");
+    }
 }
 
 void SqliteStatementGenerator::testUpdateWithManyToOne()
@@ -215,6 +244,13 @@ void SqliteStatementGenerator::testCreateTableForCustomizedEntity()
     QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Community>()),
              "CREATE TABLE communities(community_id INTEGER PRIMARY KEY,name TEXT,population "
              "INTEGER,province_id INTEGER)");
+}
+
+void SqliteStatementGenerator::testCreateTableWithQVariant()
+{
+    QOrmMetadataCache cache;
+    QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<WithQVariant>()),
+             "CREATE TABLE WithQVariant(id INTEGER PRIMARY KEY AUTOINCREMENT,data TEXT)");
 }
 
 void SqliteStatementGenerator::testAlterTableAddColumn()

@@ -21,8 +21,8 @@
 #ifndef QORMSQLCONFIGURATION_H
 #define QORMSQLCONFIGURATION_H
 
-#include <QtOrm/qormglobal.h>
 #include <QtCore/qstring.h>
+#include <QtOrm/qormglobal.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -34,7 +34,8 @@ public:
         Recreate,
         Update,
         Validate,
-        Bypass
+        Bypass,
+        Append
     };
 
 public:

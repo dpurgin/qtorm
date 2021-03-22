@@ -11,5 +11,6 @@ QtApplication {
         "domain/province.cpp", "domain/province.h",
         "domain/town.cpp", "domain/town.h",
         "domain/community.cpp", "domain/community.h",
+        "domain/withqvariant.cpp", "domain/withqvariant.h",
         "tst_sqlitestatementgenerator.cpp"]
 }

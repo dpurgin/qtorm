@@ -18,36 +18,35 @@
  * along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "qormerror.h"
+#pragma once
 
-#include <QtCore/qdebug.h>
+#include <QObject>
+#include <QVariant>
 
-QT_BEGIN_NAMESPACE
-
-QOrmError::QOrmError(QOrm::ErrorType error, const QString& text)
-    : m_type{error}
-    , m_text{text}
+class WithQVariant : public QObject
 {
-}
+    Q_OBJECT
 
-QOrm::ErrorType QOrmError::type() const
-{
-    return m_type;
-}
+    Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
+    Q_PROPERTY(QVariant data READ data WRITE setData NOTIFY dataChanged)
 
-QString QOrmError::text() const
-{
-    return m_text;
-}
+public:
+    Q_INVOKABLE WithQVariant(QObject* parent = nullptr)
+        : QObject{parent}
+    {
+    }
 
-QDebug operator<<(QDebug dbg, const QOrmError& error)
-{
-    QDebugStateSaver saver{dbg};
+    int id() const;
+    void setId(int id);
 
-    dbg.nospace().noquote() << "QOrmError(" << error.type() << QStringLiteral(", ") << error.text()
-                            << QStringLiteral(")");
+    QVariant data() const;
+    void setData(const QVariant& data);
 
-    return dbg;
-}
+signals:
+    void idChanged();
+    void dataChanged();
 
-QT_END_NAMESPACE
+private:
+    int m_id{0};
+    QVariant m_data;
+};

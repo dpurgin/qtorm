@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -22,8 +22,7 @@
 #include "qormglobal_p.h"
 #include "qormmetadata_p.h"
 
-#include <QDebug>
-#include <QMetaProperty>
+#include <QtCore/qdebug.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -69,7 +68,7 @@ const QOrmPropertyMapping* QOrmMetadata::tableFieldMapping(const QString& fieldN
     if (it == std::end(d->m_tableFieldMappingIndex))
         return nullptr;
 
-    return &d->m_propertyMappings[it.value()];
+    return &d->m_propertyMappings[static_cast<size_t>(it.value())];
 }
 
 const QOrmPropertyMapping* QOrmMetadata::classPropertyMapping(const QString& classProperty) const
@@ -79,22 +78,26 @@ const QOrmPropertyMapping* QOrmMetadata::classPropertyMapping(const QString& cla
     if (it == std::end(d->m_classPropertyMappingIndex))
         return nullptr;
 
-    return &d->m_propertyMappings[it.value()];
+    return &d->m_propertyMappings[static_cast<size_t>(it.value())];
 }
 
 const QOrmPropertyMapping* QOrmMetadata::objectIdMapping() const
 {
     return d->m_objectIdPropertyMappingIdx == -1
                ? nullptr
-               : &d->m_propertyMappings[d->m_objectIdPropertyMappingIdx];
+               : &d->m_propertyMappings[static_cast<size_t>(d->m_objectIdPropertyMappingIdx)];
+}
+
+const QOrmUserMetadata& QOrmMetadata::userMetadata() const
+{
+    return d->m_userMetadata;
 }
 
 QDebug operator<<(QDebug dbg, const QOrmMetadata& metadata)
 {
     QDebugStateSaver saver{dbg};
-    dbg.nospace().nospace() << "QOrmMetadata("
-                            << metadata.className() << " => " << metadata.tableName()
-                            << ")";
+    dbg.nospace().nospace() << "QOrmMetadata(" << metadata.className() << " => "
+                            << metadata.tableName() << ")";
     return dbg;
 }
 

@@ -12,6 +12,9 @@ add_executable(tst_sqlitestatementgenerator
 
     domain/community.h
     domain/community.cpp
+
+    domain/withqvariant.h
+    domain/withqvariant.cpp
 )
 
 target_link_libraries(tst_sqlitestatementgenerator

@@ -18,36 +18,32 @@
  * along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "qormerror.h"
+#include "withqvariant.h"
 
-#include <QtCore/qdebug.h>
-
-QT_BEGIN_NAMESPACE
-
-QOrmError::QOrmError(QOrm::ErrorType error, const QString& text)
-    : m_type{error}
-    , m_text{text}
+int WithQVariant::id() const
 {
+    return m_id;
 }
 
-QOrm::ErrorType QOrmError::type() const
+void WithQVariant::setId(int id)
 {
-    return m_type;
+    if (m_id != id)
+    {
+        m_id = id;
+        emit idChanged();
+    }
 }
 
-QString QOrmError::text() const
+QVariant WithQVariant::data() const
 {
-    return m_text;
+    return m_data;
 }
 
-QDebug operator<<(QDebug dbg, const QOrmError& error)
+void WithQVariant::setData(const QVariant& data)
 {
-    QDebugStateSaver saver{dbg};
-
-    dbg.nospace().noquote() << "QOrmError(" << error.type() << QStringLiteral(", ") << error.text()
-                            << QStringLiteral(")");
-
-    return dbg;
+    if (m_data != data)
+    {
+        m_data = data;
+        emit dataChanged();
+    }
 }
-
-QT_END_NAMESPACE

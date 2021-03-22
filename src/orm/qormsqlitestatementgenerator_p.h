@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -24,10 +24,11 @@
 
 #include <QtOrm/qormglobal.h>
 
+#include <QtCore/qshareddata.h>
 #include <QtCore/qstring.h>
 #include <QtCore/qvariant.h>
-#include <QtCore/qshareddata.h>
 
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -45,71 +46,69 @@ class QOrmQuery;
 class QOrmRelation;
 
 class Q_ORM_EXPORT QOrmSqliteStatementGenerator
-{    
+{
 public:
-    Q_REQUIRED_RESULT
-    static std::pair<QString, QVariantMap> generate(const QOrmQuery& query);
+    [[nodiscard]] static std::pair<QString, QVariantMap> generate(const QOrmQuery& query);
 
-    Q_REQUIRED_RESULT
-    static QString generate(const QOrmQuery& query, QVariantMap& boundParameters);
+    [[nodiscard]] static QString generate(const QOrmQuery& query, QVariantMap& boundParameters);
 
-    Q_REQUIRED_RESULT
-    static QString generateInsertStatement(const QOrmMetadata& relation,
-                                           const QObject* instance,
-                                           QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateInsertStatement(const QOrmMetadata& relation,
+                                                         const QObject* instance,
+                                                         QVariantMap& boundParameters);
 
-    Q_REQUIRED_RESULT
-    static QString generateUpdateStatement(const QOrmMetadata& relation,
-                                           const QObject* instance,
-                                           QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateInsertIntoStatement(const QString& destionationTableName,
+                                                             const QStringList& destionationColumns,
+                                                             const QString& sourceTableName,
+                                                             const QStringList& sourceColumns);
 
-    Q_REQUIRED_RESULT
-    static QString generateSelectStatement(const QOrmQuery& query, QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateUpdateStatement(const QOrmMetadata& relation,
+                                                         const QObject* instance,
+                                                         QVariantMap& boundParameters);
 
-    Q_REQUIRED_RESULT
-    static QString generateDeleteStatement(const QOrmMetadata& relation,
-                                           const QOrmFilter& filter,
-                                           QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateSelectStatement(const QOrmQuery& query,
+                                                         QVariantMap& boundParameters);
 
-    Q_REQUIRED_RESULT
-    static QString generateDeleteStatement(const QOrmMetadata& relation,
-                                           const QObject* instance,
-                                           QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateDeleteStatement(const QOrmMetadata& relation,
+                                                         const QOrmFilter& filter,
+                                                         QVariantMap& boundParameters);
 
-    Q_REQUIRED_RESULT
-    static QString generateFromClause(const QOrmRelation& relation, QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateDeleteStatement(const QOrmMetadata& relation,
+                                                         const QObject* instance,
+                                                         QVariantMap& boundParameters);
 
-    Q_REQUIRED_RESULT
-    static QString generateWhereClause(const QOrmFilter& filter, QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateFromClause(const QOrmRelation& relation,
+                                                    QVariantMap& boundParameters);
 
-    Q_REQUIRED_RESULT
-    static QString generateOrderClause(const std::vector<QOrmOrder>& order);
+    [[nodiscard]] static QString generateWhereClause(const QOrmFilter& filter,
+                                                     QVariantMap& boundParameters);
 
-    Q_REQUIRED_RESULT
-    static QString generateCondition(const QOrmFilterExpression& expression,
-                                     QVariantMap& boundParameters);
-    Q_REQUIRED_RESULT
-    static QString generateCondition(const QOrmFilterTerminalPredicate& predicate,
-                                     QVariantMap& boundParameters);
-    Q_REQUIRED_RESULT
-    static QString generateCondition(const QOrmFilterBinaryPredicate& predicate,
-                                     QVariantMap& boundParameters);
-    Q_REQUIRED_RESULT
-    static QString generateCondition(const QOrmFilterUnaryPredicate& predicate,
-                                     QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateOrderClause(const std::vector<QOrmOrder>& order);
 
-    Q_REQUIRED_RESULT
-    static QString generateCreateTableStatement(const QOrmMetadata& entity);
+    [[nodiscard]] static QString generateCondition(const QOrmFilterExpression& expression,
+                                                   QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateCondition(const QOrmFilterTerminalPredicate& predicate,
+                                                   QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateCondition(const QOrmFilterBinaryPredicate& predicate,
+                                                   QVariantMap& boundParameters);
+    [[nodiscard]] static QString generateCondition(const QOrmFilterUnaryPredicate& predicate,
+                                                   QVariantMap& boundParameters);
 
-    Q_REQUIRED_RESULT
-    static QString generateAlterTableAddColumnStatement(const QOrmMetadata& relation,
-                                                        const QOrmPropertyMapping& propertyMapping);
+    [[nodiscard]] static QString generateCreateTableStatement(
+        const QOrmMetadata& entity,
+        std::optional<QString> overrideTableName = std::nullopt);
 
-    Q_REQUIRED_RESULT
-    static QString generateDropTableStatement(const QOrmMetadata& entity);
+    [[nodiscard]] static QString generateAlterTableAddColumnStatement(
+        const QOrmMetadata& relation,
+        const QOrmPropertyMapping& propertyMapping);
 
-    Q_REQUIRED_RESULT
-    static QString toSqliteType(QVariant::Type type);
+    [[nodiscard]] static QString generateDropTableStatement(const QOrmMetadata& entity);
+
+    [[nodiscard]] static QString generateRenameTableStatement(const QString& oldName,
+                                                              const QString& newName);
+
+    [[nodiscard]] static QString toSqliteType(QVariant::Type type);
+
+    [[nodiscard]] static QString escapeIdentifier(const QString& identifier);
 };
 
 QT_END_NAMESPACE

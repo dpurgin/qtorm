@@ -44,6 +44,7 @@ public:
     int m_objectIdPropertyMappingIdx{-1};
     QHash<QString, int> m_classPropertyMappingIndex;
     QHash<QString, int> m_tableFieldMappingIndex;
+    QOrmUserMetadata m_userMetadata;
 };
 
 #endif

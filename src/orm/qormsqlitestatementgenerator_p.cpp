@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -41,7 +41,7 @@ static QString insertParameter(QVariantMap& boundParameters, QString name, QVari
 
     boundParameters.insert(key, value);
 
-    return key;    
+    return key;
 }
 
 static QVariant propertyValueForQuery(const QObject* entityInstance,
@@ -146,12 +146,32 @@ QString QOrmSqliteStatementGenerator::generateInsertStatement(const QOrmMetadata
     return statement;
 }
 
+QString QOrmSqliteStatementGenerator::generateInsertIntoStatement(
+    const QString& destinationTableName,
+    const QStringList& destinationColumns,
+    const QString& sourceTableName,
+    const QStringList& sourceColumns)
+{
+    QStringList columnList;
+
+    for (const QString& destinationColumn : destinationColumns)
+    {
+        if (sourceColumns.contains(destinationColumn))
+        {
+            columnList += QString{R"("%1")"}.arg(destinationColumn);
+        }
+    }
+
+    return QString(R"(INSERT INTO "%1"(%2) SELECT %2 FROM "%3")")
+        .arg(destinationTableName, columnList.join(','), sourceTableName);
+}
+
 QString QOrmSqliteStatementGenerator::generateUpdateStatement(const QOrmMetadata& relation,
                                                               const QObject* entityInstance,
                                                               QVariantMap& boundParameters)
 {
     if (relation.objectIdMapping() == nullptr)
-        qFatal("QtORM: Unable to update entity without object ID property");
+        qFatal("QtOrm: Unable to update entity without object ID property");
 
     QStringList setList;
 
@@ -286,23 +306,14 @@ QString QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterExpressi
     Q_ORM_UNEXPECTED_STATE;
 }
 
-QString
-QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterTerminalPredicate& predicate,
-                                                QVariantMap& boundParameters)
+QString QOrmSqliteStatementGenerator::generateCondition(
+    const QOrmFilterTerminalPredicate& predicate,
+    QVariantMap& boundParameters)
 {
     Q_ASSERT(predicate.isResolved());
 
-    static const QHash<QOrm::Comparison, QString> comparisonOps = {
-        {QOrm::Comparison::Less, "<"},
-        {QOrm::Comparison::Equal, "="},
-        {QOrm::Comparison::Greater, ">"},
-        {QOrm::Comparison::NotEqual, "<>"},
-        {QOrm::Comparison::LessOrEqual, "<="},
-        {QOrm::Comparison::GreaterOrEqual, ">="}};
-
-    Q_ASSERT(comparisonOps.contains(predicate.comparison()));
-
     QVariant value;
+    QString statement;
 
     if (predicate.propertyMapping()->isReference())
     {
@@ -319,12 +330,42 @@ QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterTerminalPredicat
         value = predicate.value();
     }
 
-    QString parameterKey =
-        insertParameter(boundParameters, predicate.propertyMapping()->tableFieldName(), value);
+    if (value.isNull())
+    {
+        static const QHash<QOrm::Comparison, QString> comparisonOps = {
+            {QOrm::Comparison::Equal, "IS NULL"}, {QOrm::Comparison::NotEqual, "IS NOT NULL"}};
 
-    QString statement = QString{"%1 %2 %3"}.arg(predicate.propertyMapping()->tableFieldName(),
-                                                comparisonOps[predicate.comparison()],
-                                                parameterKey);
+        if (!comparisonOps.contains(predicate.comparison()))
+        {
+            qCCritical(qtorm) << predicate.propertyMapping()->tableFieldName()
+                              << "is compared to null using operator" << predicate.comparison()
+                              << ". Only = and != are supported when comparing to null.";
+            qFatal("qtorm: Unexpected query.");
+        }
+
+        statement =
+            QString{"%1 %2"}.arg(escapeIdentifier(predicate.propertyMapping()->tableFieldName()),
+                                 comparisonOps[predicate.comparison()]);
+    }
+    else
+    {
+        static const QHash<QOrm::Comparison, QString> comparisonOps = {
+            {QOrm::Comparison::Less, "<"},
+            {QOrm::Comparison::Equal, "="},
+            {QOrm::Comparison::Greater, ">"},
+            {QOrm::Comparison::NotEqual, "<>"},
+            {QOrm::Comparison::LessOrEqual, "<="},
+            {QOrm::Comparison::GreaterOrEqual, ">="}};
+
+        Q_ASSERT(comparisonOps.contains(predicate.comparison()));
+
+        QString parameterKey =
+            insertParameter(boundParameters, predicate.propertyMapping()->tableFieldName(), value);
+
+        statement = QString{"%1 %2 %3"}.arg(predicate.propertyMapping()->tableFieldName(),
+                                            comparisonOps[predicate.comparison()],
+                                            parameterKey);
+    }
 
     return statement;
 }
@@ -361,7 +402,9 @@ QString QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterUnaryPre
     return QString{"NOT (%1)"}.arg(rhsExpr);
 }
 
-QString QOrmSqliteStatementGenerator::generateCreateTableStatement(const QOrmMetadata& entity)
+QString QOrmSqliteStatementGenerator::generateCreateTableStatement(
+    const QOrmMetadata& entity,
+    std::optional<QString> overrideTableName)
 {
     QStringList fields;
 
@@ -395,7 +438,10 @@ QString QOrmSqliteStatementGenerator::generateCreateTableStatement(const QOrmMet
 
     QString fieldsStr = fields.join(',');
 
-    return QStringLiteral("CREATE TABLE %1(%2)").arg(entity.tableName(), fieldsStr);
+    Q_ASSERT(!overrideTableName.has_value() || !overrideTableName->isEmpty());
+    QString effectiveTableName = overrideTableName.value_or(entity.tableName());
+
+    return QStringLiteral("CREATE TABLE %1(%2)").arg(effectiveTableName, fieldsStr);
 }
 
 QString QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
@@ -416,13 +462,22 @@ QString QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
         dataType = toSqliteType(propertyMapping.dataType());
     }
 
-    return QStringLiteral(R"(ALTER TABLE "%1" ADD COLUMN "%2" %3)")
-        .arg(relation.tableName(), propertyMapping.tableFieldName(), dataType);
+    return QStringLiteral("ALTER TABLE %1 ADD COLUMN %2 %3")
+        .arg(escapeIdentifier(relation.tableName()),
+             escapeIdentifier(propertyMapping.tableFieldName()),
+             dataType);
 }
 
 QString QOrmSqliteStatementGenerator::generateDropTableStatement(const QOrmMetadata& entity)
 {
-    return QStringLiteral("DROP TABLE %1").arg(entity.tableName());
+    return QStringLiteral("DROP TABLE %1").arg(escapeIdentifier(entity.tableName()));
+}
+
+QString QOrmSqliteStatementGenerator::generateRenameTableStatement(const QString& oldName,
+                                                                   const QString& newName)
+{
+    return QStringLiteral("ALTER TABLE %1 RENAME TO %2")
+        .arg(escapeIdentifier(oldName), escapeIdentifier(newName));
 }
 
 QString QOrmSqliteStatementGenerator::toSqliteType(QVariant::Type type)
@@ -450,16 +505,28 @@ QString QOrmSqliteStatementGenerator::toSqliteType(QVariant::Type type)
             return QStringLiteral("TEXT");
 
         default:
-            // Additional check for type long.
-            // There is no QVariant::Long but the type returned for long properties is
+            // Additional checks for types not present in QVariant.
+            //
+            // E.g., there is no QVariant::Long but the type returned for long properties is
             // QMetaType::Long which is 32.
-            if (static_cast<int>(type) == 32)
+            if (static_cast<QMetaType::Type>(type) == QMetaType::Long)
             {
                 return QStringLiteral("INTEGER");
+            }
+            else if (static_cast<QMetaType::Type>(type) == QMetaType::QVariant)
+            {
+                return QStringLiteral("TEXT");
             }
 
             return QStringLiteral("BLOB");
     }
+}
+
+QString QOrmSqliteStatementGenerator::escapeIdentifier(const QString& identifier)
+{
+    return identifier.startsWith('"') && identifier.endsWith('"')
+               ? identifier
+               : QString{R"("%1")"}.arg(identifier);
 }
 
 QT_END_NAMESPACE

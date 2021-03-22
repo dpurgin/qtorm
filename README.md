@@ -8,9 +8,9 @@ Refer to qws19.pdf for more examples.
 
 ## License
 
-Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
 
-Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
 
 QtOrm is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser 
 General Public License as published by the Free Software Foundation, either version 3 of the 
@@ -26,17 +26,43 @@ along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
 ## Prerequisites
 
 The QtOrm library is being built on top of Qt 5.12 LTS and requires a C++17-compliant compiler with C++
- standard library support. QtOrm depends on Qt Core and Qt SQL. 
+ standard library support. QtOrm depends on QtCore and QtSql. 
 
-The library is currently being developed and tested with MinGW 7 on Windows 10, other compilers and
-platforms might be supported but not guaranteed.
+The library is currently being developed and tested on the following platforms: 
+ * MinGW 7 on Windows 10
+ * GCC 9 on Buildroot
+ * GCC 9 on Ubuntu
+ 
+Other compilers and platforms might be supported but not guaranteed.
 
-## Installation
+## Using in a CMake project 
+
+Clone the project from github and its directory to the project as follows:
+
+```
+add_subdirectory(../qtorm qtorm.build)  
+
+target_link_libraries(mytarget PUBLIC qtorm)
+```
+
+Alternatively, add the dependency using FetchContent: 
+
+```
+FetchContent_Declare(qtorm
+    GIT_REPOSITORY https://github.com/dpurgin/qtorm.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(qtorm)
+```
+
+## Installation as a Qt module 
 
 * Open qtorm.pro with Qt Creator
 * Configure with the required Qt kit (Qt 5.12 at least, C++17-compliant compiler)
 * Build 
-* Deploy with `make install`
+* Deploy to the Qt installation folder with `make install`
+
+This method is currently the only way to use QtOrm in a QMake project. 
 
 ## Current Status
 
@@ -151,6 +177,7 @@ Possible customizations:
 
 * `Q_ORM_CLASS(...)`:
   * `TABLE <tableName>`: override table name 
+  * `SCHEMA <recreate|update|bypass|append>`: override schema mode for this entity 
 * `Q_ORM_CLASS(<propertyName> ...)`:
   * `COLUMN <columnName>`: override the column name 
   * `IDENTITY [true|false]`: mark the property as identity
@@ -230,6 +257,20 @@ the application executable directory.
 }
 ```
 
-Possible values for `schemaMode`: `recreate`, `bypass`.
+Possible values for `schemaMode`: `recreate`, `bypass`, `update`, `append`.
 
 Any other JSON keys are silently ignored.
+
+### Schema Mode 
+
+When an entity is first accessed, QtOrm processes its database schema. The property 
+`QOrmSessionConfiguration::schemaMode` specifies the default processing mode: 
+ 
+ * `recreate`: drop the table in the database if it exists, and create a new one
+ * `bypass`: do not modify and do not verify the schema. This may result in errors when using `QOrmSession`
+ * `update`: if the corresponding table does not exist, create it. Otherwise, if columns do not correspond in names 
+    or data types, update the schema preserving the existing data if possible. For SQLite backend, 
+    [the generalized 12-step ALTER TABLE procedure](https://sqlite.org/lang_altertable.html#otheralter) is used. 
+ * `append`: add new columns to existing tables and create tables if they don't exist. 
+ 
+The default processing mode can be overriden for each entity individually by using the `Q_ORM_CLASS(SCHEMA ...)` declaration. 
