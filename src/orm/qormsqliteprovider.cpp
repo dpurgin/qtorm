@@ -51,16 +51,20 @@ QT_BEGIN_NAMESPACE
 
 class QOrmSqliteProviderPrivate
 {
-    friend class QOrmSqliteProvider;
+    Q_DECLARE_PUBLIC(QOrmSqliteProvider)
 
-    explicit QOrmSqliteProviderPrivate(const QOrmSqliteConfiguration& configuration)
-        : m_sqlConfiguration{configuration}
+    explicit QOrmSqliteProviderPrivate(const QOrmSqliteConfiguration& configuration,
+                                       QOrmSqliteProvider* parent)
+        : q_ptr{parent}
+        , m_sqlConfiguration{configuration}
     {
     }
 
+    QOrmSqliteProvider* q_ptr{nullptr};
     QSqlDatabase m_database;
     QOrmSqliteConfiguration m_sqlConfiguration;
     QSet<QString> m_schemaSyncCache;
+    int m_transactionCounter{0};
 
     Q_REQUIRED_RESULT
     QString toSqlType(QVariant::Type type);
@@ -85,7 +89,8 @@ class QOrmSqliteProviderPrivate
     QOrmError ensureSchemaSynchronized(const QOrmRelation& entityMetadata);
     QOrmError recreateSchema(const QOrmRelation& entityMetadata);
     QOrmError updateSchema(const QOrmRelation& entityMetadata);
-    QOrmError validateSchema(const QOrmRelation& validateSchema);
+    QOrmError validateSchema(const QOrmRelation& entityMetadata);
+    QOrmError appendSchema(const QOrmRelation& entityMetadata);
 
     QOrmQueryResult<QObject> read(const QOrmQuery& query,
                                   QOrmEntityInstanceCache& entityInstanceCache);
@@ -331,10 +336,11 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
             if (relation.mapping()->userMetadata().contains(QOrm::Keyword::Schema))
             {
                 static QMap<QString, QOrmSqliteConfiguration::SchemaMode> schemaModes{
-                    {QString{"recreate"}, QOrmSqliteConfiguration::SchemaMode::Recreate},
-                    {QString("update"), QOrmSqliteConfiguration::SchemaMode::Update},
-                    {QString("validate"), QOrmSqliteConfiguration::SchemaMode::Validate},
-                    {QString("bypass"), QOrmSqliteConfiguration::SchemaMode::Bypass}};
+                    {"recreate", QOrmSqliteConfiguration::SchemaMode::Recreate},
+                    {"update", QOrmSqliteConfiguration::SchemaMode::Update},
+                    {"validate", QOrmSqliteConfiguration::SchemaMode::Validate},
+                    {"bypass", QOrmSqliteConfiguration::SchemaMode::Bypass},
+                    {"append", QOrmSqliteConfiguration::SchemaMode::Append}};
 
                 QString schemaModeValue =
                     relation.mapping()->userMetadata().value(QOrm::Keyword::Schema).toString();
@@ -367,6 +373,10 @@ QOrmError QOrmSqliteProviderPrivate::ensureSchemaSynchronized(const QOrmRelation
 
                 case QOrmSqliteConfiguration::SchemaMode::Bypass:
                     // no error
+                    break;
+
+                case QOrmSqliteConfiguration::SchemaMode::Append:
+                    error = appendSchema(relation);
                     break;
             }
 
@@ -433,10 +443,12 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
     Q_ASSERT(relation.type() == QOrm::RelationType::Mapping);
     Q_ASSERT(relation.mapping() != nullptr);
 
+    Q_Q(QOrmSqliteProvider);
+
     // Create table if it does not exist.
     if (!m_database.tables().contains(relation.mapping()->tableName()))
     {
-        m_database.transaction();
+        q->beginTransaction();
 
         QString statement =
             QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping());
@@ -444,11 +456,11 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 
         if (query.lastError().type() != QSqlError::NoError)
         {
-            m_database.rollback();
+            q->rollbackTransaction();
             return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
         }
 
-        m_database.commit();
+        q->commitTransaction();
     }
     // If the table exists, check if an update is needed. An update is needed if not all columns
     // appear in both the database and the entity metadata, or if their data types are not
@@ -529,7 +541,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
             }
 
             // 2. Start a transaction.
-            m_database.transaction();
+            q->beginTransaction();
 
             // 3. Remember the format of all indexes, triggers, and views associated with table X.
             //
@@ -546,7 +558,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 
             if (query.lastError().type() != QSqlError::NoError)
             {
-                m_database.rollback();
+                q->rollbackTransaction();
                 return {QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
             }
 
@@ -566,7 +578,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 
             if (query.lastError().type() != QSqlError::NoError)
             {
-                m_database.rollback();
+                q->rollbackTransaction();
                 return {QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
             }
 
@@ -577,7 +589,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 
             if (query.lastError().type() != QSqlError::NoError)
             {
-                m_database.rollback();
+                q->rollbackTransaction();
                 return {QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
             }
 
@@ -588,7 +600,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 
             if (query.lastError().type() != QSqlError::NoError)
             {
-                m_database.rollback();
+                q->rollbackTransaction();
                 return {QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
             }
 
@@ -612,7 +624,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 
                 if (error.type() != QOrm::ErrorType::None)
                 {
-                    m_database.rollback();
+                    q->rollbackTransaction();
                     return {QOrm::ErrorType::UnsynchronizedSchema, error.text()};
                 }
             }
@@ -627,7 +639,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
 
                 if (error.type() != QOrm::ErrorType::None)
                 {
-                    m_database.rollback();
+                    q->rollbackTransaction();
                     return {QOrm::ErrorType::UnsynchronizedSchema, error.text()};
                 }
             }
@@ -642,6 +654,59 @@ QOrmError QOrmSqliteProviderPrivate::validateSchema(const QOrmRelation& relation
     Q_UNUSED(relation)
     Q_ORM_NOT_IMPLEMENTED;
     return {QOrm::ErrorType::Other, "Not implemented"};
+}
+
+QOrmError QOrmSqliteProviderPrivate::appendSchema(const QOrmRelation& relation)
+{
+    Q_ASSERT(m_database.isOpen());
+    Q_ASSERT(relation.type() == QOrm::RelationType::Mapping);
+    Q_ASSERT(relation.mapping() != nullptr);
+
+    Q_Q(QOrmSqliteProvider);
+
+    q->beginTransaction();
+
+    // Create table if it does not exist.
+    if (!m_database.tables().contains(relation.mapping()->tableName()))
+    {
+        QString statement =
+            QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping());
+        QSqlQuery query = prepareAndExecute(statement);
+
+        if (query.lastError().type() != QSqlError::NoError)
+        {
+            q->rollbackTransaction();
+            return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
+        }
+    }
+    // If the table exists, add missing columns, if any.
+    else
+    {
+        QSqlRecord record = m_database.record(relation.mapping()->tableName());
+
+        for (const QOrmPropertyMapping& mapping : relation.mapping()->propertyMappings())
+        {
+            if (!record.contains(mapping.tableFieldName()) && !mapping.isTransient())
+            {
+                QString statement =
+                    QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
+                        *relation.mapping(), mapping);
+
+                QSqlQuery query = prepareAndExecute(statement);
+
+                if (query.lastError().type() != QSqlError::NoError)
+                {
+                    q->rollbackTransaction();
+                    return QOrmError{QOrm::ErrorType::UnsynchronizedSchema,
+                                     query.lastError().text()};
+                }
+            }
+        }
+    }
+
+    q->commitTransaction();
+
+    return QOrmError{QOrm::ErrorType::None, {}};
 }
 
 QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(
@@ -821,7 +886,7 @@ QOrmError QOrmSqliteProviderPrivate::checkForeignKeys()
 
 QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqliteConfiguration& sqlConfiguration)
     : QOrmAbstractProvider{}
-    , d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration}}
+    , d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration, this}}
 {
 }
 
@@ -868,14 +933,18 @@ QOrmError QOrmSqliteProvider::beginTransaction()
 {
     Q_D(QOrmSqliteProvider);
 
-    if (!d->m_database.transaction())
+    if (++d->m_transactionCounter == 1)
     {
-        QSqlError error = d->m_database.lastError();
+        if (!d->m_database.transaction())
+        {
+            QSqlError error = d->m_database.lastError();
 
-        if (error.type() != QSqlError::NoError)
-            return d->lastDatabaseError();
-        else
-            return QOrmError{QOrm::ErrorType::Other, QStringLiteral("Unable to start transaction")};
+            if (error.type() != QSqlError::NoError)
+                return d->lastDatabaseError();
+            else
+                return QOrmError{QOrm::ErrorType::Other,
+                                 QStringLiteral("Unable to start transaction")};
+        }
     }
 
     return QOrmError{QOrm::ErrorType::None, {}};
@@ -885,15 +954,18 @@ QOrmError QOrmSqliteProvider::commitTransaction()
 {
     Q_D(QOrmSqliteProvider);
 
-    if (!d->m_database.commit())
+    if (--d->m_transactionCounter == 0)
     {
-        QSqlError error = d->m_database.lastError();
+        if (!d->m_database.commit())
+        {
+            QSqlError error = d->m_database.lastError();
 
-        if (error.type() != QSqlError::NoError)
-            return d->lastDatabaseError();
-        else
-            return QOrmError{QOrm::ErrorType::Other,
-                             QStringLiteral("Unable to commit transaction")};
+            if (error.type() != QSqlError::NoError)
+                return d->lastDatabaseError();
+            else
+                return QOrmError{QOrm::ErrorType::Other,
+                                 QStringLiteral("Unable to commit transaction")};
+        }
     }
 
     return QOrmError{QOrm::ErrorType::None, {}};
@@ -903,15 +975,18 @@ QOrmError QOrmSqliteProvider::rollbackTransaction()
 {
     Q_D(QOrmSqliteProvider);
 
-    if (!d->m_database.rollback())
+    if (--d->m_transactionCounter == 0)
     {
-        QSqlError error = d->m_database.lastError();
+        if (!d->m_database.rollback())
+        {
+            QSqlError error = d->m_database.lastError();
 
-        if (error.type() != QSqlError::NoError)
-            return d->lastDatabaseError();
-        else
-            return QOrmError{QOrm::ErrorType::Other,
-                             QStringLiteral("Unable to rollback transaction")};
+            if (error.type() != QSqlError::NoError)
+                return d->lastDatabaseError();
+            else
+                return QOrmError{QOrm::ErrorType::Other,
+                                 QStringLiteral("Unable to rollback transaction")};
+        }
     }
 
     return QOrmError{QOrm::ErrorType::None, {}};

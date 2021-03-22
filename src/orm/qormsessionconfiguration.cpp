@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -59,24 +59,19 @@ static QOrmSqliteConfiguration _build_json_sqlite_configuration(const QJsonObjec
     sqlConfiguration.setDatabaseName(object["databaseName"].toString());
     sqlConfiguration.setVerbose(object["verbose"].toBool(false));
 
-    QString schemaModeStr = object["schemaMode"].toString("validate");
+    QString schemaModeStr = object["schemaMode"].toString("validate").toLower();
 
-    if (schemaModeStr.compare("recreate", Qt::CaseInsensitive) == 0 ||
-            schemaModeStr.compare("create", Qt::CaseInsensitive) == 0)
+    static QHash<QString, QOrmSqliteConfiguration::SchemaMode> schemaModes = {
+        {"recreate", QOrmSqliteConfiguration::SchemaMode::Recreate},
+        {"create", QOrmSqliteConfiguration::SchemaMode::Recreate},
+        {"update", QOrmSqliteConfiguration::SchemaMode::Update},
+        {"validate", QOrmSqliteConfiguration::SchemaMode::Validate},
+        {"bypass", QOrmSqliteConfiguration::SchemaMode::Bypass},
+        {"append", QOrmSqliteConfiguration::SchemaMode::Append}};
+
+    if (schemaModes.contains(schemaModeStr))
     {
-        sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Recreate);
-    }
-    else if (schemaModeStr.compare("update", Qt::CaseInsensitive) == 0)
-    {
-        sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Update);
-    }
-    else if (schemaModeStr.compare("validate", Qt::CaseInsensitive) == 0)
-    {
-        sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Validate);
-    }
-    else if (schemaModeStr.compare("bypass", Qt::CaseInsensitive) == 0)
-    {
-        sqlConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Bypass);
+        sqlConfiguration.setSchemaMode(schemaModes[schemaModeStr]);
     }
     else
     {
@@ -90,13 +85,9 @@ static QOrmSqliteConfiguration _build_json_sqlite_configuration(const QJsonObjec
 
 QOrmSessionConfiguration QOrmSessionConfiguration::defaultConfiguration()
 {
-    static QStringList searchPaths = {
-        ":",
-        ".",
-        QCoreApplication::applicationDirPath()
-    };
+    static QStringList searchPaths = {":", ".", QCoreApplication::applicationDirPath()};
 
-    for (const QString& searchPath: searchPaths)
+    for (const QString& searchPath : searchPaths)
     {
         QString filePath{searchPath % "/qtorm.json"};
 
@@ -152,8 +143,8 @@ QOrmSessionConfiguration::QOrmSessionConfiguration(QOrmSessionConfiguration&&) =
 
 QOrmSessionConfiguration::~QOrmSessionConfiguration() = default;
 
-QOrmSessionConfiguration& QOrmSessionConfiguration::
-operator=(const QOrmSessionConfiguration&) = default;
+QOrmSessionConfiguration& QOrmSessionConfiguration::operator=(const QOrmSessionConfiguration&) =
+    default;
 
 QOrmSessionConfiguration& QOrmSessionConfiguration::operator=(QOrmSessionConfiguration&&) = default;
 
