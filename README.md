@@ -177,7 +177,7 @@ Possible customizations:
 
 * `Q_ORM_CLASS(...)`:
   * `TABLE <tableName>`: override table name 
-  * 'SCHEMA <recreate|update|bypass|append>`: override schema mode for this entity 
+  * `SCHEMA <recreate|update|bypass|append>`: override schema mode for this entity 
 * `Q_ORM_CLASS(<propertyName> ...)`:
   * `COLUMN <columnName>`: override the column name 
   * `IDENTITY [true|false]`: mark the property as identity
