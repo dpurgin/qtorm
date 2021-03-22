@@ -28,6 +28,7 @@
 #include <QtCore/qstring.h>
 #include <QtCore/qvariant.h>
 
+#include <optional>
 #include <utility>
 #include <vector>
 
