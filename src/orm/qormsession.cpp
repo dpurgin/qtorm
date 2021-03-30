@@ -284,7 +284,7 @@ bool QOrmSession::doRemove(QObject* entityInstance, const QMetaObject& qMetaObje
 
     if (d->m_lastError.type() == QOrm::ErrorType::None)
     {
-        delete d->m_entityInstanceCache.take(entityInstance);
+        d->m_entityInstanceCache.take(entityInstance);
     }
 
     return d->m_lastError.type() == QOrm::ErrorType::None;

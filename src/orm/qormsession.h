@@ -31,6 +31,8 @@
 
 #include <QtCore/qobject.h>
 
+#include <memory>
+
 QT_BEGIN_NAMESPACE
 
 class QOrmAbstractProvider;
@@ -61,6 +63,18 @@ public:
     bool merge(T* entityInstance)
     {
         return doMerge(entityInstance, T::staticMetaObject);
+    }
+
+    template<typename T>
+    bool merge(std::unique_ptr<T>& entityInstance)
+    {
+        if (merge(entityInstance.get()))
+        {
+            entityInstance.release();
+            return true;
+        }
+
+        return false;
     }
 
     template<typename T>
@@ -97,9 +111,10 @@ public:
     }
 
     template<typename T>
-    bool remove(T* entityInstance)
+    std::unique_ptr<T> remove(T* entityInstance)
     {
-        return doRemove(entityInstance, T::staticMetaObject);
+        return doRemove(entityInstance, T::staticMetaObject) ? std::unique_ptr<T>(entityInstance)
+                                                             : nullptr;
     }
 
     template<typename T>
