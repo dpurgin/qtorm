@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -166,6 +166,14 @@ namespace QOrm
 
             case Comparison::GreaterOrEqual:
                 dbg << "GreaterOrEqual";
+                break;
+
+            case Comparison::InList:
+                dbg << "InList";
+                break;
+
+            case Comparison::NotInList:
+                dbg << "NotInList";
                 break;
         }
 

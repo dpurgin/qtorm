@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -47,6 +47,7 @@ private slots:
 
     void testFilterWithReference();
     void testFilterWithNull();
+    void testFilterWithList();
 
     void testUpdateWithManyToOne();
     void testUpdateWithOneToMany();
@@ -131,7 +132,7 @@ void SqliteStatementGenerator::testFilterWithReference()
     QVariantMap boundParameters;
     QString statement = generator.generateWhereClause(filter, boundParameters);
 
-    QCOMPARE(statement, "WHERE province_id = :province_id");
+    QCOMPARE(statement, R"(WHERE "province_id" = :province_id)");
     QCOMPARE(boundParameters[":province_id"], 1);
 }
 
@@ -163,6 +164,34 @@ void SqliteStatementGenerator::testFilterWithNull()
     }
 }
 
+void SqliteStatementGenerator::testFilterWithList()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    {
+        QOrmFilter filter{
+            QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
+                                                  Q_ORM_CLASS_PROPERTY(id) == QVector{1, 3, 5})};
+
+        QVariantMap boundParameters;
+        QString statement = generator.generateWhereClause(filter, boundParameters);
+
+        QCOMPARE(statement, R"(WHERE "id" IN (:id_0, :id_1, :id_2))");
+    }
+
+    {
+        QOrmFilter filter{
+            QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
+                                                  Q_ORM_CLASS_PROPERTY(id) != QVector{1, 3, 5})};
+
+        QVariantMap boundParameters;
+        QString statement = generator.generateWhereClause(filter, boundParameters);
+
+        QCOMPARE(statement, R"(WHERE "id" NOT IN (:id_0, :id_1, :id_2))");
+    }
+}
+
 void SqliteStatementGenerator::testUpdateWithManyToOne()
 {
     QOrmSqliteStatementGenerator generator;
@@ -174,7 +203,7 @@ void SqliteStatementGenerator::testUpdateWithManyToOne()
                                                           upperAustria.get(),
                                                           boundParameters);
 
-    QCOMPARE(statement, "UPDATE Province SET name = :name WHERE id = :id");
+    QCOMPARE(statement, R"(UPDATE Province SET name = :name WHERE "id" = :id)");
     QCOMPARE(boundParameters[":name"], QString::fromUtf8("Oberösterreich"));
     QCOMPARE(boundParameters[":id"], 1);
 }
@@ -191,7 +220,8 @@ void SqliteStatementGenerator::testUpdateWithOneToMany()
     QString statement =
         generator.generateUpdateStatement(cache.get<Town>(), hagenberg.get(), boundParameters);
 
-    QCOMPARE(statement, "UPDATE Town SET name = :name,province_id = :province_id WHERE id = :id");
+    QCOMPARE(statement,
+             R"(UPDATE Town SET name = :name,province_id = :province_id WHERE "id" = :id)");
     QCOMPARE(boundParameters[":name"], QString::fromUtf8("Hagenberg"));
     QCOMPARE(boundParameters[":province_id"], 1);
     QCOMPARE(boundParameters[":id"], 2);
@@ -208,7 +238,8 @@ void SqliteStatementGenerator::testUpdateWithOneToManyNullReference()
     QString statement =
         generator.generateUpdateStatement(cache.get<Town>(), hagenberg.get(), boundParameters);
 
-    QCOMPARE(statement, "UPDATE Town SET name = :name,province_id = :province_id WHERE id = :id");
+    QCOMPARE(statement,
+             R"(UPDATE Town SET name = :name,province_id = :province_id WHERE "id" = :id)");
     QCOMPARE(boundParameters[":name"], QString::fromUtf8("Hagenberg"));
     QCOMPARE(boundParameters[":province_id"], QVariant::fromValue(nullptr));
     QCOMPARE(boundParameters[":id"], 2);

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -32,7 +32,9 @@
 
 QT_BEGIN_NAMESPACE
 
-static QString insertParameter(QVariantMap& boundParameters, QString name, QVariant value)
+[[nodiscard]] static QString insertParameter(QVariantMap& boundParameters,
+                                             QString name,
+                                             QVariant value)
 {
     QString key = ':' % name;
 
@@ -44,8 +46,8 @@ static QString insertParameter(QVariantMap& boundParameters, QString name, QVari
     return key;
 }
 
-static QVariant propertyValueForQuery(const QObject* entityInstance,
-                                      const QOrmPropertyMapping& propertyMapping)
+[[nodiscard]] static QVariant propertyValueForQuery(const QObject* entityInstance,
+                                                    const QOrmPropertyMapping& propertyMapping)
 {
     if (propertyMapping.isReference() && !propertyMapping.isTransient())
     {
@@ -355,16 +357,44 @@ QString QOrmSqliteStatementGenerator::generateCondition(
             {QOrm::Comparison::Greater, ">"},
             {QOrm::Comparison::NotEqual, "<>"},
             {QOrm::Comparison::LessOrEqual, "<="},
-            {QOrm::Comparison::GreaterOrEqual, ">="}};
+            {QOrm::Comparison::GreaterOrEqual, ">="},
+            {QOrm::Comparison::InList, "IN"},
+            {QOrm::Comparison::NotInList, "NOT IN"}};
 
         Q_ASSERT(comparisonOps.contains(predicate.comparison()));
 
-        QString parameterKey =
-            insertParameter(boundParameters, predicate.propertyMapping()->tableFieldName(), value);
+        if (predicate.comparison() == QOrm::Comparison::InList ||
+            predicate.comparison() == QOrm::Comparison::NotInList)
+        {
+            QStringList parameterKeys;
 
-        statement = QString{"%1 %2 %3"}.arg(predicate.propertyMapping()->tableFieldName(),
-                                            comparisonOps[predicate.comparison()],
-                                            parameterKey);
+            QVariantList list = value.toList();
+
+            for (int i = 0; i < list.size(); ++i)
+            {
+                QString parameterKey =
+                    QString{"%1_%2"}.arg(predicate.propertyMapping()->tableFieldName()).arg(i);
+                parameterKey = insertParameter(boundParameters, parameterKey, list.at(i));
+                parameterKeys.push_back(parameterKey);
+            }
+
+            statement =
+                QString{"%1 %2 (%3)"}.arg(escapeIdentifier(
+                                              predicate.propertyMapping()->tableFieldName()),
+                                          comparisonOps[predicate.comparison()],
+                                          parameterKeys.join(", "));
+        }
+        else
+        {
+            QString parameterKey = insertParameter(boundParameters,
+                                                   predicate.propertyMapping()->tableFieldName(),
+                                                   value);
+
+            statement = QString{"%1 %2 %3"}.arg(escapeIdentifier(
+                                                    predicate.propertyMapping()->tableFieldName()),
+                                                comparisonOps[predicate.comparison()],
+                                                parameterKey);
+        }
     }
 
     return statement;

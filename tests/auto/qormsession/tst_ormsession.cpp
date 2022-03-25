@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -59,6 +59,7 @@ private slots:
     void testSelectWithSingleStringFilter();
     void testSelectWithOrder();
     void testSelectFromNestedSelect();
+    void testSelectWithListFilter();
 
     void testMergeFailsWithInconsistentReferences();
     void testMergeOfExistingUncachedEntitiesWithExplicitIdsUpdates();
@@ -401,6 +402,38 @@ void SqliteSessionTest::testSelectFromNestedSelect()
         session.from(nested).order(Q_ORM_CLASS_PROPERTY(name), Qt::DescendingOrder).select();
 
     QCOMPARE(result.toVector().size(), 2);
+}
+
+void SqliteSessionTest::testSelectWithListFilter()
+{
+    QOrmSession session;
+    session.merge(new Province(QString::fromUtf8("Tirol")),
+                  new Province(QString::fromUtf8("Oberösterreich")),
+                  new Province(QString::fromUtf8("Niederösterreich")),
+                  new Province(QString::fromUtf8("Salzburg")));
+
+    {
+        auto result = session.from<Province>()
+                          .filter(Q_ORM_CLASS_PROPERTY(id) == QVector<int>{1, 3, 4})
+                          .order(Q_ORM_CLASS_PROPERTY(id))
+                          .select()
+                          .toVector();
+        QCOMPARE(result.size(), 3);
+        QCOMPARE(result.at(0)->id(), 1);
+        QCOMPARE(result.at(1)->id(), 3);
+        QCOMPARE(result.at(2)->id(), 4);
+    }
+
+    {
+        auto result = session.from<Province>()
+                          .filter(Q_ORM_CLASS_PROPERTY(id) != QVector<int>{1, 3})
+                          .order(Q_ORM_CLASS_PROPERTY(id))
+                          .select()
+                          .toVector();
+        QCOMPARE(result.size(), 2);
+        QCOMPARE(result.at(0)->id(), 2);
+        QCOMPARE(result.at(1)->id(), 4);
+    }
 }
 
 void SqliteSessionTest::testMergeFailsWithInconsistentReferences()
