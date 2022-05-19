@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019-2021 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -68,6 +68,8 @@ class QOrmSqliteProviderPrivate
 
     Q_REQUIRED_RESULT
     QString toSqlType(QVariant::Type type);
+    [[nodiscard]] bool canConvertFromSqliteToQProperty(QVariant::Type fromSqlType,
+                                                       QVariant::Type toQPropertyType);
 
     Q_REQUIRED_RESULT
     QOrmError lastDatabaseError() const;
@@ -101,6 +103,26 @@ class QOrmSqliteProviderPrivate
     [[nodiscard]] QOrmError setForeignKeysEnabled(bool enabled);
     [[nodiscard]] QOrmError checkForeignKeys();
 };
+
+// Returns whether the data type stored in the database column is compatible with its QProperty
+// counterpart. Most of the time, QVariant::canConvert() is enough but there are special cases like
+// Date and Time datatype in SQLite. This datatype is stored in SQLite as Text, Real or Integer, and
+// QVariant::canConvert() reports a false negative.
+//
+// See https://www.sqlite.org/datatype3.html
+bool QOrmSqliteProviderPrivate::canConvertFromSqliteToQProperty(QVariant::Type fromSqlType,
+                                                                QVariant::Type toQPropertyType)
+{
+    if ((fromSqlType == QVariant::Type::Double || //
+         fromSqlType == QVariant::Type::Int ||    //
+         fromSqlType == QVariant::Type::String) &&
+        toQPropertyType == QVariant::DateTime)
+    {
+        return true;
+    }
+
+    return QVariant{fromSqlType}.canConvert(toQPropertyType);
+}
 
 QOrmError QOrmSqliteProviderPrivate::lastDatabaseError() const
 {
@@ -495,7 +517,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
                     << relation.mapping()->className() << "::" << mapping->classPropertyName();
                 updateNeeded = true;
             }
-            else if (!QVariant{field.type()}.canConvert(mapping->dataType()))
+            else if (!canConvertFromSqliteToQProperty(field.type(), mapping->dataType()))
             {
                 qCDebug(qtorm).noquote().nospace()
                     << "updating table " << relation.mapping()->tableName()
