@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -36,6 +36,7 @@ private slots:
     void testTerminalPredicateGenerationLong();
     void testTerminalPredicateGenerationLongRef();
     void testTerminalPredicateGenerationEntity();
+    void testTerminalPredicateContainers();
     void testUnaryPredicateGeneration();
     void testBinaryPredicateGeneration();
     void testNestedPredicateGeneration();
@@ -255,6 +256,65 @@ void QOrmFilterExpressionTest::testTerminalPredicateGenerationEntity()
         QCOMPARE(predicate.value(), QVariant::fromValue(e));
     }
 }
+
+void QOrmFilterExpressionTest::testTerminalPredicateContainers()
+{
+    {
+        QVector<int> val{1, 3, 5};
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) == val);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::InList);
+        QCOMPARE(predicate.value(), QVariantList() << 1 << 3 << 5);
+    }
+
+    {
+        QVector<int> val{1, 3, 5};
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) != val);
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::NotInList);
+        QCOMPARE(predicate.value(), QVariantList() << 1 << 3 << 5);
+    }
+
+    {
+        QSet<int> val{1, 3, 5};
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) == val);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::InList);
+
+        // QSet has no defined element order.
+        QCOMPARE(predicate.value().toList().size(), 3);
+        QVERIFY(predicate.value().toList().contains(1));
+        QVERIFY(predicate.value().toList().contains(3));
+        QVERIFY(predicate.value().toList().contains(5));
+    }
+
+    {
+        QSet<int> val{1, 3, 5};
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) != val);
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::NotInList);
+
+        // QSet has no defined element order.
+        QCOMPARE(predicate.value().toList().size(), 3);
+        QVERIFY(predicate.value().toList().contains(1));
+        QVERIFY(predicate.value().toList().contains(3));
+        QVERIFY(predicate.value().toList().contains(5));
+    }
+
+    {
+        QList<int> val{1, 3, 5};
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) == val);
+        QCOMPARE(predicate.classProperty()->descriptor(), "id");
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::InList);
+        QCOMPARE(predicate.value(), QVariantList() << 1 << 3 << 5);
+    }
+
+    {
+        QList<int> val{1, 3, 5};
+        QOrmFilterTerminalPredicate predicate = (Q_ORM_CLASS_PROPERTY(id) != val);
+        QCOMPARE(predicate.comparison(), QOrm::Comparison::NotInList);
+        QCOMPARE(predicate.value(), QVariantList() << 1 << 3 << 5);
+    }
+}
+
 void QOrmFilterExpressionTest::testUnaryPredicateGeneration()
 {
     {

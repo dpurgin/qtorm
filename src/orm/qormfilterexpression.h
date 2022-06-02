@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -124,20 +124,43 @@ extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, const QOrmFilterUnaryPredicate
 
 namespace QtOrmPrivate
 {
-    template<typename T, bool IsConvertibleToQVariant = std::is_convertible_v<T, QVariant>>
-    struct FilterTerminalPredicateFactory;
+    template<typename T>
+    struct IsList : std::false_type
+    {
+    };
 
     template<typename T>
-    struct FilterTerminalPredicateFactory<T, true>
+    struct IsList<QVector<T>> : std::true_type
     {
-        [[nodiscard]] static QOrmFilterTerminalPredicate create(
-            const QOrmFilterTerminalPredicate::FilterProperty& property,
-            QOrm::Comparison comparison,
-            T&& value)
-        {
-            return {property, comparison, QVariant{std::forward<T>(value)}};
-        }
     };
+
+    template<typename T>
+    struct IsList<QList<T>> : std::true_type
+    {
+    };
+
+    template<typename T>
+    struct IsList<QSet<T>> : std::true_type
+    {
+    };
+
+    template<typename T, bool Convertible = std::is_convertible_v<std::decay_t<T>, QVariant>>
+    struct ValueConverter;
+
+    template<typename T>
+    struct ValueConverter<T, false>
+    {
+        static QVariant convert(T&& value) { return QVariant::fromValue(std::forward<T>(value)); }
+    };
+
+    template<typename T>
+    struct ValueConverter<T, true>
+    {
+        static QVariant convert(const T& value) { return QVariant{value}; }
+    };
+
+    template<typename T, bool ConvertToQVariantList = IsList<std::decay_t<T>>::value>
+    struct FilterTerminalPredicateFactory;
 
     template<typename T>
     struct FilterTerminalPredicateFactory<T, false>
@@ -147,8 +170,59 @@ namespace QtOrmPrivate
             QOrm::Comparison comparison,
             T&& value)
         {
-            return {property, comparison, QVariant::fromValue(std::forward<T>(value))};
+            return {property, comparison, ValueConverter<T>::convert(std::forward<T>(value))};
         }
+    };
+
+    template<typename T>
+    struct FilterTerminalPredicateFactory<T, true>
+    {
+        [[nodiscard]] static QOrmFilterTerminalPredicate create(
+            const QOrmFilterTerminalPredicate::FilterProperty& property,
+            QOrm::Comparison comparison,
+            T&& value)
+        {
+            QVariantList list;
+            using ValueType = typename std::decay_t<T>::value_type;
+
+            std::transform(std::cbegin(std::forward<T>(value)),
+                           std::cend(std::forward<T>(value)),
+                           std::back_inserter(list),
+                           [](const ValueType& value)
+                           { return ValueConverter<ValueType>::convert(value); });
+
+            return {property, comparison, list};
+        }
+    };
+
+    template<typename T, bool IsList = IsList<std::decay_t<T>>::value>
+    struct EqualsComparator;
+
+    template<typename T>
+    struct EqualsComparator<T, false>
+    {
+        [[nodiscard]] static QOrm::Comparison comparator() { return QOrm::Comparison::Equal; }
+    };
+
+    template<typename T>
+    struct EqualsComparator<T, true>
+    {
+        [[nodiscard]] static QOrm::Comparison comparator() { return QOrm::Comparison::InList; }
+    };
+
+    template<typename T, bool IsList = IsList<std::decay_t<T>>::value>
+    struct NotEqualsComparator;
+
+    template<typename T>
+    struct NotEqualsComparator<T, false>
+    {
+        [[nodiscard]] static QOrm::Comparison comparator() { return QOrm::Comparison::NotEqual; }
+    };
+
+    template<typename T>
+    struct NotEqualsComparator<T, true>
+    {
+        [[nodiscard]] static QOrm::Comparison comparator() { return QOrm::Comparison::NotInList; }
     };
 } // namespace QtOrmPrivate
 
@@ -156,18 +230,16 @@ template<typename T>
 [[nodiscard]] inline QOrmFilterTerminalPredicate
 operator==(const QOrmFilterTerminalPredicate::FilterProperty& property, T&& value)
 {
-    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(property,
-                                                                   QOrm::Comparison::Equal,
-                                                                   std::forward<T>(value));
+    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(
+        property, QtOrmPrivate::EqualsComparator<T>::comparator(), std::forward<T>(value));
 }
 
 template<typename T>
 [[nodiscard]] inline QOrmFilterTerminalPredicate
 operator!=(const QOrmFilterTerminalPredicate::FilterProperty& property, T&& value)
 {
-    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(property,
-                                                                   QOrm::Comparison::NotEqual,
-                                                                   std::forward<T>(value));
+    return QtOrmPrivate::FilterTerminalPredicateFactory<T>::create(
+        property, QtOrmPrivate::NotEqualsComparator<T>::comparator(), std::forward<T>(value));
 }
 
 template<typename T>
