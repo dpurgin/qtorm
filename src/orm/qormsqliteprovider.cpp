@@ -65,6 +65,7 @@ class QOrmSqliteProviderPrivate
     QOrmSqliteConfiguration m_sqlConfiguration;
     QSet<QString> m_schemaSyncCache;
     int m_transactionCounter{0};
+    QOrmSqliteStatementGenerator m_statementGenerator;
 
     Q_REQUIRED_RESULT
     QString toSqlType(QVariant::Type type);
@@ -97,11 +98,13 @@ class QOrmSqliteProviderPrivate
     QOrmQueryResult<QObject> read(const QOrmQuery& query,
                                   QOrmEntityInstanceCache& entityInstanceCache);
     QOrmQueryResult<QObject> merge(const QOrmQuery& query);
-    QOrmQueryResult<QObject> remove(const QOrmQuery& query);
+    QOrmQueryResult<QObject> remove(const QOrmQuery& query,
+                                    QOrmEntityInstanceCache& entityInstanceCache);
 
     [[nodiscard]] bool foreignKeysEnabled();
     [[nodiscard]] QOrmError setForeignKeysEnabled(bool enabled);
     [[nodiscard]] QOrmError checkForeignKeys();
+    void detectSqliteCapabilities();
 };
 
 // Returns whether the data type stored in the database column is compatible with its QProperty
@@ -439,8 +442,7 @@ QOrmError QOrmSqliteProviderPrivate::recreateSchema(const QOrmRelation& relation
 
     if (m_database.tables().contains(relation.mapping()->tableName()))
     {
-        QString statement =
-            QOrmSqliteStatementGenerator::generateDropTableStatement(*relation.mapping());
+        QString statement = m_statementGenerator.generateDropTableStatement(*relation.mapping());
 
         QSqlQuery query = prepareAndExecute(statement);
 
@@ -448,8 +450,7 @@ QOrmError QOrmSqliteProviderPrivate::recreateSchema(const QOrmRelation& relation
             return QOrmError{QOrm::ErrorType::UnsynchronizedSchema, query.lastError().text()};
     }
 
-    QString statement =
-        QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping());
+    QString statement = m_statementGenerator.generateCreateTableStatement(*relation.mapping());
 
     QSqlQuery query = prepareAndExecute(statement);
 
@@ -472,8 +473,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
     {
         q->beginTransaction();
 
-        QString statement =
-            QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping());
+        QString statement = m_statementGenerator.generateCreateTableStatement(*relation.mapping());
         QSqlQuery query = prepareAndExecute(statement);
 
         if (query.lastError().type() != QSqlError::NoError)
@@ -574,8 +574,8 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
             QString newTableName = QString{"%1_%2"}.arg(relation.mapping()->tableName(),
                                                         QUuid::createUuid().toString(QUuid::Id128));
             QString statement =
-                QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping(),
-                                                                           newTableName);
+                m_statementGenerator.generateCreateTableStatement(*relation.mapping(),
+                                                                  newTableName);
             QSqlQuery query = prepareAndExecute(statement);
 
             if (query.lastError().type() != QSqlError::NoError)
@@ -594,7 +594,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
                 }
             }
 
-            statement = QOrmSqliteStatementGenerator::generateInsertIntoStatement(
+            statement = m_statementGenerator.generateInsertIntoStatement(
                 newTableName, tableColumns, relation.mapping()->tableName(), tableColumns);
             query = prepareAndExecute(statement);
 
@@ -605,8 +605,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
             }
 
             // 6. Drop the old table X
-            statement =
-                QOrmSqliteStatementGenerator::generateDropTableStatement(*relation.mapping());
+            statement = m_statementGenerator.generateDropTableStatement(*relation.mapping());
             query = prepareAndExecute(statement);
 
             if (query.lastError().type() != QSqlError::NoError)
@@ -616,8 +615,9 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
             }
 
             // 7. Change the name of new_X to X
-            statement = QOrmSqliteStatementGenerator::generateRenameTableStatement(
-                newTableName, relation.mapping()->tableName());
+            statement =
+                m_statementGenerator.generateRenameTableStatement(newTableName,
+                                                                  relation.mapping()->tableName());
             query = prepareAndExecute(statement);
 
             if (query.lastError().type() != QSqlError::NoError)
@@ -691,8 +691,7 @@ QOrmError QOrmSqliteProviderPrivate::appendSchema(const QOrmRelation& relation)
     // Create table if it does not exist.
     if (!m_database.tables().contains(relation.mapping()->tableName()))
     {
-        QString statement =
-            QOrmSqliteStatementGenerator::generateCreateTableStatement(*relation.mapping());
+        QString statement = m_statementGenerator.generateCreateTableStatement(*relation.mapping());
         QSqlQuery query = prepareAndExecute(statement);
 
         if (query.lastError().type() != QSqlError::NoError)
@@ -711,8 +710,8 @@ QOrmError QOrmSqliteProviderPrivate::appendSchema(const QOrmRelation& relation)
             if (!record.contains(mapping.tableFieldName()) && !mapping.isTransient())
             {
                 QString statement =
-                    QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
-                        *relation.mapping(), mapping);
+                    m_statementGenerator.generateAlterTableAddColumnStatement(*relation.mapping(),
+                                                                              mapping);
 
                 QSqlQuery query = prepareAndExecute(statement);
 
@@ -737,13 +736,16 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(
 {
     Q_ASSERT(query.projection().has_value());
 
-    auto [statement, boundParameters] = QOrmSqliteStatementGenerator::generate(query);
+    auto [statement, boundParameters] = m_statementGenerator.generate(query);
 
     QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
 
     if (sqlQuery.lastError().type() != QSqlError::NoError)
-        return QOrmQueryResult<QObject>{
-            QOrmError{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
+    {
+        return QOrmQueryResult<QObject>{QOrmError{QOrm::ErrorType::Provider,
+                                                  sqlQuery.lastError().text()},
+                                        sqlQuery.numRowsAffected()};
+    }
 
     QVector<QObject*> resultSet;
 
@@ -833,7 +835,7 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(
         }
     }
 
-    return QOrmQueryResult<QObject>{resultSet};
+    return QOrmQueryResult<QObject>{resultSet, sqlQuery.numRowsAffected()};
 }
 
 QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)
@@ -841,32 +843,63 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::merge(const QOrmQuery& query
     Q_ASSERT(query.relation().type() == QOrm::RelationType::Mapping);
     Q_ASSERT(query.entityInstance() != nullptr);
 
-    auto [statement, boundParameters] = QOrmSqliteStatementGenerator::generate(query);
+    auto [statement, boundParameters] = m_statementGenerator.generate(query);
 
     QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
 
     if (sqlQuery.lastError().type() != QSqlError::NoError)
-        return QOrmQueryResult<QObject>{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
+    {
+        return QOrmQueryResult<QObject>{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()},
+                                        sqlQuery.numRowsAffected()};
+    }
 
     if (sqlQuery.numRowsAffected() != 1)
     {
-        return QOrmQueryResult<QObject>{
-            {QOrm::ErrorType::UnsynchronizedEntity, "Unexpected number of rows affected"}};
+        return QOrmQueryResult<QObject>{{QOrm::ErrorType::UnsynchronizedEntity,
+                                         "Unexpected number of rows affected"},
+                                        sqlQuery.numRowsAffected()};
     }
 
-    return QOrmQueryResult<QObject>{sqlQuery.lastInsertId()};
+    return QOrmQueryResult<QObject>{sqlQuery.lastInsertId(), sqlQuery.numRowsAffected()};
 }
 
-QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::remove(const QOrmQuery& query)
+QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::remove(
+    const QOrmQuery& query,
+    QOrmEntityInstanceCache& entityInstanceCache)
 {
-    auto [statement, boundParameters] = QOrmSqliteStatementGenerator::generate(query);
+    auto [statement, boundParameters] = m_statementGenerator.generate(query);
 
     QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
 
     if (sqlQuery.lastError().type() != QSqlError::NoError)
-        return QOrmQueryResult<QObject>{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()}};
+    {
+        return QOrmQueryResult<QObject>{{QOrm::ErrorType::Provider, sqlQuery.lastError().text()},
+                                        sqlQuery.numRowsAffected()};
+    }
 
-    return QOrmQueryResult<QObject>{sqlQuery.numRowsAffected()};
+    QVector<QObject*> resultSet;
+
+    // If there is a RETURNING clause, it returns all IDs affected by the DELETE operation.
+    // Remove them from the instance cache and return the ownership to the caller.
+    if (m_statementGenerator.options().testFlag(QOrmSqliteStatementGenerator::WithReturningClause))
+    {
+        Q_ASSERT(query.relation().type() == QOrm::RelationType::Mapping);
+
+        const QOrmMetadata& meta = *query.relation().mapping();
+        QString idPropertyName = meta.objectIdMapping()->classPropertyName();
+
+        while (sqlQuery.next())
+        {
+            QObject* instance = entityInstanceCache.get(meta, sqlQuery.value(idPropertyName));
+
+            if (instance != nullptr)
+            {
+                resultSet.push_back(entityInstanceCache.take(instance));
+            }
+        }
+    }
+
+    return QOrmQueryResult<QObject>{resultSet, sqlQuery.numRowsAffected()};
 }
 
 bool QOrmSqliteProviderPrivate::foreignKeysEnabled()
@@ -906,6 +939,36 @@ QOrmError QOrmSqliteProviderPrivate::checkForeignKeys()
     return {QOrm::ErrorType::None, {}};
 }
 
+void QOrmSqliteProviderPrivate::detectSqliteCapabilities()
+{
+    QSqlQuery query = prepareAndExecute("SELECT sqlite_version() AS version");
+
+    if (query.lastError().text() != QSqlError::NoError)
+    {
+        if (query.next())
+        {
+            QString versionStr = query.value("version").toString();
+            qCDebug(qtorm) << "SQLite version:" << versionStr;
+
+            QStringList parts = versionStr.split('.');
+
+            auto version = std::make_tuple(parts.size() > 0 ? parts[0].toInt() : 0,
+                                           parts.size() > 1 ? parts[1].toInt() : 0,
+                                           parts.size() > 2 ? parts[2].toInt() : 0);
+
+            if (version >= std::make_tuple(3, 35, 0))
+            {
+                m_statementGenerator.setOptions(m_statementGenerator.options() |
+                                                QOrmSqliteStatementGenerator::WithReturningClause);
+            }
+        }
+        else
+        {
+            qCWarning(qtorm) << "Cannot read SQLite version!";
+        }
+    }
+}
+
 QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqliteConfiguration& sqlConfiguration)
     : QOrmAbstractProvider{}
     , d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration, this}}
@@ -928,7 +991,11 @@ QOrmError QOrmSqliteProvider::connectToBackend()
         d->m_database.setDatabaseName(d->m_sqlConfiguration.databaseName());
 
         if (!d->m_database.open())
+        {
             return d->lastDatabaseError();
+        }
+
+        d->detectSqliteCapabilities();
     }
 
     return QOrmError{QOrm::ErrorType::None, {}};
@@ -1036,7 +1103,7 @@ QOrmQueryResult<QObject> QOrmSqliteProvider::execute(const QOrmQuery& query,
             return d->merge(query);
 
         case QOrm::Operation::Delete:
-            return d->remove(query);
+            return d->remove(query, entityInstanceCache);
 
         case QOrm::Operation::Merge:
             Q_ORM_UNEXPECTED_STATE;

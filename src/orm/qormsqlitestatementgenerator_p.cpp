@@ -70,6 +70,15 @@ QT_BEGIN_NAMESPACE
     }
 }
 
+QOrmSqliteStatementGenerator::QOrmSqliteStatementGenerator()
+{
+}
+
+QOrmSqliteStatementGenerator::QOrmSqliteStatementGenerator(Options options)
+    : m_options{options}
+{
+}
+
 std::pair<QString, QVariantMap> QOrmSqliteStatementGenerator::generate(const QOrmQuery& query)
 {
     QVariantMap boundParameters;
@@ -222,6 +231,11 @@ QString QOrmSqliteStatementGenerator::generateDeleteStatement(const QOrmMetadata
                          generateFromClause(QOrmRelation{relation}, boundParameters),
                          generateWhereClause(filter, boundParameters)};
 
+    if (m_options.testFlag(WithReturningClause))
+    {
+        parts.push_back(generateReturningIdClause(relation));
+    }
+
     return parts.join(QChar{' '});
 }
 
@@ -285,6 +299,16 @@ QString QOrmSqliteStatementGenerator::generateOrderClause(const std::vector<QOrm
     }
 
     return parts.empty() ? QString{} : QStringLiteral("ORDER BY ") % parts.join(',');
+}
+
+// For SQLite >= 3.35.0
+// https://www.sqlite.org/lang_returning.html
+QString QOrmSqliteStatementGenerator::generateReturningIdClause(const QOrmMetadata& relation)
+{
+    return QString{R"(RETURNING %1.%2 AS %3)"}
+        .arg(escapeIdentifier(relation.tableName()))
+        .arg(escapeIdentifier(relation.objectIdMapping()->tableFieldName()))
+        .arg(escapeIdentifier(relation.objectIdMapping()->classPropertyName()));
 }
 
 QString QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterExpression& expression,

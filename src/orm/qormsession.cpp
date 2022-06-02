@@ -341,6 +341,12 @@ QOrmMetadataCache* QOrmSession::metadataCache()
     return &d->m_metadataCache;
 }
 
+QOrmEntityInstanceCache* QOrmSession::entityInstanceCache()
+{
+    Q_D(QOrmSession);
+    return &d->m_entityInstanceCache;
+}
+
 bool QOrmSession::beginTransaction()
 {
     Q_D(QOrmSession);

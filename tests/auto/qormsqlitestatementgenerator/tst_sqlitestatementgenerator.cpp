@@ -53,6 +53,9 @@ private slots:
     void testUpdateWithOneToMany();
     void testUpdateWithOneToManyNullReference();
 
+    void testDeleteWhere();
+    void testDeleteWhereWithReturning();
+
     void testCreateTableWithReference();
     void testCreateTableWithManyToOne();
     void testCreateTableWithLong();
@@ -245,12 +248,46 @@ void SqliteStatementGenerator::testUpdateWithOneToManyNullReference()
     QCOMPARE(boundParameters[":id"], 2);
 }
 
+void SqliteStatementGenerator::testDeleteWhere()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    QOrmFilter filter{QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
+                                                            Q_ORM_CLASS_PROPERTY(id) == 1)};
+
+    QVariantMap boundParameters;
+    QString statement =
+        generator.generateDeleteStatement(cache.get<Town>(), filter, boundParameters);
+
+    QCOMPARE(statement, R"(DELETE FROM Town WHERE "id" = :id)");
+    QCOMPARE(boundParameters.size(), 1);
+    QCOMPARE(boundParameters[":id"], 1);
+}
+
+void SqliteStatementGenerator::testDeleteWhereWithReturning()
+{
+    QOrmSqliteStatementGenerator generator{QOrmSqliteStatementGenerator::WithReturningClause};
+    QOrmMetadataCache cache;
+
+    QOrmFilter filter{QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
+                                                            Q_ORM_CLASS_PROPERTY(id) == 1)};
+
+    QVariantMap boundParameters;
+    QString statement =
+        generator.generateDeleteStatement(cache.get<Town>(), filter, boundParameters);
+
+    QCOMPARE(statement, R"(DELETE FROM Town WHERE "id" = :id RETURNING "Town"."id" AS "id")");
+    QCOMPARE(boundParameters.size(), 1);
+    QCOMPARE(boundParameters[":id"], 1);
+}
+
 void SqliteStatementGenerator::testCreateTableWithReference()
 {
     QOrmMetadataCache cache;
 
     QCOMPARE(
-        QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Town>()),
+        QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<Town>()),
         "CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,province_id INTEGER)");
 }
 
@@ -258,21 +295,21 @@ void SqliteStatementGenerator::testCreateTableWithManyToOne()
 {
     QOrmMetadataCache cache;
 
-    QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Province>()),
+    QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<Province>()),
              "CREATE TABLE Province(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT)");
 }
 
 void SqliteStatementGenerator::testCreateTableWithLong()
 {
     QOrmMetadataCache cache;
-    QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Person>()),
+    QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<Person>()),
              "CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT)");
 }
 
 void SqliteStatementGenerator::testCreateTableForCustomizedEntity()
 {
     QOrmMetadataCache cache;
-    QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<Community>()),
+    QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<Community>()),
              "CREATE TABLE communities(community_id INTEGER PRIMARY KEY,name TEXT,population "
              "INTEGER,province_id INTEGER)");
 }
@@ -280,7 +317,7 @@ void SqliteStatementGenerator::testCreateTableForCustomizedEntity()
 void SqliteStatementGenerator::testCreateTableWithQVariant()
 {
     QOrmMetadataCache cache;
-    QCOMPARE(QOrmSqliteStatementGenerator::generateCreateTableStatement(cache.get<WithQVariant>()),
+    QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<WithQVariant>()),
              "CREATE TABLE WithQVariant(id INTEGER PRIMARY KEY AUTOINCREMENT,data TEXT)");
 }
 
@@ -288,7 +325,7 @@ void SqliteStatementGenerator::testAlterTableAddColumn()
 {
     QOrmMetadataCache cache;
 
-    QString actual = QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
+    QString actual = QOrmSqliteStatementGenerator{}.generateAlterTableAddColumnStatement(
         cache.get<Person>(), *cache.get<Person>().classPropertyMapping("name"));
 
     QCOMPARE(actual, R"(ALTER TABLE "Person" ADD COLUMN "name" TEXT)");
@@ -297,7 +334,7 @@ void SqliteStatementGenerator::testAlterTableAddColumn()
 void SqliteStatementGenerator::testAlterTableAddColumnWithReference()
 {
     QOrmMetadataCache cache;
-    QString actual = QOrmSqliteStatementGenerator::generateAlterTableAddColumnStatement(
+    QString actual = QOrmSqliteStatementGenerator{}.generateAlterTableAddColumnStatement(
         cache.get<Town>(), *cache.get<Town>().classPropertyMapping("province"));
 
     QCOMPARE(actual, R"(ALTER TABLE "Town" ADD COLUMN "province_id" INTEGER)");

@@ -32,6 +32,7 @@ class QDebug;
 class Q_ORM_EXPORT QOrmError
 {
 public:
+    QOrmError();
     QOrmError(QOrm::ErrorType type, const QString& text);
 
     [[nodiscard]] QOrm::ErrorType type() const;

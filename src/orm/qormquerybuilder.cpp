@@ -127,17 +127,16 @@ namespace QOrmPrivate
 
     QOrmQuery QueryBuilderHelper::build(QOrm::Operation operation, QOrm::QueryFlags flags) const
     {
-        if (operation == QOrm::Operation::Merge || operation == QOrm::Operation::Create ||
-            operation == QOrm::Operation::Update ||
+        if (operation == QOrm::Operation::Merge ||  //
+            operation == QOrm::Operation::Create || //
+            operation == QOrm::Operation::Update || //
             (operation == QOrm::Operation::Delete && d->m_entityInstance != nullptr))
         {
             Q_ASSERT(d->m_entityInstance != nullptr);
 
             return QOrmQuery{operation, *d->m_relation.mapping(), d->m_entityInstance};
         }
-        else if (operation == QOrm::Operation::Read ||
-                 (operation == QOrm::Operation::Delete &&
-                  d->m_relation.type() == QOrm::RelationType::Query))
+        else if (operation == QOrm::Operation::Read || operation == QOrm::Operation::Delete)
         {
             return QOrmQuery{operation,
                              d->m_relation,
@@ -153,6 +152,11 @@ namespace QOrmPrivate
     QOrmQueryResult<QObject> QueryBuilderHelper::select(QOrm::QueryFlags flags) const
     {
         return d->m_session->execute(build(QOrm::Operation::Read, flags));
+    }
+
+    QOrmQueryResult<QObject> QueryBuilderHelper::remove() const
+    {
+        return d->m_session->execute(build(QOrm::Operation::Delete, QOrm::QueryFlags::None));
     }
 } // namespace QOrmPrivate
 

@@ -67,6 +67,8 @@ namespace QOrmPrivate
         Q_REQUIRED_RESULT
         QOrmQueryResult<QObject> select(QOrm::QueryFlags flags) const;
 
+        [[nodiscard]] QOrmQueryResult<QObject> remove() const;
+
     private:
         std::unique_ptr<QueryBuilderHelperPrivate> d;
     };
@@ -118,7 +120,12 @@ public:
     }
 
     Q_REQUIRED_RESULT
-    QOrmQueryResult<Projection> select(QOrm::QueryFlags flags = QOrm::QueryFlags::None) const { return m_helper.select(flags); }
+    QOrmQueryResult<Projection> select(QOrm::QueryFlags flags = QOrm::QueryFlags::None) const
+    {
+        return m_helper.select(flags);
+    }
+
+    [[nodiscard]] QOrmQueryResult<Projection> remove() { return m_helper.remove(); }
 
     Q_REQUIRED_RESULT
     QOrmQuery build(QOrm::Operation operation, QOrm::QueryFlags flags = QOrm::QueryFlags::None) const { return m_helper.build(operation, flags); }
