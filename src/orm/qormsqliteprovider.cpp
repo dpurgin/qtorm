@@ -986,7 +986,7 @@ QOrmError QOrmSqliteProvider::connectToBackend()
 
     if (!d->m_database.isOpen())
     {
-        d->m_database = QSqlDatabase::addDatabase("QSQLITE");
+        d->m_database = QSqlDatabase::addDatabase("QSQLITE", "QtOrm");
         d->m_database.setConnectOptions(d->m_sqlConfiguration.connectOptions());
         d->m_database.setDatabaseName(d->m_sqlConfiguration.databaseName());
 
