@@ -43,6 +43,7 @@ namespace QtOrmPrivate
         [[nodiscard]] const QOrmError& error() const { return m_error; }
         [[nodiscard]] const QVariant& lastInsertedId() const { return m_lastInsertedId; }
         [[nodiscard]] int numRowsAffected() const { return m_numRowsAffected; }
+        [[nodiscard]] bool hasError() const { return m_error.type() != QOrm::ErrorType::None; }
 
     protected:
         QOrmQueryResultBase(const QOrmError& error,
@@ -168,6 +169,32 @@ public:
             result.insert(instance);
 
         return result;
+    }
+
+    Q_REQUIRED_RESULT
+    Projection* first() const
+    {
+        if (Base::hasError())
+        {
+            qFatal("qtorm: QOrmQueryResult::first() has been called but the result contains an "
+                   "error: %s",
+                   qPrintable(Base::error().text()));
+        }
+
+        return !m_result.isEmpty() ? m_result.first() : nullptr;
+    }
+
+    Q_REQUIRED_RESULT
+    Projection* last() const
+    {
+        if (Base::hasError())
+        {
+            qFatal("qtorm: QOrmQueryResult::last() has been called but the result contains an "
+                   "error: %s",
+                   qPrintable(Base::error().text()));
+        }
+
+        return !m_result.isEmpty() ? m_result.last() : nullptr;
     }
 
 private:
