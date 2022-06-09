@@ -127,6 +127,19 @@ public:
     }
 
     Q_REQUIRED_RESULT
+    QList<Projection*> toList() const
+    {
+        if (Base::error().type() != QOrm::ErrorType::None)
+        {
+            qFatal("qtorm: QOrmQueryResult::toList() has been called but the result contains an "
+                   "error: %s",
+                   qPrintable(Base::error().text()));
+        }
+
+        return m_result.toList();
+    }
+
+    Q_REQUIRED_RESULT
     std::vector<Projection*> toStdVector() const
     {
         if (Base::error().type() != QOrm::ErrorType::None)
