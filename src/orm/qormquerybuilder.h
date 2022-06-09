@@ -81,7 +81,8 @@ class QOrmQueryBuilder
     friend class QOrmQueryBuilder;
 
 public:
-    using Projection = T;
+    using Projection = std::decay_t<T>;
+    using UnaryPredicate = std::function<bool(const Projection*)>;
 
     explicit QOrmQueryBuilder(QOrmSession* session, const QOrmRelation& relation)
         : m_helper{session, relation}
@@ -103,6 +104,14 @@ public:
     QOrmQueryBuilder& filter(QOrmFilterExpression expression)
     {
         m_helper.addFilter(QOrmFilter{expression});
+        return *this;
+    }
+
+    QOrmQueryBuilder& filter(UnaryPredicate predicate)
+    {
+        m_helper.addFilter(QOrmFilter{[predicate](const QObject* value) {
+            return predicate(qobject_cast<const Projection*>(value));
+        }});
         return *this;
     }
 

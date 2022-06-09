@@ -225,6 +225,7 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                                 *mapping.referencedEntity(),
                                 filter,
                                 {},
+                                {},
                                 queryFlags};
 
                 QOrmQueryResult<QObject> result = read(query, entityInstanceCache);
@@ -295,6 +296,7 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                                     referencedRelation,
                                     *mapping.referencedEntity(),
                                     filter,
+                                    {},
                                     {},
                                     queryFlags};
 
@@ -835,13 +837,27 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(
         }
     }
 
-    return QOrmQueryResult<QObject>{resultSet, sqlQuery.numRowsAffected()};
+    if (query.invokableFilter().has_value())
+    {
+        auto it = std::remove_if(std::begin(resultSet),
+                                 std::end(resultSet),
+                                 [&query](const QObject* value)
+                                 { return !(*query.invokableFilter()->invokable())(value); });
+        resultSet.erase(it, std::end(resultSet));
+    }
+
+    return QOrmQueryResult<QObject>{resultSet, resultSet.size()};
 }
 
 QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)
 {
     Q_ASSERT(query.relation().type() == QOrm::RelationType::Mapping);
     Q_ASSERT(query.entityInstance() != nullptr);
+
+    if (query.invokableFilter().has_value())
+    {
+        qFatal("qtorm: Invokable filter is unsupported for merge operation.");
+    }
 
     auto [statement, boundParameters] = m_statementGenerator.generate(query);
 
@@ -867,6 +883,11 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::remove(
     const QOrmQuery& query,
     QOrmEntityInstanceCache& entityInstanceCache)
 {
+    if (query.invokableFilter().has_value())
+    {
+        qFatal("qtorm: Invokable filter is unsupported for remove operation.");
+    }
+
     auto [statement, boundParameters] = m_statementGenerator.generate(query);
 
     QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
@@ -1006,7 +1027,7 @@ QOrmError QOrmSqliteProvider::disconnectFromBackend()
     Q_D(QOrmSqliteProvider);
 
     d->m_database.close();
-    QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
+    QSqlDatabase::removeDatabase("QtOrm");
 
     return QOrmError{QOrm::ErrorType::None, {}};
 }

@@ -113,10 +113,10 @@ QString QOrmSqliteStatementGenerator::generate(const QOrmQuery& query, QVariantM
                                                query.entityInstance(),
                                                boundParameters);
             }
-            else if (query.filter().has_value())
+            else if (query.expressionFilter().has_value())
             {
                 return generateDeleteStatement(*query.relation().mapping(),
-                                               *query.filter(),
+                                               *query.expressionFilter(),
                                                boundParameters);
             }
             else
@@ -215,8 +215,8 @@ QString QOrmSqliteStatementGenerator::generateSelectStatement(const QOrmQuery& q
 
     QStringList parts = {"SELECT *", generateFromClause(query.relation(), boundParameters)};
 
-    if (query.filter().has_value())
-        parts += generateWhereClause(*query.filter(), boundParameters);
+    if (query.expressionFilter().has_value())
+        parts += generateWhereClause(*query.expressionFilter(), boundParameters);
 
     parts += generateOrderClause(query.order());
 
