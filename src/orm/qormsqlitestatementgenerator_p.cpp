@@ -347,9 +347,11 @@ QString QOrmSqliteStatementGenerator::generateCondition(
         Q_ASSERT(referencedEntity != nullptr);
 
         auto referencedInstance = predicate.value().value<QObject*>();
-        Q_ASSERT(referencedInstance != nullptr);
 
-        value = QOrmPrivate::objectIdPropertyValue(referencedInstance, *referencedEntity);
+        if (referencedInstance != nullptr)
+        {
+            value = QOrmPrivate::objectIdPropertyValue(referencedInstance, *referencedEntity);
+        }
     }
     else
     {

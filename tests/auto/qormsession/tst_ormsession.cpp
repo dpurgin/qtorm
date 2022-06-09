@@ -55,6 +55,7 @@ private slots:
     void testReadWithTransientProperties();
 
     void testSelectWithOneToMany();
+    void testSelectWithOneToManyWhereIsNull();
     void testSelectWithManyToOne();
     void testSelectReturnsCachedInstances();
     void testSelectWithSingleStringFilter();
@@ -259,6 +260,44 @@ void SqliteSessionTest::testSelectWithOneToMany()
 
     QCOMPARE(qobject_cast<Province*>(data[1])->towns()[0]->id(), 3);
     QCOMPARE(qobject_cast<Province*>(data[1])->towns()[0]->name(), QString::fromUtf8("Melk"));
+}
+
+void SqliteSessionTest::testSelectWithOneToManyWhereIsNull()
+{
+    // prepare database
+    {
+        QOrmSession session;
+        Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
+
+        Town* hagenberg = new Town(QString::fromUtf8("Hagenberg"), upperAustria);
+        Town* pregarten = new Town(QString::fromUtf8("Pregarten"), upperAustria);
+        Town* melk = new Town(QString::fromUtf8("Melk"), nullptr);
+
+        upperAustria->setTowns({hagenberg, pregarten});
+
+        QVERIFY(session.merge(hagenberg, pregarten, melk, upperAustria));
+    }
+
+    // Load data from the database using a new ORM session
+    QOrmSqliteConfiguration sqliteConfiguration;
+    sqliteConfiguration.setVerbose(true);
+    sqliteConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Bypass);
+    sqliteConfiguration.setDatabaseName("testdb.db");
+    QOrmSqliteProvider* sqliteProvider = new QOrmSqliteProvider{sqliteConfiguration};
+    QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
+    QOrmSession session{sessionConfiguration};
+
+    QOrmQueryResult result =
+        session.from<Town>().filter(Q_ORM_CLASS_PROPERTY(province) == nullptr).select();
+
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+
+    auto data = result.toVector();
+    QCOMPARE(data.size(), 1);
+
+    QCOMPARE(qobject_cast<Town*>(data[0])->id(), 3);
+    QCOMPARE(qobject_cast<Town*>(data[0])->name(), QString::fromUtf8("Melk"));
+    QCOMPARE(qobject_cast<Town*>(data[0])->province(), nullptr);
 }
 
 void SqliteSessionTest::testSelectWithManyToOne()
