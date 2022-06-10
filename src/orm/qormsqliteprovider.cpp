@@ -310,7 +310,18 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
 
                     // sanity check: when selecting by object id, only one instance should be
                     // returned
-                    Q_ASSERT(result.toVector().size() == 1);
+                    if (result.toVector().size() != 1)
+                    {
+                        qCCritical(qtorm) << "Database inconsistency detected: a row in table"
+                                          << mapping.enclosingEntity().tableName() << "references"
+                                          << mapping.referencedEntity()->tableName() << "in column"
+                                          << mapping.tableFieldName()
+                                          << "using a non-existing object ID" << referencedObjectId
+                                          << ", or there are multiple rows in the referenced table "
+                                             "with this value";
+
+                        Q_ORM_UNEXPECTED_STATE;
+                    }
 
                     if (!QOrmPrivate::setPropertyValue(entityInstance,
                                                        mapping.classPropertyName(),
