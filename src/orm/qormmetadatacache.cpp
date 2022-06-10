@@ -548,7 +548,11 @@ QOrmMetadataCachePrivate::MappingDescriptor QOrmMetadataCachePrivate::mappingDes
         }
         else
         {
-            descriptor.tableFieldName += "_id";
+            if (!userPropertyMetadata.contains(QOrm::Keyword::Column))
+            {
+                descriptor.tableFieldName += "_id";
+            }
+
             descriptor.isTransient = false;
         }
 
