@@ -341,7 +341,7 @@ QString QOrmSqliteStatementGenerator::generateCondition(
     QVariant value;
     QString statement;
 
-    if (predicate.propertyMapping()->isReference())
+    if (predicate.propertyMapping()->isReference() && !predicate.value().isNull())
     {
         const QOrmMetadata* referencedEntity = predicate.propertyMapping()->referencedEntity();
         Q_ASSERT(referencedEntity != nullptr);
@@ -351,6 +351,24 @@ QString QOrmSqliteStatementGenerator::generateCondition(
         if (referencedInstance != nullptr)
         {
             value = QOrmPrivate::objectIdPropertyValue(referencedInstance, *referencedEntity);
+        }
+        else if (predicate.value().type() == referencedEntity->objectIdMapping()->dataType())
+        {
+            value = predicate.value();
+        }
+        else
+        {
+            qCCritical(qtorm).nospace().noquote()
+                << "Unexpected filter value type encountered (filter property: "
+                << predicate.propertyMapping()->enclosingEntity().className()
+                << "::" << predicate.propertyMapping()->classPropertyName()
+                << ", filter value: " << predicate.value()
+                << "). The filter value must be either an instance of "
+                << referencedEntity->className() << ", a nullptr, or a value of "
+                << referencedEntity->className()
+                << "::" << referencedEntity->objectIdMapping()->classPropertyName() << " of type "
+                << referencedEntity->objectIdMapping()->dataTypeName();
+            Q_ORM_UNEXPECTED_STATE;
         }
     }
     else

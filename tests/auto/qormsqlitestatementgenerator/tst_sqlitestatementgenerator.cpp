@@ -47,6 +47,7 @@ private slots:
 
     void testFilterWithReference();
     void testFilterWithReferenceIsNull();
+    void testFilterWithReferenceExplicitId();
     void testFilterWithNull();
     void testFilterWithList();
 
@@ -156,6 +157,27 @@ void SqliteStatementGenerator::testFilterWithReferenceIsNull()
 
     QCOMPARE(statement, R"(WHERE "province_id" IS NULL)");
     QVERIFY(boundParameters.isEmpty());
+}
+
+void SqliteStatementGenerator::testFilterWithReferenceExplicitId()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    QScopedPointer<Province> upperAustria{new Province(1, "Oberösterreich")};
+    QScopedPointer<Town> hagenberg{new Town{"Hagenberg", upperAustria.get()}};
+
+    {
+        QOrmFilter filter{
+            QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
+                                                  Q_ORM_CLASS_PROPERTY(province) == 1)};
+
+        QVariantMap boundParameters;
+        QString statement = generator.generateWhereClause(filter, boundParameters);
+
+        QCOMPARE(statement, R"(WHERE "province_id" = :province_id)");
+        QCOMPARE(boundParameters[":province_id"], 1);
+    }   
 }
 
 void SqliteStatementGenerator::testFilterWithNull()
