@@ -116,10 +116,15 @@ class QOrmSqliteProviderPrivate
 bool QOrmSqliteProviderPrivate::canConvertFromSqliteToQProperty(QVariant::Type fromSqlType,
                                                                 QVariant::Type toQPropertyType)
 {
-    if ((fromSqlType == QVariant::Type::Double || //
-         fromSqlType == QVariant::Type::Int ||    //
-         fromSqlType == QVariant::Type::String) &&
+    if ((fromSqlType == QVariant::Double || //
+         fromSqlType == QVariant::Int ||    //
+         fromSqlType == QVariant::String) &&
         toQPropertyType == QVariant::DateTime)
+    {
+        return true;
+    }
+    // If target type is QVariant, assume it is convertible.
+    else if (toQPropertyType == 41)
     {
         return true;
     }
