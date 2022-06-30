@@ -58,14 +58,16 @@ class QOrmSqliteProviderPrivate
         : q_ptr{parent}
         , m_sqlConfiguration{configuration}
     {
+        detectSqliteCapabilities();
     }
 
     QOrmSqliteProvider* q_ptr{nullptr};
-    QSqlDatabase m_database;
+    QSqlDatabase m_database{QSqlDatabase::addDatabase("QSQLITE", "QtOrm")};
     QOrmSqliteConfiguration m_sqlConfiguration;
     QSet<QString> m_schemaSyncCache;
     int m_transactionCounter{0};
     QOrmSqliteStatementGenerator m_statementGenerator;
+    QOrmSqliteProvider::SqliteCapabilities m_capabilities{QOrmSqliteProvider::NoCapabilities};
 
     Q_REQUIRED_RESULT
     QString toSqlType(QVariant::Type type);
@@ -976,9 +978,29 @@ QOrmError QOrmSqliteProviderPrivate::checkForeignKeys()
     return {QOrm::ErrorType::None, {}};
 }
 
+// The capabilities of the provider depend on the SQLite verison. Connect to an in-memory
+// database to read the SQLite version.
 void QOrmSqliteProviderPrivate::detectSqliteCapabilities()
 {
-    QSqlQuery query = prepareAndExecute("SELECT sqlite_version() AS version");
+    auto connectionName = QUuid::createUuid().toString();
+
+    // The database connection should be removed AFTER QSqlDatabase destructor has been invoked to
+    // avoid "connection is still in use" warning.
+    //
+    // See https://doc.qt.io/qt-5/qsqldatabase.html#removeDatabase
+    auto scopeGuard =
+        qScopeGuard([connectionName]() { QSqlDatabase::removeDatabase(connectionName); });
+
+    auto inMemoryDatabase = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+    inMemoryDatabase.setDatabaseName(":memory:");
+
+    if (!inMemoryDatabase.open())
+    {
+        qFatal("qtorm: Cannot detect SQLite capabilities: %s",
+               qUtf8Printable(inMemoryDatabase.lastError().text()));
+    }
+
+    QSqlQuery query = inMemoryDatabase.exec("SELECT sqlite_version() AS version");
 
     if (query.lastError().text() != QSqlError::NoError)
     {
@@ -995,26 +1017,33 @@ void QOrmSqliteProviderPrivate::detectSqliteCapabilities()
 
             if (version >= std::make_tuple(3, 35, 0))
             {
+                m_capabilities.setFlag(QOrmSqliteProvider::SupportsReturningClause);
+
                 m_statementGenerator.setOptions(m_statementGenerator.options() |
                                                 QOrmSqliteStatementGenerator::WithReturningClause);
             }
         }
         else
         {
-            qCWarning(qtorm) << "Cannot read SQLite version!";
+            qFatal("qtorm: Cannot read SQLite version: %s",
+                   qUtf8Printable(query.lastError().text()));
         }
     }
+
+    inMemoryDatabase.close();
 }
 
 QOrmSqliteProvider::QOrmSqliteProvider(const QOrmSqliteConfiguration& sqlConfiguration)
     : QOrmAbstractProvider{}
     , d_ptr{new QOrmSqliteProviderPrivate{sqlConfiguration, this}}
-{
+{    
 }
 
 QOrmSqliteProvider::~QOrmSqliteProvider()
 {
     delete d_ptr;
+
+    QSqlDatabase::removeDatabase("QtOrm");
 }
 
 QOrmError QOrmSqliteProvider::connectToBackend()
@@ -1022,8 +1051,7 @@ QOrmError QOrmSqliteProvider::connectToBackend()
     Q_D(QOrmSqliteProvider);
 
     if (!d->m_database.isOpen())
-    {
-        d->m_database = QSqlDatabase::addDatabase("QSQLITE", "QtOrm");
+    {        
         d->m_database.setConnectOptions(d->m_sqlConfiguration.connectOptions());
         d->m_database.setDatabaseName(d->m_sqlConfiguration.databaseName());
 
@@ -1031,8 +1059,6 @@ QOrmError QOrmSqliteProvider::connectToBackend()
         {
             return d->lastDatabaseError();
         }
-
-        d->detectSqliteCapabilities();
     }
 
     return QOrmError{QOrm::ErrorType::None, {}};
@@ -1043,7 +1069,6 @@ QOrmError QOrmSqliteProvider::disconnectFromBackend()
     Q_D(QOrmSqliteProvider);
 
     d->m_database.close();
-    QSqlDatabase::removeDatabase("QtOrm");
 
     return QOrmError{QOrm::ErrorType::None, {}};
 }
@@ -1147,6 +1172,12 @@ QOrmQueryResult<QObject> QOrmSqliteProvider::execute(const QOrmQuery& query,
     }
 
     Q_ORM_UNEXPECTED_STATE;
+}
+
+int QOrmSqliteProvider::capabilities() const
+{
+    Q_D(const QOrmSqliteProvider);
+    return d->m_capabilities;
 }
 
 QOrmSqliteConfiguration QOrmSqliteProvider::configuration() const

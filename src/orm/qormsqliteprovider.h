@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -36,6 +36,13 @@ class QSqlDatabase;
 class Q_ORM_EXPORT QOrmSqliteProvider : public QOrmAbstractProvider
 {
 public:
+    enum SqliteCapability
+    {
+        NoCapabilities = 0,
+        SupportsReturningClause = 1
+    };
+    Q_DECLARE_FLAGS(SqliteCapabilities, SqliteCapability)
+
     explicit QOrmSqliteProvider(const QOrmSqliteConfiguration& sqlConfiguration);
     ~QOrmSqliteProvider() override;
 
@@ -49,6 +56,8 @@ public:
 
     QOrmQueryResult<QObject> execute(const QOrmQuery& query,
                                      QOrmEntityInstanceCache& entityInstanceCache) override;
+
+    [[nodiscard]] int capabilities() const override;
 
     QOrmSqliteConfiguration configuration() const;
     QSqlDatabase database() const;

@@ -890,6 +890,14 @@ void SqliteSessionTest::testRemoveWithFilter()
 {
     QOrmSession session;
 
+    // Do not run this test if the provider does not support remove with filter.
+    QOrmSqliteProvider::SqliteCapabilities caps{session.configuration().provider()->capabilities()};
+
+    if (!caps.testFlag(QOrmSqliteProvider::SupportsReturningClause))
+    {
+        QSKIP("SQLite version does not support RETURNING");
+    }
+
     Province* upperAustria = new Province();
     upperAustria->setName("Oberösterreich");
 
