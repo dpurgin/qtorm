@@ -112,6 +112,7 @@ void QOrmSessionPrivate::rollbackTrackedInstances()
                         projection,
                         filter,
                         {},
+                        {},
                         QOrm::QueryFlags::OverwriteCachedInstances};
         QOrmQueryResult result =
             m_sessionConfiguration.provider()->execute(query, m_entityInstanceCache);
@@ -339,6 +340,12 @@ QOrmMetadataCache* QOrmSession::metadataCache()
 {
     Q_D(QOrmSession);
     return &d->m_metadataCache;
+}
+
+QOrmEntityInstanceCache* QOrmSession::entityInstanceCache()
+{
+    Q_D(QOrmSession);
+    return &d->m_entityInstanceCache;
 }
 
 bool QOrmSession::beginTransaction()

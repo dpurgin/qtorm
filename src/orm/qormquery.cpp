@@ -34,13 +34,15 @@ public:
     QOrmQueryPrivate(QOrm::Operation operation,
                      const QOrmRelation& relation,
                      const std::optional<QOrmMetadata>& projection,
-                     const std::optional<QOrmFilter>& filter,
+                     const std::optional<QOrmFilter>& expressionFilter,
+                     const std::optional<QOrmFilter>& invokableFilter,
                      const std::vector<QOrmOrder>& order,
                      const QFlags<QOrm::QueryFlags>& flags)
         : m_operation{operation}
         , m_relation{relation}
         , m_projection{projection}
-        , m_filter{filter}
+        , m_expressionFilter{expressionFilter}
+        , m_invokableFilter{invokableFilter}
         , m_order{order}
         , m_flags{flags}
     {
@@ -58,7 +60,8 @@ public:
     QOrm::Operation m_operation;
     QOrmRelation m_relation;
     std::optional<QOrmMetadata> m_projection;
-    std::optional<QOrmFilter> m_filter;
+    std::optional<QOrmFilter> m_expressionFilter;
+    std::optional<QOrmFilter> m_invokableFilter;
     std::vector<QOrmOrder> m_order;
     QObject* m_entityInstance{nullptr};
     QFlags<QOrm::QueryFlags> m_flags;
@@ -67,10 +70,17 @@ public:
 QOrmQuery::QOrmQuery(QOrm::Operation operation,
                      const QOrmRelation& relation,
                      const std::optional<QOrmMetadata>& projection,
-                     const std::optional<QOrmFilter>& filter,
+                     const std::optional<QOrmFilter>& expressionFilter,
+                     const std::optional<QOrmFilter>& invokableFilter,
                      const std::vector<QOrmOrder>& order,
                      const QFlags<QOrm::QueryFlags>& flags)
-    : d{new QOrmQueryPrivate{operation, relation, projection, filter, order, flags}}
+    : d{new QOrmQueryPrivate{operation,
+                             relation,
+                             projection,
+                             expressionFilter,
+                             invokableFilter,
+                             order,
+                             flags}}
 {
 }
 
@@ -106,9 +116,14 @@ const std::optional<QOrmMetadata>& QOrmQuery::projection() const
     return d->m_projection;
 }
 
-const std::optional<QOrmFilter>& QOrmQuery::filter() const
+const std::optional<QOrmFilter>& QOrmQuery::expressionFilter() const
 {
-    return d->m_filter;
+    return d->m_expressionFilter;
+}
+
+const std::optional<QOrmFilter>& QOrmQuery::invokableFilter() const
+{
+    return d->m_invokableFilter;
 }
 
 const std::vector<QOrmOrder>& QOrmQuery::order() const
@@ -135,8 +150,11 @@ QDebug operator<<(QDebug dbg, const QOrmQuery& query)
     if (query.projection().has_value())
         dbg << ", " << *query.projection();
 
-    if (query.filter().has_value())
-        dbg << ", " << *query.filter();
+    if (query.expressionFilter().has_value())
+        dbg << ", " << *query.expressionFilter();
+
+    if (query.invokableFilter().has_value())
+        dbg << ", " << *query.invokableFilter();
 
     if (!query.order().empty())
         dbg << ", " << query.order();

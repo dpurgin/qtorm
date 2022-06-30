@@ -70,6 +70,15 @@ QT_BEGIN_NAMESPACE
     }
 }
 
+QOrmSqliteStatementGenerator::QOrmSqliteStatementGenerator()
+{
+}
+
+QOrmSqliteStatementGenerator::QOrmSqliteStatementGenerator(Options options)
+    : m_options{options}
+{
+}
+
 std::pair<QString, QVariantMap> QOrmSqliteStatementGenerator::generate(const QOrmQuery& query)
 {
     QVariantMap boundParameters;
@@ -104,10 +113,10 @@ QString QOrmSqliteStatementGenerator::generate(const QOrmQuery& query, QVariantM
                                                query.entityInstance(),
                                                boundParameters);
             }
-            else if (query.filter().has_value())
+            else if (query.expressionFilter().has_value())
             {
                 return generateDeleteStatement(*query.relation().mapping(),
-                                               *query.filter(),
+                                               *query.expressionFilter(),
                                                boundParameters);
             }
             else
@@ -206,8 +215,8 @@ QString QOrmSqliteStatementGenerator::generateSelectStatement(const QOrmQuery& q
 
     QStringList parts = {"SELECT *", generateFromClause(query.relation(), boundParameters)};
 
-    if (query.filter().has_value())
-        parts += generateWhereClause(*query.filter(), boundParameters);
+    if (query.expressionFilter().has_value())
+        parts += generateWhereClause(*query.expressionFilter(), boundParameters);
 
     parts += generateOrderClause(query.order());
 
@@ -221,6 +230,11 @@ QString QOrmSqliteStatementGenerator::generateDeleteStatement(const QOrmMetadata
     QStringList parts = {"DELETE",
                          generateFromClause(QOrmRelation{relation}, boundParameters),
                          generateWhereClause(filter, boundParameters)};
+
+    if (m_options.testFlag(WithReturningClause))
+    {
+        parts.push_back(generateReturningIdClause(relation));
+    }
 
     return parts.join(QChar{' '});
 }
@@ -287,6 +301,16 @@ QString QOrmSqliteStatementGenerator::generateOrderClause(const std::vector<QOrm
     return parts.empty() ? QString{} : QStringLiteral("ORDER BY ") % parts.join(',');
 }
 
+// For SQLite >= 3.35.0
+// https://www.sqlite.org/lang_returning.html
+QString QOrmSqliteStatementGenerator::generateReturningIdClause(const QOrmMetadata& relation)
+{
+    return QString{R"(RETURNING %1.%2 AS %3)"}
+        .arg(escapeIdentifier(relation.tableName()))
+        .arg(escapeIdentifier(relation.objectIdMapping()->tableFieldName()))
+        .arg(escapeIdentifier(relation.objectIdMapping()->classPropertyName()));
+}
+
 QString QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterExpression& expression,
                                                         QVariantMap& boundParameters)
 {
@@ -317,15 +341,35 @@ QString QOrmSqliteStatementGenerator::generateCondition(
     QVariant value;
     QString statement;
 
-    if (predicate.propertyMapping()->isReference())
+    if (predicate.propertyMapping()->isReference() && !predicate.value().isNull())
     {
         const QOrmMetadata* referencedEntity = predicate.propertyMapping()->referencedEntity();
         Q_ASSERT(referencedEntity != nullptr);
 
         auto referencedInstance = predicate.value().value<QObject*>();
-        Q_ASSERT(referencedInstance != nullptr);
 
-        value = QOrmPrivate::objectIdPropertyValue(referencedInstance, *referencedEntity);
+        if (referencedInstance != nullptr)
+        {
+            value = QOrmPrivate::objectIdPropertyValue(referencedInstance, *referencedEntity);
+        }
+        else if (predicate.value().type() == referencedEntity->objectIdMapping()->dataType())
+        {
+            value = predicate.value();
+        }
+        else
+        {
+            qCCritical(qtorm).nospace().noquote()
+                << "Unexpected filter value type encountered (filter property: "
+                << predicate.propertyMapping()->enclosingEntity().className()
+                << "::" << predicate.propertyMapping()->classPropertyName()
+                << ", filter value: " << predicate.value()
+                << "). The filter value must be either an instance of "
+                << referencedEntity->className() << ", a nullptr, or a value of "
+                << referencedEntity->className()
+                << "::" << referencedEntity->objectIdMapping()->classPropertyName() << " of type "
+                << referencedEntity->objectIdMapping()->dataTypeName();
+            Q_ORM_UNEXPECTED_STATE;
+        }
     }
     else
     {

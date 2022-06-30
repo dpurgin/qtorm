@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -35,7 +35,7 @@ class QOrmQuery;
 class Q_ORM_EXPORT QOrmAbstractProvider
 {
 public:
-    virtual ~QOrmAbstractProvider();
+    virtual ~QOrmAbstractProvider();        
 
     virtual QOrmError connectToBackend() = 0;
     virtual QOrmError disconnectFromBackend() = 0;
@@ -47,6 +47,8 @@ public:
 
     virtual QOrmQueryResult<QObject> execute(const QOrmQuery& query,
                                              QOrmEntityInstanceCache& entityInstanceCache) = 0;
+
+    [[nodiscard]] virtual int capabilities() const = 0;
 };
 
 QT_END_NAMESPACE

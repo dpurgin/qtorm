@@ -31,9 +31,17 @@ QT_BEGIN_NAMESPACE
 class Q_ORM_EXPORT QOrmFilter
 {
 public:
+    using Predicate = std::function<bool(const QObject*)>;
+
     explicit QOrmFilter(QOrmFilterExpression expression)
         : m_type{QOrm::FilterType::Expression}
-        , m_filter{expression}
+        , m_filter{std::move(expression)}
+    {
+    }
+
+    explicit QOrmFilter(Predicate invokable)
+        : m_type{QOrm::FilterType::Invokable}
+        , m_filter{std::move(invokable)}
     {
     }
 
@@ -49,9 +57,12 @@ public:
         return std::get_if<QOrmFilterExpression>(&m_filter);
     }
 
+    Q_REQUIRED_RESULT
+    const Predicate* invokable() const { return std::get_if<Predicate>(&m_filter); }
+
 private:
     QOrm::FilterType m_type;
-    std::variant<QOrmFilterExpression, void*> m_filter{nullptr};
+    std::variant<QOrmFilterExpression, Predicate> m_filter{nullptr};
 };
 
 extern Q_ORM_EXPORT QDebug operator<<(QDebug debug, const QOrmFilter& filter);

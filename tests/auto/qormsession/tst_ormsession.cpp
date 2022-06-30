@@ -21,6 +21,7 @@
 
 #include <QtTest>
 
+#include <QOrmEntityInstanceCache>
 #include <QOrmError>
 #include <QOrmMetadataCache>
 #include <QOrmSession>
@@ -54,6 +55,7 @@ private slots:
     void testReadWithTransientProperties();
 
     void testSelectWithOneToMany();
+    void testSelectWithOneToManyWhereIsNull();
     void testSelectWithManyToOne();
     void testSelectReturnsCachedInstances();
     void testSelectWithSingleStringFilter();
@@ -67,6 +69,7 @@ private slots:
     void testMergeNewEntitiesAfterSchemaUpdate();
 
     void testRemoveInstance();
+    void testRemoveWithFilter();
 
     void testTransactionRollback();
 
@@ -257,6 +260,44 @@ void SqliteSessionTest::testSelectWithOneToMany()
 
     QCOMPARE(qobject_cast<Province*>(data[1])->towns()[0]->id(), 3);
     QCOMPARE(qobject_cast<Province*>(data[1])->towns()[0]->name(), QString::fromUtf8("Melk"));
+}
+
+void SqliteSessionTest::testSelectWithOneToManyWhereIsNull()
+{
+    // prepare database
+    {
+        QOrmSession session;
+        Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
+
+        Town* hagenberg = new Town(QString::fromUtf8("Hagenberg"), upperAustria);
+        Town* pregarten = new Town(QString::fromUtf8("Pregarten"), upperAustria);
+        Town* melk = new Town(QString::fromUtf8("Melk"), nullptr);
+
+        upperAustria->setTowns({hagenberg, pregarten});
+
+        QVERIFY(session.merge(hagenberg, pregarten, melk, upperAustria));
+    }
+
+    // Load data from the database using a new ORM session
+    QOrmSqliteConfiguration sqliteConfiguration;
+    sqliteConfiguration.setVerbose(true);
+    sqliteConfiguration.setSchemaMode(QOrmSqliteConfiguration::SchemaMode::Bypass);
+    sqliteConfiguration.setDatabaseName("testdb.db");
+    QOrmSqliteProvider* sqliteProvider = new QOrmSqliteProvider{sqliteConfiguration};
+    QOrmSessionConfiguration sessionConfiguration{sqliteProvider, true};
+    QOrmSession session{sessionConfiguration};
+
+    QOrmQueryResult result =
+        session.from<Town>().filter(Q_ORM_CLASS_PROPERTY(province) == nullptr).select();
+
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+
+    auto data = result.toVector();
+    QCOMPARE(data.size(), 1);
+
+    QCOMPARE(qobject_cast<Town*>(data[0])->id(), 3);
+    QCOMPARE(qobject_cast<Town*>(data[0])->name(), QString::fromUtf8("Melk"));
+    QCOMPARE(qobject_cast<Town*>(data[0])->province(), nullptr);
 }
 
 void SqliteSessionTest::testSelectWithManyToOne()
@@ -842,7 +883,71 @@ void SqliteSessionTest::testRemoveInstance()
     Province* upperAustria = new Province{QString::fromUtf8("Oberösterreich")};
     QVERIFY(session.merge(upperAustria));
     QVERIFY(session.remove(upperAustria));
-    QVERIFY(session.from<Province>().select().toVector().empty());
+    QVERIFY(session.from<Province>().select().toVector().empty());    
+}
+
+void SqliteSessionTest::testRemoveWithFilter()
+{
+    QOrmSession session;
+
+    // Do not run this test if the provider does not support remove with filter.
+    QOrmSqliteProvider::SqliteCapabilities caps{session.configuration().provider()->capabilities()};
+
+    if (!caps.testFlag(QOrmSqliteProvider::SupportsReturningClause))
+    {
+        QSKIP("SQLite version does not support RETURNING");
+    }
+
+    Province* upperAustria = new Province();
+    upperAustria->setName("Oberösterreich");
+
+    Province* lowerAustria = new Province();
+    lowerAustria->setName("Niederösterreich");
+
+    Town* hagenberg = new Town();
+    hagenberg->setName("Hagenberg");
+    hagenberg->setProvince(upperAustria);
+
+    Town* linz = new Town();
+    linz->setName("Linz");
+    linz->setProvince(upperAustria);
+
+    Town* melk = new Town();
+    melk->setName("Melk");
+    melk->setProvince(lowerAustria);
+
+    upperAustria->setTowns({hagenberg, linz});
+    lowerAustria->setTowns({melk});
+
+    session.merge(upperAustria, lowerAustria, hagenberg, linz, melk);
+
+    {
+        auto query = session.from<Town>().select();
+        QCOMPARE(query.error().type(), QOrm::ErrorType::None);
+
+        auto rowset = query.toVector();
+        QCOMPARE(rowset.size(), 3);
+        QVERIFY(rowset.contains(hagenberg));
+        QVERIFY(rowset.contains(linz));
+        QVERIFY(rowset.contains(melk));
+    }
+
+    {
+        auto query =
+            session.from<Town>().filter(Q_ORM_CLASS_PROPERTY(province) == upperAustria).remove();
+        QCOMPARE(query.error(), QOrm::ErrorType::None);
+        QCOMPARE(query.numRowsAffected(), 2);
+
+        QVERIFY(!session.entityInstanceCache()->contains(hagenberg));
+        QVERIFY(!session.entityInstanceCache()->contains(linz));
+
+        auto removedInstances = query.toVector();
+
+        QCOMPARE(removedInstances.size(), 2);
+        QVERIFY(removedInstances.contains(hagenberg));
+        QVERIFY(removedInstances.contains(linz));
+        qDeleteAll(query.toVector());
+    }
 }
 
 QTEST_GUILESS_MAIN(SqliteSessionTest)

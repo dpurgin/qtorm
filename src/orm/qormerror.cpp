@@ -24,6 +24,8 @@
 
 QT_BEGIN_NAMESPACE
 
+QOrmError::QOrmError() = default;
+
 QOrmError::QOrmError(QOrm::ErrorType error, const QString& text)
     : m_type{error}
     , m_text{text}

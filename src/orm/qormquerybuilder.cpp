@@ -38,35 +38,56 @@ QT_BEGIN_NAMESPACE
 
 namespace QOrmPrivate
 {
+    struct FoldedFilters
+    {
+        std::optional<QOrmFilter> expression;
+        std::optional<QOrmFilter> invokable;
+    };
+
     template<typename ForwardIterable>
-    static std::optional<QOrmFilter> foldFilters(const QOrmRelation& relation,
-                                                 const ForwardIterable& filters)
+    static FoldedFilters foldFilters(const QOrmRelation& relation, const ForwardIterable& filters)
     {
         return std::accumulate(
             std::cbegin(filters),
             std::cend(filters),
-            std::optional<QOrmFilter>{},
-            [relation](std::optional<QOrmFilter> lhs,
-                       const QOrmFilter& rhs) -> std::optional<QOrmFilter> {
-                if (rhs.type() != QOrm::FilterType::Expression)
-                    return lhs;
-
-                Q_ASSERT(rhs.expression() != nullptr);
-
-                if (!lhs.has_value())
+            FoldedFilters{},
+            [relation](FoldedFilters lhs, const QOrmFilter& rhs) -> FoldedFilters
+            {
+                switch (rhs.type())
                 {
-                    return QOrmFilter{
-                        QOrmPrivate::resolvedFilterExpression(relation, *rhs.expression())};
-                }
-                else
-                {
-                    Q_ASSERT(lhs->type() == QOrm::FilterType::Expression);
-                    Q_ASSERT(lhs->expression() != nullptr);
+                    case QOrm::FilterType::Expression:
+                        if (!lhs.expression.has_value())
+                        {
+                            lhs.expression = QOrmFilter{
+                                QOrmPrivate::resolvedFilterExpression(relation, *rhs.expression())};
+                        }
+                        else
+                        {
+                            Q_ASSERT(lhs.expression->type() == QOrm::FilterType::Expression);
+                            Q_ASSERT(lhs.expression->expression() != nullptr);
 
-                    return QOrmFilter{
-                        *lhs->expression() &&
-                        QOrmPrivate::resolvedFilterExpression(relation, *rhs.expression())};
+                            lhs.expression = QOrmFilter{
+                                *lhs.expression->expression() &&
+                                QOrmPrivate::resolvedFilterExpression(relation, *rhs.expression())};
+                        }
+                        break;
+
+                    case QOrm::FilterType::Invokable:
+                        if (!lhs.invokable.has_value())
+                        {
+                            lhs.invokable = QOrmFilter{*rhs.invokable()};
+                        }
+                        else
+                        {
+                            lhs.invokable = QOrmFilter{[lhs, rhs](const QObject* value) {
+                                return (*lhs.invokable->invokable())(value) &&
+                                       (*rhs.invokable())(value);
+                            }};
+                        }
+                        break;
                 }
+
+                return lhs;
             });
     }
 
@@ -127,22 +148,23 @@ namespace QOrmPrivate
 
     QOrmQuery QueryBuilderHelper::build(QOrm::Operation operation, QOrm::QueryFlags flags) const
     {
-        if (operation == QOrm::Operation::Merge || operation == QOrm::Operation::Create ||
-            operation == QOrm::Operation::Update ||
+        if (operation == QOrm::Operation::Merge ||  //
+            operation == QOrm::Operation::Create || //
+            operation == QOrm::Operation::Update || //
             (operation == QOrm::Operation::Delete && d->m_entityInstance != nullptr))
         {
             Q_ASSERT(d->m_entityInstance != nullptr);
 
             return QOrmQuery{operation, *d->m_relation.mapping(), d->m_entityInstance};
         }
-        else if (operation == QOrm::Operation::Read ||
-                 (operation == QOrm::Operation::Delete &&
-                  d->m_relation.type() == QOrm::RelationType::Query))
+        else if (operation == QOrm::Operation::Read || operation == QOrm::Operation::Delete)
         {
+            FoldedFilters filters = foldFilters(d->m_relation, d->m_filters);
             return QOrmQuery{operation,
                              d->m_relation,
                              d->m_projection,
-                             foldFilters(d->m_relation, d->m_filters),
+                             filters.expression,
+                             filters.invokable,
                              d->m_order,
                              flags};
         }
@@ -153,6 +175,11 @@ namespace QOrmPrivate
     QOrmQueryResult<QObject> QueryBuilderHelper::select(QOrm::QueryFlags flags) const
     {
         return d->m_session->execute(build(QOrm::Operation::Read, flags));
+    }
+
+    QOrmQueryResult<QObject> QueryBuilderHelper::remove() const
+    {
+        return d->m_session->execute(build(QOrm::Operation::Delete, QOrm::QueryFlags::None));
     }
 } // namespace QOrmPrivate
 

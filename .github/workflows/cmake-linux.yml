@@ -35,4 +35,4 @@ jobs:
     - name: Test
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: ctest -C Debug
+      run: ctest -C Debug --output-on-failure

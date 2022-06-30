@@ -67,6 +67,8 @@ namespace QOrmPrivate
         Q_REQUIRED_RESULT
         QOrmQueryResult<QObject> select(QOrm::QueryFlags flags) const;
 
+        [[nodiscard]] QOrmQueryResult<QObject> remove() const;
+
     private:
         std::unique_ptr<QueryBuilderHelperPrivate> d;
     };
@@ -79,7 +81,8 @@ class QOrmQueryBuilder
     friend class QOrmQueryBuilder;
 
 public:
-    using Projection = T;
+    using Projection = std::decay_t<T>;
+    using UnaryPredicate = std::function<bool(const Projection*)>;
 
     explicit QOrmQueryBuilder(QOrmSession* session, const QOrmRelation& relation)
         : m_helper{session, relation}
@@ -104,6 +107,14 @@ public:
         return *this;
     }
 
+    QOrmQueryBuilder& filter(UnaryPredicate predicate)
+    {
+        m_helper.addFilter(QOrmFilter{[predicate](const QObject* value) {
+            return predicate(qobject_cast<const Projection*>(value));
+        }});
+        return *this;
+    }
+
     QOrmQueryBuilder& order(const QOrmClassProperty& classProperty,
                             Qt::SortOrder direction = Qt::AscendingOrder)
     {
@@ -118,7 +129,12 @@ public:
     }
 
     Q_REQUIRED_RESULT
-    QOrmQueryResult<Projection> select(QOrm::QueryFlags flags = QOrm::QueryFlags::None) const { return m_helper.select(flags); }
+    QOrmQueryResult<Projection> select(QOrm::QueryFlags flags = QOrm::QueryFlags::None) const
+    {
+        return m_helper.select(flags);
+    }
+
+    [[nodiscard]] QOrmQueryResult<Projection> remove() { return m_helper.remove(); }
 
     Q_REQUIRED_RESULT
     QOrmQuery build(QOrm::Operation operation, QOrm::QueryFlags flags = QOrm::QueryFlags::None) const { return m_helper.build(operation, flags); }

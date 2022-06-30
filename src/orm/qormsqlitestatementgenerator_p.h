@@ -48,67 +48,85 @@ class QOrmRelation;
 class Q_ORM_EXPORT QOrmSqliteStatementGenerator
 {
 public:
-    [[nodiscard]] static std::pair<QString, QVariantMap> generate(const QOrmQuery& query);
+    enum Option
+    {
+        NoOptions = 0x00,
+        WithReturningClause = 0x01
+    };
+    Q_DECLARE_FLAGS(Options, Option);
 
-    [[nodiscard]] static QString generate(const QOrmQuery& query, QVariantMap& boundParameters);
+    explicit QOrmSqliteStatementGenerator();
+    explicit QOrmSqliteStatementGenerator(Options options);
 
-    [[nodiscard]] static QString generateInsertStatement(const QOrmMetadata& relation,
-                                                         const QObject* instance,
-                                                         QVariantMap& boundParameters);
+    [[nodiscard]] std::pair<QString, QVariantMap> generate(const QOrmQuery& query);
 
-    [[nodiscard]] static QString generateInsertIntoStatement(const QString& destionationTableName,
-                                                             const QStringList& destionationColumns,
-                                                             const QString& sourceTableName,
-                                                             const QStringList& sourceColumns);
+    [[nodiscard]] QString generate(const QOrmQuery& query, QVariantMap& boundParameters);
 
-    [[nodiscard]] static QString generateUpdateStatement(const QOrmMetadata& relation,
-                                                         const QObject* instance,
-                                                         QVariantMap& boundParameters);
+    [[nodiscard]] QString generateInsertStatement(const QOrmMetadata& relation,
+                                                  const QObject* instance,
+                                                  QVariantMap& boundParameters);
 
-    [[nodiscard]] static QString generateSelectStatement(const QOrmQuery& query,
-                                                         QVariantMap& boundParameters);
+    [[nodiscard]] QString generateInsertIntoStatement(const QString& destinationTableName,
+                                                      const QStringList& destionationColumns,
+                                                      const QString& sourceTableName,
+                                                      const QStringList& sourceColumns);
 
-    [[nodiscard]] static QString generateDeleteStatement(const QOrmMetadata& relation,
-                                                         const QOrmFilter& filter,
-                                                         QVariantMap& boundParameters);
+    [[nodiscard]] QString generateUpdateStatement(const QOrmMetadata& relation,
+                                                  const QObject* instance,
+                                                  QVariantMap& boundParameters);
 
-    [[nodiscard]] static QString generateDeleteStatement(const QOrmMetadata& relation,
-                                                         const QObject* instance,
-                                                         QVariantMap& boundParameters);
+    [[nodiscard]] QString generateSelectStatement(const QOrmQuery& query,
+                                                  QVariantMap& boundParameters);
 
-    [[nodiscard]] static QString generateFromClause(const QOrmRelation& relation,
-                                                    QVariantMap& boundParameters);
+    [[nodiscard]] QString generateDeleteStatement(const QOrmMetadata& relation,
+                                                  const QOrmFilter& filter,
+                                                  QVariantMap& boundParameters);
 
-    [[nodiscard]] static QString generateWhereClause(const QOrmFilter& filter,
-                                                     QVariantMap& boundParameters);
+    [[nodiscard]] QString generateDeleteStatement(const QOrmMetadata& relation,
+                                                  const QObject* instance,
+                                                  QVariantMap& boundParameters);
 
-    [[nodiscard]] static QString generateOrderClause(const std::vector<QOrmOrder>& order);
+    [[nodiscard]] QString generateFromClause(const QOrmRelation& relation,
+                                             QVariantMap& boundParameters);
 
-    [[nodiscard]] static QString generateCondition(const QOrmFilterExpression& expression,
-                                                   QVariantMap& boundParameters);
-    [[nodiscard]] static QString generateCondition(const QOrmFilterTerminalPredicate& predicate,
-                                                   QVariantMap& boundParameters);
-    [[nodiscard]] static QString generateCondition(const QOrmFilterBinaryPredicate& predicate,
-                                                   QVariantMap& boundParameters);
-    [[nodiscard]] static QString generateCondition(const QOrmFilterUnaryPredicate& predicate,
-                                                   QVariantMap& boundParameters);
+    [[nodiscard]] QString generateWhereClause(const QOrmFilter& filter,
+                                              QVariantMap& boundParameters);
 
-    [[nodiscard]] static QString generateCreateTableStatement(
+    [[nodiscard]] QString generateOrderClause(const std::vector<QOrmOrder>& order);
+
+    [[nodiscard]] QString generateReturningIdClause(const QOrmMetadata& relation);
+
+    [[nodiscard]] QString generateCondition(const QOrmFilterExpression& expression,
+                                            QVariantMap& boundParameters);
+    [[nodiscard]] QString generateCondition(const QOrmFilterTerminalPredicate& predicate,
+                                            QVariantMap& boundParameters);
+    [[nodiscard]] QString generateCondition(const QOrmFilterBinaryPredicate& predicate,
+                                            QVariantMap& boundParameters);
+    [[nodiscard]] QString generateCondition(const QOrmFilterUnaryPredicate& predicate,
+                                            QVariantMap& boundParameters);
+
+    [[nodiscard]] QString generateCreateTableStatement(
         const QOrmMetadata& entity,
         std::optional<QString> overrideTableName = std::nullopt);
 
-    [[nodiscard]] static QString generateAlterTableAddColumnStatement(
+    [[nodiscard]] QString generateAlterTableAddColumnStatement(
         const QOrmMetadata& relation,
         const QOrmPropertyMapping& propertyMapping);
 
-    [[nodiscard]] static QString generateDropTableStatement(const QOrmMetadata& entity);
+    [[nodiscard]] QString generateDropTableStatement(const QOrmMetadata& entity);
 
-    [[nodiscard]] static QString generateRenameTableStatement(const QString& oldName,
-                                                              const QString& newName);
+    [[nodiscard]] QString generateRenameTableStatement(const QString& oldName,
+                                                       const QString& newName);
 
-    [[nodiscard]] static QString toSqliteType(QVariant::Type type);
+    [[nodiscard]] QString toSqliteType(QVariant::Type type);
 
-    [[nodiscard]] static QString escapeIdentifier(const QString& identifier);
+    [[nodiscard]] QString escapeIdentifier(const QString& identifier);
+
+    void setOptions(Options options) { m_options = options; }
+    [[nodiscard]] Options options() const { return m_options; }
+
+private:
+    Options m_options{NoOptions};
 };
 
 QT_END_NAMESPACE

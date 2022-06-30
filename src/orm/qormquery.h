@@ -44,7 +44,8 @@ public:
     QOrmQuery(QOrm::Operation operation,
               const QOrmRelation& relation,
               const std::optional<QOrmMetadata>& projection,
-              const std::optional<QOrmFilter>& filter,
+              const std::optional<QOrmFilter>& expressionFilter,
+              const std::optional<QOrmFilter>& invokableFilter,
               const std::vector<QOrmOrder>& order,
               const QFlags<QOrm::QueryFlags>& flags);
     QOrmQuery(QOrm::Operation operation, const QOrmMetadata& relation, QObject* entityInstance);
@@ -65,7 +66,10 @@ public:
     const std::optional<QOrmMetadata>& projection() const;
 
     Q_REQUIRED_RESULT
-    const std::optional<QOrmFilter>& filter() const;
+    const std::optional<QOrmFilter>& expressionFilter() const;
+
+    Q_REQUIRED_RESULT
+    const std::optional<QOrmFilter>& invokableFilter() const;
 
     Q_REQUIRED_RESULT
     const std::vector<QOrmOrder>& order() const;

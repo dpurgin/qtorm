@@ -34,9 +34,38 @@ QT_BEGIN_NAMESPACE
 class QOrmError;
 class QOrmQueryResultPrivate;
 
-template<typename T>
-class QOrmQueryResult
+namespace QtOrmPrivate
 {
+    template<typename T>
+    class QOrmQueryResultBase
+    {
+    public:
+        [[nodiscard]] const QOrmError& error() const { return m_error; }
+        [[nodiscard]] const QVariant& lastInsertedId() const { return m_lastInsertedId; }
+        [[nodiscard]] int numRowsAffected() const { return m_numRowsAffected; }
+        [[nodiscard]] bool hasError() const { return m_error.type() != QOrm::ErrorType::None; }
+
+    protected:
+        QOrmQueryResultBase(const QOrmError& error,
+                            const QVariant& lastInsertedId,
+                            int numRowsAffected)
+            : m_error{error}
+            , m_lastInsertedId{lastInsertedId}
+            , m_numRowsAffected{numRowsAffected}
+        {
+        }
+
+        QOrmError m_error;
+        QVariant m_lastInsertedId;
+        int m_numRowsAffected{0};
+    };
+} // namespace QtOrmPrivate
+
+template<typename T>
+class QOrmQueryResult : public QtOrmPrivate::QOrmQueryResultBase<T>
+{
+    using Base = QtOrmPrivate::QOrmQueryResultBase<T>;
+
 public:
     using Projection = T;
     static_assert(std::is_convertible_v<Projection*, QObject*>,
@@ -47,32 +76,38 @@ public:
 
     template<typename U>
     QOrmQueryResult(const QOrmQueryResult<U>& other)
-        : m_error{other.error()}
+        : QtOrmPrivate::QOrmQueryResultBase<T>{other.error(),
+                                               other.lastInsertedId(),
+                                               other.numRowsAffected()}
         , m_result{convertVector<U, T>(other.toVector())}
-        , m_lastInsertedId{other.lastInsertedId()}
     {
     }
 
     explicit QOrmQueryResult(const QOrmError& error,
                              const QVector<T*>& result,
-                             const QVariant& lastInsertedId)
-        : m_error{error}
+                             const QVariant& lastInsertedId,
+                             int numRowsAffected)
+        : QtOrmPrivate::QOrmQueryResultBase<T>{error, lastInsertedId, numRowsAffected}
         , m_result{result}
-        , m_lastInsertedId{lastInsertedId}
     {
     }
 
     explicit QOrmQueryResult(const QOrmError& error)
-        : QOrmQueryResult<T>{error, {}, {}}
+        : QOrmQueryResult<T>{error, 0}
     {
     }
 
-    explicit QOrmQueryResult(const QVector<T*>& result)
-        : QOrmQueryResult<T>{{QOrm::ErrorType::None, {}}, result, {}}
+    explicit QOrmQueryResult(const QOrmError& error, int numRowsAffected)
+        : QOrmQueryResult<T>{error, {}, {}, numRowsAffected}
     {
     }
-    explicit QOrmQueryResult(QVariant lastInsertedId)
-        : QOrmQueryResult<T>{{QOrm::ErrorType::None, {}}, {}, lastInsertedId}
+
+    explicit QOrmQueryResult(const QVector<T*>& result, int numRowsAffected)
+        : QOrmQueryResult<T>{{}, result, {}, numRowsAffected}
+    {
+    }
+    explicit QOrmQueryResult(QVariant lastInsertedId, int numRowsAffected)
+        : QOrmQueryResult<T>{{}, {}, lastInsertedId, numRowsAffected}
     {
     }
 
@@ -80,31 +115,40 @@ public:
     QOrmQueryResult& operator=(QOrmQueryResult&&) = default;
 
     Q_REQUIRED_RESULT
-    const QOrmError& error() const { return m_error; }
-    Q_REQUIRED_RESULT
-    const QVariant& lastInsertedId() const { return m_lastInsertedId; }
-    Q_REQUIRED_RESULT
     const QVector<Projection*>& toVector() const
     {
-        if (m_error.type() != QOrm::ErrorType::None)
+        if (Base::error().type() != QOrm::ErrorType::None)
         {
             qFatal("qtorm: QOrmQueryResult::toVector() has been called but the result contains an "
                    "error: %s",
-                   qPrintable(m_error.text()));
+                   qPrintable(Base::error().text()));
         }
 
         return m_result;
     }
 
     Q_REQUIRED_RESULT
+    QList<Projection*> toList() const
+    {
+        if (Base::error().type() != QOrm::ErrorType::None)
+        {
+            qFatal("qtorm: QOrmQueryResult::toList() has been called but the result contains an "
+                   "error: %s",
+                   qPrintable(Base::error().text()));
+        }
+
+        return m_result.toList();
+    }
+
+    Q_REQUIRED_RESULT
     std::vector<Projection*> toStdVector() const
     {
-        if (m_error.type() != QOrm::ErrorType::None)
+        if (Base::error().type() != QOrm::ErrorType::None)
         {
             qFatal(
                 "qtorm: QOrmQueryResult::toStdVector() has been called but the result contains an "
                 "error: %s",
-                qPrintable(m_error.text()));
+                qPrintable(Base::error().text()));
         }
 
         return m_result.toStdVector();
@@ -112,11 +156,11 @@ public:
     Q_REQUIRED_RESULT
     QSet<Projection*> toSet() const
     {
-        if (m_error.type() != QOrm::ErrorType::None)
+        if (Base::error().type() != QOrm::ErrorType::None)
         {
             qFatal("qtorm: QOrmQueryResult::toSet() has been called but the result contains an "
                    "error: %s",
-                   qPrintable(m_error.text()));
+                   qPrintable(Base::error().text()));
         }
 
         QSet<Projection*> result;
@@ -127,6 +171,32 @@ public:
         return result;
     }
 
+    Q_REQUIRED_RESULT
+    Projection* first() const
+    {
+        if (Base::hasError())
+        {
+            qFatal("qtorm: QOrmQueryResult::first() has been called but the result contains an "
+                   "error: %s",
+                   qPrintable(Base::error().text()));
+        }
+
+        return !m_result.isEmpty() ? m_result.first() : nullptr;
+    }
+
+    Q_REQUIRED_RESULT
+    Projection* last() const
+    {
+        if (Base::hasError())
+        {
+            qFatal("qtorm: QOrmQueryResult::last() has been called but the result contains an "
+                   "error: %s",
+                   qPrintable(Base::error().text()));
+        }
+
+        return !m_result.isEmpty() ? m_result.last() : nullptr;
+    }
+
 private:
     template<typename From, typename To>
     static QVector<To*> convertVector(const QVector<From*>& from)
@@ -135,14 +205,27 @@ private:
         to.reserve(from.size());
 
         for (From* instance : from)
+        {
             to.push_back(qobject_cast<To*>(instance));
+        }
 
         return to;
     }
 
-    QOrmError m_error;
     QVector<Projection*> m_result;
-    QVariant m_lastInsertedId;
+};
+
+template<>
+class QOrmQueryResult<void> : public QtOrmPrivate::QOrmQueryResultBase<void>
+{
+    using Base = QtOrmPrivate::QOrmQueryResultBase<void>;
+
+public:
+    template<typename U>
+    QOrmQueryResult(const QOrmQueryResult<U>& other)
+        : Base{other.error(), other.lastInsertedId(), other.numRowsAffected()}
+    {
+    }
 };
 
 QT_END_NAMESPACE
