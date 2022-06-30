@@ -110,6 +110,8 @@ namespace QOrmPrivate
         QObject* m_entityInstance{nullptr};
         std::vector<QOrmFilter> m_filters;
         std::vector<QOrmOrder> m_order;
+        std::optional<int> m_limit{std::nullopt};
+        std::optional<int> m_offset{std::nullopt};
     };
 
     QueryBuilderHelper::QueryBuilderHelper(QOrmSession* ormSession, const QOrmRelation& relation)
@@ -146,6 +148,16 @@ namespace QOrmPrivate
         d->m_order.emplace_back(*mapping, direction);
     }
 
+    void QueryBuilderHelper::setLimit(int limit)
+    {
+        d->m_limit = limit;
+    }
+
+    void QueryBuilderHelper::setOffset(int offset)
+    {
+        d->m_offset = offset;
+    }
+
     QOrmQuery QueryBuilderHelper::build(QOrm::Operation operation, QOrm::QueryFlags flags) const
     {
         if (operation == QOrm::Operation::Merge ||  //
@@ -160,13 +172,16 @@ namespace QOrmPrivate
         else if (operation == QOrm::Operation::Read || operation == QOrm::Operation::Delete)
         {
             FoldedFilters filters = foldFilters(d->m_relation, d->m_filters);
-            return QOrmQuery{operation,
-                             d->m_relation,
-                             d->m_projection,
-                             filters.expression,
-                             filters.invokable,
-                             d->m_order,
-                             flags};
+            QOrmQuery query = QOrmQuery{operation,
+                                        d->m_relation,
+                                        d->m_projection,
+                                        filters.expression,
+                                        filters.invokable,
+                                        d->m_order,
+                                        flags};
+            query.setLimit(d->m_limit);
+            query.setOffset(d->m_offset);
+            return query;
         }
 
         qFatal("Unexpected state");

@@ -383,6 +383,26 @@ QOrmSession session;
 }
 ```
 
+Data can be limited by using the `limit` and/or `offset` methods:
+
+```c++
+// Query the first ten communitites, sorted by name.
+QOrmQueryResult result = session.from<Community>()
+                                .order(Q_ORM_CLASS_PROPERTY(name))
+                                .limit(10)
+                                .select();
+
+```
+
+```c++
+// Query the first ten communities, sorted by name, starting from the third one.
+QOrmQueryResult result = session.from<Community>()
+                                .order(Q_ORM_CLASS_PROPERTY(name))
+                                .offset(2)
+                                .limit(10)
+                                .select();
+```
+
 ### Removing a Single Entity
 
 A single existing entity can be removed using the `remove()` method of `QOrmSession`. The method removes the corresponding row from the database and returns the ownership of the entity to the caller wrapped, in a `std::unique_ptr`:

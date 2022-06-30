@@ -60,6 +60,8 @@ namespace QOrmPrivate
         void setInstance(const QMetaObject& qMetaObject, QObject* instance);
         void addFilter(const QOrmFilter& filter);
         void addOrder(const QOrmClassProperty& classProperty, Qt::SortOrder direction);
+        void setLimit(int limit);
+        void setOffset(int offset);
 
         Q_REQUIRED_RESULT
         QOrmQuery build(QOrm::Operation operation, QOrm::QueryFlags flags) const;
@@ -125,6 +127,18 @@ public:
     QOrmQueryBuilder& instance(const QMetaObject& qMetaObject, QObject* instance)
     {
         m_helper.setInstance(qMetaObject, instance);
+        return *this;
+    }
+
+    [[nodiscard]] QOrmQueryBuilder& limit(int limit)
+    {
+        m_helper.setLimit(limit);
+        return *this;
+    }
+
+    [[nodiscard]] QOrmQueryBuilder& offset(int offset)
+    {
+        m_helper.setOffset(offset);
         return *this;
     }
 

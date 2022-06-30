@@ -22,6 +22,8 @@
 #include <QOrmFilter>
 #include <QOrmFilterExpression>
 #include <QOrmMetadataCache>
+#include <QOrmOrder>
+#include <QOrmQuery>
 #include <QOrmRelation>
 #include <QtTest>
 
@@ -66,6 +68,10 @@ private slots:
 
     void testAlterTableAddColumn();
     void testAlterTableAddColumnWithReference();
+
+    void testSelectWithLimitOffset();
+    void testLimitOffset();
+    void testLimitOffset_data();
 };
 
 void SqliteStatementGenerator::init()
@@ -379,6 +385,88 @@ void SqliteStatementGenerator::testAlterTableAddColumnWithReference()
         cache.get<Town>(), *cache.get<Town>().classPropertyMapping("province"));
 
     QCOMPARE(actual, R"(ALTER TABLE "Town" ADD COLUMN "province_id" INTEGER)");
+}
+
+void SqliteStatementGenerator::testSelectWithLimitOffset()
+{
+    QOrmMetadataCache cache;
+
+    QOrmRelation relation{cache.get<Town>()};
+    QOrmMetadata projection{cache.get<Town>()};
+    QOrmFilter filter{QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
+                                                            Q_ORM_CLASS_PROPERTY(id) > 1)};
+
+    QOrmQuery query{QOrm::Operation::Read,
+                    relation,
+                    projection,
+                    filter,
+                    std::nullopt,
+                    {},
+                    QOrm::QueryFlags::None};
+    query.setLimit(10);
+    query.setOffset(20);
+
+    QVariantMap boundParameters;
+    QString actual =
+        QOrmSqliteStatementGenerator{}.generateSelectStatement(query, boundParameters).simplified();
+    QString expected{R"(SELECT * FROM Town WHERE "id" > :id LIMIT :limit OFFSET :offset)"};
+
+    QCOMPARE(actual, expected);
+    QCOMPARE(boundParameters.value(":limit", 0), 10);
+    QCOMPARE(boundParameters.value(":offset", 0), 20);
+}
+
+void SqliteStatementGenerator::testLimitOffset()
+{
+    QFETCH(QVariant, limit);
+    QFETCH(QVariant, offset);
+    QFETCH(QString, expected);
+
+    std::optional<int> limitArg{!limit.isValid() ? std::nullopt
+                                                 : std::make_optional(limit.toInt())};
+    std::optional<int> offsetArg{!offset.isValid() ? std::nullopt
+                                                   : std::make_optional(offset.toInt())};
+
+    QVariantMap boundParameters;
+    QString actual = QOrmSqliteStatementGenerator{}.generateLimitOffsetClause(limitArg,
+                                                                              offsetArg,
+                                                                              boundParameters);
+    QCOMPARE(actual, expected);
+
+    if (offset.isValid())
+    {
+        QVERIFY(boundParameters.contains(":limit"));
+        QCOMPARE(boundParameters[":limit"], limitArg.value_or(-1));
+
+        QVERIFY(boundParameters.contains(":offset"));
+        QCOMPARE(boundParameters[":offset"], offsetArg.value());
+    }
+    else if (limit.isValid())
+    {
+        QVERIFY(boundParameters.contains(":limit"));
+        QCOMPARE(boundParameters[":limit"], limitArg.value());
+
+        QVERIFY(!boundParameters.contains(":offset"));
+    }
+    else
+    {
+        QVERIFY(!boundParameters.contains(":limit"));
+        QVERIFY(!boundParameters.contains(":offset"));
+    }
+}
+
+void SqliteStatementGenerator::testLimitOffset_data()
+{
+    QTest::addColumn<QVariant>("limit");
+    QTest::addColumn<QVariant>("offset");
+    QTest::addColumn<QString>("expected");
+
+    QTest::addRow("no limit, no offset") << QVariant{} << QVariant{} << "";
+    QTest::addRow("Limit 10, no offset") << QVariant{10} << QVariant{} << "LIMIT :limit";
+    QTest::addRow("Limit 10, offset 20")
+        << QVariant{10} << QVariant{20} << "LIMIT :limit OFFSET :offset";
+    QTest::addRow("no limit, offset 42")
+        << QVariant{} << QVariant{42} << "LIMIT :limit OFFSET :offset";
 }
 
 QTEST_APPLESS_MAIN(SqliteStatementGenerator)
