@@ -40,4 +40,4 @@ jobs:
       working-directory: ${{runner.workspace}}/build            
       run: |
         ${env:Path} = "${{runner.workspace}}/build/src/Debug;${env:Path}"
-        ctest -C Debug
+        ctest -C Debug --output-on-failure
