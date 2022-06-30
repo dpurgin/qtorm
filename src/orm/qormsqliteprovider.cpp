@@ -40,6 +40,7 @@
 #include <QtCore/qdebug.h>
 #include <QtCore/qmetaobject.h>
 #include <QtCore/qobject.h>
+#include <QtCore/qscopeguard.h>
 #include <QtCore/quuid.h>
 #include <QtSql/qsqldatabase.h>
 #include <QtSql/qsqlerror.h>
