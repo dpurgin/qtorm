@@ -115,10 +115,10 @@ Note that the runtime library (`libQt5Orm.so` on Linux or `Qt5Orm.dll` on Window
 
 QtOrm currently supports SQLite backend with the following operations:
 
-* Creating database schema according to the registered entities in the OR-mapper
+* Creating or updating database schema according to the registered entities in the OR-mapper
 * Reading data from a table, optionally filtered and ordered
 * Inserting and/or updating rows
-* Removing single rows
+* Removing single rows or a set of rows according to filters
 * Transaction support
 * 1:n, n:1 relations support 
 
@@ -343,6 +343,8 @@ hagenberg->setName("Hagenberg");
 session.merge(hagenberg);
 ```
 
+The entry will be inserted if it has not been read from the database before. Otherwise, it will be updated. Reasoning: currently, there is no way to detect if the entity already exists in the database. One could query the database by `id` first, but since the datatype of the `id` property is most likely a primitive integral data type, there is no safe "default" value to rely on. It could be the case that the initial value of the `id` property of a new entity corresponds unintentionally to an existing database row.
+
 ### Querying Data
 
 A data query is similar to .NET LINQ. Considering the domain classes above:
@@ -352,7 +354,7 @@ QOrmSession session;
 
 // Select all communities
 {
-    QOrmQueryResult result = session.from<Community>.select();
+    QOrmQueryResult result = session.from<Community>().select();
 
     QVector<Community*> communities = result.toVector();
     // The entities are owned by QOrmSession, do not delete.
@@ -360,8 +362,9 @@ QOrmSession session;
 
 // Select with filter
 {
-    QOrmQueryResult result = session.from<Community>
-                                    .filter(Q_ORM_CLASS_PROPERTY(name) == "Hagenberg");
+    QOrmQueryResult result = session.from<Community>()
+                                    .filter(Q_ORM_CLASS_PROPERTY(name) == "Hagenberg")
+                                    .select();
 }
 
 // The usual logical and comparison operators are supported in filters.
@@ -373,8 +376,50 @@ QOrmSession session;
 {
     QStringList cities{"Linz", "Graz", "Salzburg"};
 
-    QOrmQueryResult result = session.from<Community>
+    QOrmQueryResult result = session.from<Community>()
                                     .filter((Q_ORM_CLASS_PROPERTY(population) >= 5000 && Q_ORM_CLASS_PROPERTY(population) < 10000) || 
-                                            Q_ORM_CLASS_PROPERTY(name) == cities);
+                                            Q_ORM_CLASS_PROPERTY(name) == cities)
+                                    .select();
 }
 ```
+
+### Removing a Single Entity
+
+A single existing entity can be removed using the `remove()` method of `QOrmSession`. The method removes the corresponding row from the database and returns the ownership of the entity to the caller wrapped, in a `std::unique_ptr`:
+
+```c++
+QOrmSession session;
+
+QOrmQueryResult result = session.from<Community>()
+                                .filter(Q_ORM_CLASS_PROPERTY(name) == "Hagenberg")
+                                .select();
+
+if (!result.hasError())
+{
+    // Note that the ownership of the entity is returned in a smart pointer.
+    std::unique_ptr<Community> hagenberg = session.remove(result.first());
+    
+    qDebug() << "Removed entity:" << hagenberg->name();
+}
+```
+
+### Removing With a Query
+
+The following remove query works using SQLite >= 3.35:
+
+```c++
+QOrmSession session;
+
+QOrmQueryResult result = session.from<Community>()
+                                .filter(Q_ORM_CLASS_PROPERTY(population) >= 5000)
+                                .remove();
+
+if (!result.hasError())
+{
+    // The ownership of the entities is returned to the caller.
+    qDeleteAll(result.toVector());    
+}
+```
+
+The ownership of the removed entities is returned to the caller, the entities in the query result must be freed using `delete`. 
+
