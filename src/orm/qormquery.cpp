@@ -65,6 +65,8 @@ public:
     std::vector<QOrmOrder> m_order;
     QObject* m_entityInstance{nullptr};
     QFlags<QOrm::QueryFlags> m_flags;
+    std::optional<int> m_limit;
+    std::optional<int> m_offset;
 };
 
 QOrmQuery::QOrmQuery(QOrm::Operation operation,
@@ -141,6 +143,26 @@ const QFlags<QOrm::QueryFlags>& QOrmQuery::flags() const
     return d->m_flags;
 }
 
+std::optional<int> QOrmQuery::limit() const
+{
+    return d->m_limit;
+}
+
+void QOrmQuery::setLimit(std::optional<int> limit)
+{
+    d->m_limit = limit;
+}
+
+std::optional<int> QOrmQuery::offset() const
+{
+    return d->m_offset;
+}
+
+void QOrmQuery::setOffset(std::optional<int> offset)
+{
+    d->m_offset = offset;
+}
+
 QDebug operator<<(QDebug dbg, const QOrmQuery& query)
 {
     QDebugStateSaver saver{dbg};
@@ -148,19 +170,39 @@ QDebug operator<<(QDebug dbg, const QOrmQuery& query)
     dbg.nospace().noquote() << "QOrmQuery(" << query.operation() << ", " << query.relation();
 
     if (query.projection().has_value())
+    {
         dbg << ", " << *query.projection();
+    }
 
     if (query.expressionFilter().has_value())
+    {
         dbg << ", " << *query.expressionFilter();
+    }
 
     if (query.invokableFilter().has_value())
+    {
         dbg << ", " << *query.invokableFilter();
+    }
 
     if (!query.order().empty())
+    {
         dbg << ", " << query.order();
+    }
 
     if (query.entityInstance() != nullptr)
+    {
         dbg << ", " << query.entityInstance();
+    }
+
+    if (query.limit().has_value())
+    {
+        dbg << ", limit " << *query.limit();
+    }
+
+    if (query.offset().has_value())
+    {
+        dbg << ", offset " << *query.offset();
+    }
 
     dbg << ")";
 

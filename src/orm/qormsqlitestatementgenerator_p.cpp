@@ -220,6 +220,8 @@ QString QOrmSqliteStatementGenerator::generateSelectStatement(const QOrmQuery& q
 
     parts += generateOrderClause(query.order());
 
+    parts += generateLimitOffsetClause(query.limit(), query.offset(), boundParameters);
+
     return parts.join(QChar{' '});
 }
 
@@ -552,6 +554,28 @@ QString QOrmSqliteStatementGenerator::generateRenameTableStatement(const QString
 {
     return QStringLiteral("ALTER TABLE %1 RENAME TO %2")
         .arg(escapeIdentifier(oldName), escapeIdentifier(newName));
+}
+
+QString QOrmSqliteStatementGenerator::generateLimitOffsetClause(std::optional<int> limit,
+                                                                std::optional<int> offset,
+                                                                QVariantMap& boundParameters)
+{
+    QStringList parts;
+
+    if (offset.has_value())
+    {
+        QString limitKey = insertParameter(boundParameters, "limit", limit.value_or(-1));
+        QString offsetKey = insertParameter(boundParameters, "offset", offset.value());
+        return QString{"LIMIT %1 OFFSET %2"}.arg(limitKey, offsetKey);
+    }
+
+    if (limit.has_value())
+    {
+        QString limitKey = insertParameter(boundParameters, "limit", limit.value());
+        return QString{"LIMIT %1"}.arg(limitKey);
+    }
+
+    return {};
 }
 
 QString QOrmSqliteStatementGenerator::toSqliteType(QVariant::Type type)

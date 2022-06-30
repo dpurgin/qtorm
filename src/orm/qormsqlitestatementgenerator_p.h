@@ -118,6 +118,10 @@ public:
     [[nodiscard]] QString generateRenameTableStatement(const QString& oldName,
                                                        const QString& newName);
 
+    [[nodiscard]] QString generateLimitOffsetClause(std::optional<int> limit,
+                                                    std::optional<int> offset,
+                                                    QVariantMap& boundParameters);
+
     [[nodiscard]] QString toSqliteType(QVariant::Type type);
 
     [[nodiscard]] QString escapeIdentifier(const QString& identifier);

@@ -62,6 +62,7 @@ private slots:
     void testSelectWithOrder();
     void testSelectFromNestedSelect();
     void testSelectWithListFilter();
+    void testSelectWithLimitOffset();
 
     void testMergeFailsWithInconsistentReferences();
     void testMergeOfExistingUncachedEntitiesWithExplicitIdsUpdates();
@@ -474,6 +475,52 @@ void SqliteSessionTest::testSelectWithListFilter()
         QCOMPARE(result.size(), 2);
         QCOMPARE(result.at(0)->id(), 2);
         QCOMPARE(result.at(1)->id(), 4);
+    }
+}
+
+void SqliteSessionTest::testSelectWithLimitOffset()
+{
+    QOrmSession session;
+    session.merge(new Province(QString::fromUtf8("Tirol")),
+                  new Province(QString::fromUtf8("Oberösterreich")),
+                  new Province(QString::fromUtf8("Niederösterreich")),
+                  new Province(QString::fromUtf8("Salzburg")),
+                  new Province(QString::fromUtf8("Burgenland")),
+                  new Province(QString::fromUtf8("Kärnten")));
+
+    {
+        auto result =
+            session.from<Province>().order(Q_ORM_CLASS_PROPERTY(id)).limit(3).select().toVector();
+
+        QCOMPARE(result.size(), 3);
+        QCOMPARE(result.at(0)->id(), 1);
+        QCOMPARE(result.at(1)->id(), 2);
+        QCOMPARE(result.at(2)->id(), 3);
+    }
+
+    {
+        auto result =
+            session.from<Province>().order(Q_ORM_CLASS_PROPERTY(id)).offset(2).select().toVector();
+
+        QCOMPARE(result.size(), 4);
+        QCOMPARE(result.at(0)->id(), 3);
+        QCOMPARE(result.at(1)->id(), 4);
+        QCOMPARE(result.at(2)->id(), 5);
+        QCOMPARE(result.at(3)->id(), 6);
+    }
+
+    {
+        auto result = session.from<Province>()
+                          .order(Q_ORM_CLASS_PROPERTY(id))
+                          .limit(3)
+                          .offset(2)
+                          .select()
+                          .toVector();
+
+        QCOMPARE(result.size(), 3);
+        QCOMPARE(result.at(0)->id(), 3);
+        QCOMPARE(result.at(1)->id(), 4);
+        QCOMPARE(result.at(2)->id(), 5);
     }
 }
 

@@ -80,6 +80,12 @@ public:
     Q_REQUIRED_RESULT
     const QFlags<QOrm::QueryFlags>& flags() const;
 
+    [[nodiscard]] std::optional<int> limit() const;
+    void setLimit(std::optional<int> limit);
+
+    [[nodiscard]] std::optional<int> offset() const;
+    void setOffset(std::optional<int> offset);
+
 private:
     QSharedDataPointer<QOrmQueryPrivate> d;
 };
