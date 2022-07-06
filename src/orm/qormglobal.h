@@ -82,7 +82,9 @@ namespace QOrm
         Greater,
         GreaterOrEqual,
         InList,
-        NotInList
+        NotInList,
+        Contains,
+        NotContains
     };
     extern Q_ORM_EXPORT QDebug operator<<(QDebug dbg, QOrm::Comparison comparison);
     extern Q_ORM_EXPORT uint qHash(Comparison comparison) Q_DECL_NOTHROW;

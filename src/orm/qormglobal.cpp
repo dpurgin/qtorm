@@ -175,6 +175,14 @@ namespace QOrm
             case Comparison::NotInList:
                 dbg << "NotInList";
                 break;
+
+            case Comparison::Contains:
+                dbg << "Contains";
+                break;
+
+            case Comparison::NotContains:
+                dbg << "NotContains";
+                break;
         }
 
         return dbg;

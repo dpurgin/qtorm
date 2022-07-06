@@ -405,7 +405,9 @@ QString QOrmSqliteStatementGenerator::generateCondition(
             {QOrm::Comparison::LessOrEqual, "<="},
             {QOrm::Comparison::GreaterOrEqual, ">="},
             {QOrm::Comparison::InList, "IN"},
-            {QOrm::Comparison::NotInList, "NOT IN"}};
+            {QOrm::Comparison::NotInList, "NOT IN"},
+            {QOrm::Comparison::Contains, "LIKE"},
+            {QOrm::Comparison::NotContains, "NOT LIKE"}};
 
         Q_ASSERT(comparisonOps.contains(predicate.comparison()));
 
@@ -429,6 +431,19 @@ QString QOrmSqliteStatementGenerator::generateCondition(
                                               predicate.propertyMapping()->tableFieldName()),
                                           comparisonOps[predicate.comparison()],
                                           parameterKeys.join(", "));
+        }
+        if (predicate.comparison() == QOrm::Comparison::Contains ||
+            predicate.comparison() == QOrm::Comparison::NotContains)
+        {
+            QString pattern = '%' % value.toString() % '%';
+
+            QString parameterKey = insertParameter(boundParameters,
+                                                   predicate.propertyMapping()->tableFieldName(),
+                                                   pattern);
+            statement = QString{"%1 %2 %3"}.arg(escapeIdentifier(
+                                                    predicate.propertyMapping()->tableFieldName()),
+                                                comparisonOps[predicate.comparison()],
+                                                parameterKey);
         }
         else
         {

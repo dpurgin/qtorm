@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -27,12 +27,17 @@
 
 QT_BEGIN_NAMESPACE
 
+class QOrmFilterExpression;
+
 class Q_ORM_EXPORT QOrmClassProperty
 {
 public:
     explicit QOrmClassProperty(const char* descriptor);
 
     QString descriptor() const;
+
+    QOrmFilterExpression contains(const QVariant& value) const;
+    QOrmFilterExpression notContains(const QVariant& value) const;
 
 private:
     QString m_descriptor;

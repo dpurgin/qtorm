@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -19,6 +19,7 @@
  */
 
 #include "qormclassproperty.h"
+#include "qormfilterexpression.h"
 
 #include <QDebug>
 
@@ -41,6 +42,16 @@ QOrmClassProperty::QOrmClassProperty(const char* descriptor)
 QString QOrmClassProperty::descriptor() const
 {
     return m_descriptor;
+}
+
+QOrmFilterExpression QOrmClassProperty::contains(const QVariant& value) const
+{
+    return QOrmFilterTerminalPredicate{*this, QOrm::Comparison::Contains, value};
+}
+
+QOrmFilterExpression QOrmClassProperty::notContains(const QVariant& value) const
+{
+    return QOrmFilterTerminalPredicate{*this, QOrm::Comparison::NotContains, value};
 }
 
 QT_END_NAMESPACE
