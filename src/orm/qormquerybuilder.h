@@ -130,13 +130,13 @@ public:
         return *this;
     }
 
-    [[nodiscard]] QOrmQueryBuilder& limit(int limit)
+    QOrmQueryBuilder& limit(int limit)
     {
         m_helper.setLimit(limit);
         return *this;
     }
 
-    [[nodiscard]] QOrmQueryBuilder& offset(int offset)
+    QOrmQueryBuilder& offset(int offset)
     {
         m_helper.setOffset(offset);
         return *this;
