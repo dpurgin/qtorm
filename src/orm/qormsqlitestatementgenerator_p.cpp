@@ -432,8 +432,8 @@ QString QOrmSqliteStatementGenerator::generateCondition(
                                           comparisonOps[predicate.comparison()],
                                           parameterKeys.join(", "));
         }
-        if (predicate.comparison() == QOrm::Comparison::Contains ||
-            predicate.comparison() == QOrm::Comparison::NotContains)
+        else if (predicate.comparison() == QOrm::Comparison::Contains ||
+                 predicate.comparison() == QOrm::Comparison::NotContains)
         {
             QString pattern = '%' % value.toString() % '%';
 
