@@ -144,6 +144,11 @@ namespace QtOrmPrivate
     {
     };
 
+    template<>
+    struct IsList<QStringList> : std::true_type
+    {
+    };
+
     template<typename T, bool Convertible = std::is_convertible_v<std::decay_t<T>, QVariant>>
     struct ValueConverter;
 
