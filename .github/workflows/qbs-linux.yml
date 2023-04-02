@@ -22,7 +22,7 @@ jobs:
       run: |
         wget --no-check-certificate --content-disposition https://download.qt.io/official_releases/qbs/1.24.1/qbs-linux-x86_64-1.24.1.tar.gz
         tar xzvf qbs-linux-x86_64-1.24.1.tar.gz
-        QBS_BIN_DIR="/home/runner/work/qtorm/qtorm/usr/local/bin"
+        QBS_BIN_DIR="${GITHUB_WORKSPACE}/qbs-linux-x86_64-1.24.1/bin"
         echo "$QBS_BIN_DIR" >> ${GITHUB_PATH}
       shell: bash
 
