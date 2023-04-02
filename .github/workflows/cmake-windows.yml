@@ -6,23 +6,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - os: windows-2019
-          qtversion: '5.15.1'
+        - qtversion: '5.15.*'
           arch: 'win64_msvc2019_64'
-        - os: windows-2016 
-          qtversion: '5.12.9'
+        - qtversion: '5.12.*'
           arch: 'win64_msvc2017_64'
         
-    runs-on: ${{ matrix.os }}    
+    runs-on: windows-latest
     
     steps:
     - uses: actions/checkout@v2
     
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v3
       with: 
         version: ${{ matrix.qtversion }}
-        extra: '--archives qt qtbase qtdeclarative qtquickcontrols2 icu'
+        arch: ${{ matrix.arch }}
+        archives: 'qtbase qtdeclarative qtquickcontrols2'
    
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build

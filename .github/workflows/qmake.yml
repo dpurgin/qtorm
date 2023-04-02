@@ -1,17 +1,22 @@
 on: [push, pull_request]
 
 jobs:
-  build:
+  build:    
+    strategy:
+      fail-fast: false
+      matrix:        
+        qtversion: [ '5.12.*', '5.15.*' ]
+        
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v2
     
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v3
       with: 
-        version: '5.12.9'        
-        extra: '--archives qt qtbase qtdeclarative qtquickcontrols2 icu'
+        version: ${{ matrix.qtversion }}
+        archives: 'qtbase qtdeclarative qtquickcontrols2 icu'
    
     - name: Create Build Environment
       shell: bash 

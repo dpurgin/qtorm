@@ -5,7 +5,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        qtversion: [ '5.15.0' ]
+        qtversion: [ '5.15.*' ]
         
     runs-on: ubuntu-latest
     
@@ -13,16 +13,16 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: Install Qt
-      uses: jurplel/install-qt-action@v2
+      uses: jurplel/install-qt-action@v3
       with: 
         version: ${{ matrix.qtversion }}
-        extra: '--archives qt qtbase qtdeclarative qtquickcontrols2 icu'
+        archives: 'qtbase qtdeclarative qtquickcontrols2 icu'
    
     - name: Install Qbs
       run: |
-        wget --no-check-certificate --content-disposition https://download.qt.io/official_releases/qbs/1.18.0/qbs-linux-x86_64-1.18.0.tar.gz
-        tar xzvf qbs-linux-x86_64-1.18.0.tar.gz
-        QBS_BIN_DIR="/home/runner/work/qtorm/qtorm/usr/local/bin"
+        wget --no-check-certificate --content-disposition https://download.qt.io/official_releases/qbs/1.24.1/qbs-linux-x86_64-1.24.1.tar.gz
+        tar xzvf qbs-linux-x86_64-1.24.1.tar.gz
+        QBS_BIN_DIR="${GITHUB_WORKSPACE}/qbs-linux-x86_64-1.24.1/bin"
         echo "$QBS_BIN_DIR" >> ${GITHUB_PATH}
       shell: bash
 
