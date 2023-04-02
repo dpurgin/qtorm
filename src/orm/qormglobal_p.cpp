@@ -242,10 +242,6 @@ namespace QOrmPrivate
     }
 } // namespace QOrmPrivate
 
-#ifdef QT_NO_DEBUG
-Q_LOGGING_CATEGORY(qtorm, "qtorm", QtMsgType::QtInfoMsg)
-#else
-Q_LOGGING_CATEGORY(qtorm, "qtorm", QtMsgType::QtDebugMsg)
-#endif
+Q_LOGGING_CATEGORY(qtorm, "qtorm", QtMsgType::QtWarningMsg)
 
 QT_END_NAMESPACE
