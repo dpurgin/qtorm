@@ -1,33 +1,3 @@
-function(GenerateHeaders OUTPUT_DIRECTORY PUBLIC_HEADERS PRIVATE_HEADERS)
-    file(REMOVE_RECURSE "${OUTPUT_DIRECTORY}")
-
-    foreach(HEADER ${PUBLIC_HEADERS})
-        get_filename_component(OUTPUT_HEADER "${HEADER}" NAME)
-
-        file(WRITE
-            "${OUTPUT_DIRECTORY}/${OUTPUT_HEADER}"
-            "#include \"${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}\"")
-
-        file(STRINGS ${HEADER} LINES)
-
-        foreach (LINE ${LINES})
-            if ("${LINE}" MATCHES "class[\t ]+(Q_ORM_EXPORT[\t ]+)?(QOrm[A-Za-z0-9_]+)[^;]*$")
-                file(WRITE
-                    "${OUTPUT_DIRECTORY}/${CMAKE_MATCH_2}"
-                    "#include \"${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}\"")
-            endif()
-        endforeach()
-    endforeach()
-
-    foreach(HEADER ${PRIVATE_HEADERS})
-        get_filename_component(OUTPUT_HEADER "${HEADER}" NAME)
-
-        file(WRITE
-            "${OUTPUT_DIRECTORY}/private/${OUTPUT_HEADER}"
-            "#include \"${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}\"")
-    endforeach()
-endfunction()
-
 set(QTORM_PUBLIC_HEADERS
     orm/qormabstractprovider.h
     orm/qormclassproperty.h
@@ -59,9 +29,25 @@ set(QTORM_PRIVATE_HEADERS
 )
 
 set(GENERATED_INCLUDE_DIRECTORY "${CMAKE_BINARY_DIR}/QtOrmGenerated/include")
-GenerateHeaders("${GENERATED_INCLUDE_DIRECTORY}/QtOrm"
-                "${QTORM_PUBLIC_HEADERS}"
-                "${QTORM_PRIVATE_HEADERS}")
+
+GetGeneratedHeaders("${GENERATED_INCLUDE_DIRECTORY}/QtOrm"
+                    "${QTORM_PUBLIC_HEADERS}"
+                    "${QTORM_PRIVATE_HEADERS}"
+                    QTORM_GENERATED_HEADERS)
+
+list(JOIN QTORM_PUBLIC_HEADERS "\\;" QTORM_PUBLIC_HEADERS_JOINED)
+list(JOIN QTORM_PRIVATE_HEADERS "\\;" QTORM_PRIVATE_HEADERS_JOINED)
+
+add_custom_command(
+    OUTPUT ${QTORM_GENERATED_HEADERS}
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_DIRECTORY:STRING=${CMAKE_CURRENT_SOURCE_DIR}
+        -DOUTPUT_DIRECTORY:STRING=${GENERATED_INCLUDE_DIRECTORY}/QtOrm
+        -DPUBLIC_HEADERS:STRING=${QTORM_PUBLIC_HEADERS_JOINED}
+        -DPRIVATE_HEADERS:STRING=${QTORM_PRIVATE_HEADERS_JOINED}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/GenerateHeaders.cmake
+        DEPENDS ${QTORM_PUBLIC_HEADERS} ${QTORM_PRIVATE_HEADERS}
+    COMMENT "Generating module headers...")
 
 set(QTORM_SOURCES
     orm/qormabstractprovider.cpp
@@ -89,11 +75,14 @@ set(QTORM_SOURCES
     orm/qormtransactiontoken.cpp
 )
 
-if (QTORM_BUILD_SHARED_LIBS)
-    add_library(qtorm SHARED ${QTORM_PUBLIC_HEADERS} ${QTORM_PRIVATE_HEADERS} ${QTORM_SOURCES})
-else()
-    add_library(qtorm STATIC ${QTORM_PUBLIC_HEADERS} ${QTORM_PRIVATE_HEADERS} ${QTORM_SOURCES})
-endif()
+set(BUILD_SHARED_LIBS ${QTORM_BUILD_SHARED_LIBS})
+
+add_library(qtorm
+    ${QTORM_PUBLIC_HEADERS}
+    ${QTORM_PRIVATE_HEADERS}
+    ${QTORM_SOURCES}
+    ${QTORM_GENERATED_HEADERS}
+)
 
 target_link_libraries(qtorm PUBLIC Qt5::Core PRIVATE Qt5::Sql)
 
@@ -104,6 +93,7 @@ target_include_directories(qtorm
         "${GENERATED_INCLUDE_DIRECTORY}/QtOrm"
 )
 target_compile_features(qtorm PUBLIC cxx_std_17)
+#add_dependencies(qtorm qtorm-headers)
 
 if (MSVC)
     target_compile_definitions(qtorm PRIVATE __PRETTY_FUNCTION__=__FUNCTION__)

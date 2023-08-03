@@ -25,6 +25,11 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt5 COMPONENTS Core Sql REQUIRED)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
+include(ExtractClassNames)
+include(GetGeneratedHeaders)
+
 add_subdirectory(src)
 
 if (QTORM_BUILD_EXAMPLES)
