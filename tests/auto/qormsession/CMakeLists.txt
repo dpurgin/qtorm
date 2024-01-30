@@ -1,4 +1,4 @@
-add_executable(tst_ormsession
+qtorm_add_unit_test(NAME tst_ormsession SOURCES
     tst_ormsession.cpp
 
     domain/person.cpp
@@ -10,12 +10,7 @@ add_executable(tst_ormsession
     domain/town.h
 
     ormsession.qrc
+
+    LINK_LIBRARIES Qt5::Sql
 )
 
-target_link_libraries(tst_ormsession
-    Qt5::Test
-    Qt5::Sql
-    qtorm
-)
-
-add_test(NAME tst_ormsession COMMAND tst_ormsession)

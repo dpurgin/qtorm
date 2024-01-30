@@ -1,10 +1,3 @@
-add_executable(tst_ormfilterexpression
+qtorm_add_unit_test(NAME tst_ormfilterexpression SOURCES
     tst_ormfilterexpression.cpp
 )
-
-target_link_libraries(tst_ormfilterexpression
-    Qt5::Test
-    qtorm
-)
-
-add_test(NAME tst_ormfilterexpression COMMAND tst_ormfilterexpression)

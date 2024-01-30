@@ -1,4 +1,4 @@
-add_executable(tst_sqlitestatementgenerator
+qtorm_add_unit_test(NAME tst_sqlitestatementgenerator SOURCES
     tst_sqlitestatementgenerator.cpp
 
     domain/province.h
@@ -15,11 +15,8 @@ add_executable(tst_sqlitestatementgenerator
 
     domain/withqvariant.h
     domain/withqvariant.cpp
+
+    domain/withenum.h
+    domain/withenum.cpp
 )
 
-target_link_libraries(tst_sqlitestatementgenerator
-    Qt5::Test
-    qtorm
-)
-
-add_test(NAME tst_sqlitestatementgenerator COMMAND tst_sqlitestatementgenerator)

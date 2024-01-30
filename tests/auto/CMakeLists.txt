@@ -1,3 +1,5 @@
+include(cmake/qtorm_add_unit_test.cmake)
+
 add_subdirectory(domainclasses)
 add_subdirectory(qormentityinstancecache)
 add_subdirectory(qormentitylistmodel)

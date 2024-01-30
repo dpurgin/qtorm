@@ -1,18 +1,13 @@
-add_executable(tst_metadatacachetest
+qtorm_add_unit_test(NAME tst_metadatacachetest SOURCES
     tst_metadatacachetest.cpp
 
     domain/person.cpp
     domain/province.cpp
-    domain/town.cpp    
+    domain/town.cpp
+    domain/withenum.cpp
 
     domain/person.h
     domain/province.h
     domain/town.h
+    domain/withenum.h
 )
-
-target_link_libraries(tst_metadatacachetest
-    Qt5::Test
-    qtorm
-)
-
-add_test(NAME tst_metadatacachetest COMMAND tst_metadatacachetest)
