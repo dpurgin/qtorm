@@ -217,12 +217,32 @@ namespace QOrmPrivate
         registerContainerConverter<QVector<T*>>();
         registerContainerConverter<QSet<T*>>();
     }
+
+    template<typename T>
+    inline void qRegisterOrmEnum()
+    {
+        QMetaType::registerConverter<T, int>([](T myEnum) -> int
+                                             { return static_cast<int>(myEnum); });
+        QMetaType::registerConverter<int, T>([](int myEnum) -> T
+                                             { return static_cast<T>(myEnum); });
+
+        QMetaType::registerConverter<T, QString>(
+            [](T myEnum) -> QString { return QString::number(static_cast<int>(myEnum)); });
+        QMetaType::registerConverter<QString, T>([](QString myEnum) -> T
+                                                 { return static_cast<T>(myEnum.toInt()); });
+    }
 } // namespace QOrmPrivate
 
 template<typename... Ts>
 inline constexpr void qRegisterOrmEntity()
 {
     (..., QOrmPrivate::qRegisterOrmEntity<Ts>());
+}
+
+template<typename... Ts>
+inline constexpr void qRegisterOrmEnum()
+{
+    (..., QOrmPrivate::qRegisterOrmEnum<Ts>());
 }
 
 using QOrmUserMetadata = QHash<QOrm::Keyword, QVariant>;
