@@ -32,6 +32,7 @@
 #include "domain/province.h"
 #include "domain/town.h"
 #include "domain/withqvariant.h"
+#include "domain/withenum.h"
 
 #include "private/qormglobal_p.h"
 #include "private/qormsqlitestatementgenerator_p.h"
@@ -65,6 +66,7 @@ private slots:
     void testCreateTableWithLong();
     void testCreateTableForCustomizedEntity();
     void testCreateTableWithQVariant();
+    void testCreateTableWithEnum();
 
     void testAlterTableAddColumn();
     void testAlterTableAddColumnWithReference();
@@ -366,6 +368,14 @@ void SqliteStatementGenerator::testCreateTableWithQVariant()
     QOrmMetadataCache cache;
     QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<WithQVariant>()),
              "CREATE TABLE WithQVariant(id INTEGER PRIMARY KEY AUTOINCREMENT,data TEXT)");
+}
+
+void SqliteStatementGenerator::testCreateTableWithEnum()
+{
+    QOrmMetadataCache cache;
+    QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<WithEnum>()),
+             "CREATE TABLE WithEnum(id INTEGER PRIMARY KEY AUTOINCREMENT,myenum "
+             "INTEGER,myenumclass INTEGER)");
 }
 
 void SqliteStatementGenerator::testAlterTableAddColumn()
