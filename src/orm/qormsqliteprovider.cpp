@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2020-2024 Dmitriy Purgin <dpurgin@gmail.com>
+ * Copyright (C) 2019-2024 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2024 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -248,9 +248,13 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                 QVariant propertyValue;
 
                 if (mapping.dataTypeName().startsWith("QVector<", Qt::CaseInsensitive))
+                {
                     propertyValue = QVariant::fromValue(result.toVector());
+                }
                 else if (mapping.dataTypeName().startsWith("QSet<", Qt::CaseInsensitive))
-                    propertyValue = QVariant::fromValue(result.toVector().toList().toSet());
+                {
+                    propertyValue = QVariant::fromValue(result.toSet());
+                }
                 else
                     Q_ORM_UNEXPECTED_STATE;
 
@@ -345,17 +349,15 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
         else if (!mapping.isTransient())
         {
             bool isNull = record.isNull(mapping.tableFieldName());
+            QVariant propertyValue = isNull ? QVariant{} : record.value(mapping.tableFieldName());
 
             if (!QOrmPrivate::setPropertyValue(entityInstance,
                                                mapping.classPropertyName(),
-                                               isNull ? QVariant{}
-                                                      : record.value(mapping.tableFieldName())))
+                                               propertyValue))
             {
-                qCDebug(qtorm,
-                        "Unable to setPropertyValue() for %s <-> %s",
-                        qPrintable(mapping.classPropertyName()),
-                        qPrintable(mapping.tableFieldName()));
-                Q_ORM_UNEXPECTED_STATE;
+                qFatal("Unable to setPropertyValue() for %s <-> %s",
+                       qPrintable(mapping.classPropertyName()),
+                       qPrintable(mapping.tableFieldName()));
             }
         }
     }

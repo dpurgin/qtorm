@@ -8,9 +8,11 @@ Refer to qws19.pdf for more examples.
 
 ## License
 
-Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+Copyright (C) 2019-2024 Dmitriy Purgin <dpurgin@gmail.com>
 
-Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
+Copyright (C) 2019-2024 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+
+Copyright (C) 2019-2024 sequality software engineering e.U. <office@sequality.at>
 
 QtOrm is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser 
 General Public License as published by the Free Software Foundation, either version 3 of the 
@@ -29,9 +31,10 @@ The QtOrm library is being built on top of Qt 5.12 LTS and requires a C++17-comp
  standard library support. QtOrm depends on QtCore and QtSql. 
 
 The library is currently being developed and tested on the following platforms: 
- * MinGW 7 on Windows 10
- * GCC 9 on Buildroot
- * GCC 9 on Ubuntu
+ * MinGW 7 on x86_64
+ * GCC 8 on ARM32
+ * GCC 9 on x86_64
+ * GCC 11 on AARCH64
  
 Other compilers and platforms might be supported but not guaranteed.
 
@@ -280,6 +283,57 @@ class Town : public QObject
 
 The SQLite provider maps the property `province` to a database column `province_id` with the column 
 type set to the mapped type of `Province::id`. Back-reference in Province is optional. 
+
+### Enums in Properties
+
+It is possible to use enumerations as property type. Both `enum` and `enum class` are possible. The enumeration type must be registered with `Q_DECLARE_METATYPE()` and `qRegisterOrmEnum()` and its type must be fully qualified when used in `Q_PROPERTY()`. The helper function `qRegisterOrmEnum()` registers converters from/to `QString` and `int`. If custom converters are provided, there is no need to call this function. 
+
+```cpp
+enum class CommunitySize
+{
+    Small, Medium, Large
+};
+Q_DECLARE_METATYPE(CommunitySize);
+
+namespace Classifier
+{
+    enum FederalProvince
+    {
+        Burgenland,
+        Carinthia,
+        LowerAustria,
+        UpperAustria,
+        Salzburg,
+        Styria,
+        Tyrol,
+        Vorarlberg,
+        Vienna
+    }
+}
+
+class Community : public QObject
+{
+    Q_OBJECT
+
+    Q_PROPERTY(long id READ id WRITE setId NOTIFY idChanged)
+    Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+    Q_PROPERTY(CommunitySize communitySize READ communitySize WRITE setCommunitySize NOTIFY communitySizeChanged)
+    Q_PROPERTY(Clasifier::FederalProvince province READ province WRITE setProvince NOTIFY provinceChanged)
+
+public:
+    Q_INVOKABLE Community(QObject* parent = nullptr);
+    
+    // ...
+}
+
+int main() 
+{
+    qRegisterOrmEntity<Community>();
+    qRegisterOrmEnum<CommunitySize, Classifier::FederalProvince>();
+    // ... 
+}
+```
+
 
 ### `QOrmSession` 
 

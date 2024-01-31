@@ -1,7 +1,10 @@
+include(cmake/qtorm_add_unit_test.cmake)
+
 add_subdirectory(domainclasses)
 add_subdirectory(qormentityinstancecache)
 add_subdirectory(qormentitylistmodel)
 add_subdirectory(qormfilterexpression)
 add_subdirectory(qormmetadatacache)
+add_subdirectory(qormqueryresult)
 add_subdirectory(qormsession)
 add_subdirectory(qormsqlitestatementgenerator)

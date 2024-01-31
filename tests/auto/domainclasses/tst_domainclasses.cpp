@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019-2021 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2024 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2024 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -36,6 +36,7 @@ private slots:
     void testNullValueToQDateTime();
     void testUnidirectionalReferenceOnNSide();
     void testUnidirectionalReferenceOn1Side();
+    void testEnumInProperty();
 };
 
 void DomainClassesTest::init()
@@ -456,6 +457,124 @@ void DomainClassesTest::testUnidirectionalReferenceOn1Side()
 
         QVERIFY(town != nullptr);
         QCOMPARE(town->m_id, 1);
+    }
+}
+
+enum class MyEnum
+{
+    Value1,
+    Value2
+};
+Q_DECLARE_METATYPE(MyEnum);
+
+namespace Namespace
+{
+    enum class MyEnum
+    {
+        Value1 = 10,
+        Value2
+    };
+};
+Q_DECLARE_METATYPE(Namespace::MyEnum);
+
+class WithEnum : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+    Q_PROPERTY(MyEnum myEnum MEMBER m_myEnum NOTIFY myEnumChanged)
+    Q_PROPERTY(
+        Namespace::MyEnum myNamespaceEnum MEMBER m_myNamespaceEnum NOTIFY myNamespaceEnumChanged)
+
+public:
+    Q_INVOKABLE WithEnum() = default;
+
+    [[nodiscard]] int id() const { return m_id; }
+    void setId(int id)
+    {
+        if (m_id != id)
+        {
+            m_id = id;
+            emit idChanged();
+        }
+    }
+
+    [[nodiscard]] MyEnum myEnum() const { return m_myEnum; }
+    void setMyEnum(MyEnum myEnum)
+    {
+        if (m_myEnum != myEnum)
+        {
+            m_myEnum = myEnum;
+            emit myEnumChanged();
+        }
+    }
+
+    [[nodiscard]] Namespace::MyEnum myNamespaceEnum() const { return m_myNamespaceEnum; }
+    void setMyNamespaceEnum(Namespace::MyEnum myNamespaceEnum)
+    {
+        if (m_myNamespaceEnum != myNamespaceEnum)
+        {
+            m_myNamespaceEnum = myNamespaceEnum;
+            emit myNamespaceEnumChanged();
+        }
+    }
+
+signals:
+    void idChanged();
+    void myEnumChanged();
+    void myNamespaceEnumChanged();
+
+private:
+    int m_id{-1};
+    MyEnum m_myEnum{MyEnum::Value1};
+    Namespace::MyEnum m_myNamespaceEnum{Namespace::MyEnum::Value1};
+};
+
+void DomainClassesTest::testEnumInProperty()
+{
+    qRegisterOrmEntity<WithEnum>();
+    qRegisterOrmEnum<MyEnum, Namespace::MyEnum>();
+
+    {
+        WithEnum* withEnum = new WithEnum;
+        withEnum->setMyEnum(MyEnum::Value2);
+        withEnum->setMyNamespaceEnum(Namespace::MyEnum::Value2);
+
+        QOrmSession session;
+        QVERIFY(session.merge(withEnum));
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_bypass_schema.json")};
+
+        WithEnum* withEnum = nullptr;
+        {
+            auto result = session.from<WithEnum>().select().toVector();
+            QCOMPARE(result.size(), 1);
+            withEnum = result.first();
+        }
+
+        QVERIFY(withEnum != nullptr);
+        QCOMPARE(withEnum->myEnum(), MyEnum::Value2);
+        QCOMPARE(withEnum->myNamespaceEnum(), Namespace::MyEnum::Value2);
+
+        withEnum->setMyEnum(MyEnum::Value1);
+        withEnum->setMyNamespaceEnum(Namespace::MyEnum::Value1);
+        QVERIFY(session.merge(withEnum));
+    }
+
+    {
+        QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_bypass_schema.json")};
+
+        WithEnum* withEnum = nullptr;
+        {
+            auto result = session.from<WithEnum>().select().toVector();
+            QCOMPARE(result.size(), 1);
+            withEnum = result.first();
+        }
+
+        QVERIFY(withEnum != nullptr);
+        QCOMPARE(withEnum->myEnum(), MyEnum::Value1);
+        QCOMPARE(withEnum->myNamespaceEnum(), Namespace::MyEnum::Value1);
     }
 }
 

@@ -9,10 +9,12 @@ TEMPLATE = app
 SOURCES +=  tst_metadatacachetest.cpp \
     domain/person.cpp \
     domain/province.cpp \
-    domain/town.cpp
+    domain/town.cpp \
+    domain/withenum.cpp 
 
 HEADERS += \
     domain/person.h \
     domain/province.h \
-    domain/town.h
+    domain/town.h \
+    domain/withenum.h 
 

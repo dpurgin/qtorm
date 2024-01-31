@@ -71,6 +71,9 @@ public:
     static_assert(std::is_convertible_v<Projection*, QObject*>,
                   "Projection entity must be inherited from QObject");
 
+    using iterator = typename QVector<Projection*>::iterator;
+    using const_iterator = typename QVector<Projection*>::const_iterator;
+
     QOrmQueryResult(const QOrmQueryResult&) = delete;
     QOrmQueryResult(QOrmQueryResult&& other) = default;
 
@@ -114,8 +117,7 @@ public:
     QOrmQueryResult& operator=(const QOrmQueryResult&) = delete;
     QOrmQueryResult& operator=(QOrmQueryResult&&) = default;
 
-    Q_REQUIRED_RESULT
-    const QVector<Projection*>& toVector() const
+    [[nodiscard]] const QVector<Projection*>& toVector() const
     {
         if (Base::error().type() != QOrm::ErrorType::None)
         {
@@ -127,8 +129,7 @@ public:
         return m_result;
     }
 
-    Q_REQUIRED_RESULT
-    QList<Projection*> toList() const
+    [[nodiscard]] QList<Projection*> toList() const
     {
         if (Base::error().type() != QOrm::ErrorType::None)
         {
@@ -140,28 +141,15 @@ public:
         return m_result.toList();
     }
 
-    Q_REQUIRED_RESULT
-    std::vector<Projection*> toStdVector() const
+    [[nodiscard]] std::vector<Projection*> toStdVector() const
     {
-        if (Base::error().type() != QOrm::ErrorType::None)
-        {
-            qFatal(
-                "qtorm: QOrmQueryResult::toStdVector() has been called but the result contains an "
-                "error: %s",
-                qPrintable(Base::error().text()));
-        }
-
+        checkError(__FUNCTION__);
         return m_result.toStdVector();
     }
-    Q_REQUIRED_RESULT
-    QSet<Projection*> toSet() const
+
+    [[nodiscard]] QSet<Projection*> toSet() const
     {
-        if (Base::error().type() != QOrm::ErrorType::None)
-        {
-            qFatal("qtorm: QOrmQueryResult::toSet() has been called but the result contains an "
-                   "error: %s",
-                   qPrintable(Base::error().text()));
-        }
+        checkError(__FUNCTION__);
 
         QSet<Projection*> result;
 
@@ -171,33 +159,57 @@ public:
         return result;
     }
 
-    Q_REQUIRED_RESULT
-    Projection* first() const
+    [[nodiscard]] Projection* first() const
     {
-        if (Base::hasError())
-        {
-            qFatal("qtorm: QOrmQueryResult::first() has been called but the result contains an "
-                   "error: %s",
-                   qPrintable(Base::error().text()));
-        }
-
+        checkError(__FUNCTION__);
         return !m_result.isEmpty() ? m_result.first() : nullptr;
     }
 
-    Q_REQUIRED_RESULT
-    Projection* last() const
+    [[nodiscard]] Projection* last() const
     {
-        if (Base::hasError())
-        {
-            qFatal("qtorm: QOrmQueryResult::last() has been called but the result contains an "
-                   "error: %s",
-                   qPrintable(Base::error().text()));
-        }
-
+        checkError(__FUNCTION__);
         return !m_result.isEmpty() ? m_result.last() : nullptr;
     }
 
+    [[nodiscard]] iterator begin()
+    {
+        checkError(__FUNCTION__);
+        return std::begin(m_result);
+    }
+
+    [[nodiscard]] iterator end()
+    {
+        checkError(__FUNCTION__);
+        return std::end(m_result);
+    }
+
+    [[nodiscard]] const_iterator begin() const { return cbegin(); }
+    [[nodiscard]] const_iterator end() const { return cend(); }
+
+    [[nodiscard]] const_iterator cbegin() const
+    {
+        checkError(__FUNCTION__);
+        return std::cbegin(m_result);
+    }
+
+    [[nodiscard]] const_iterator cend() const
+    {
+        checkError(__FUNCTION__);
+        return std::cend(m_result);
+    }
+
 private:
+    void checkError(const char* function) const
+    {
+        if (Base::error().type() != QOrm::ErrorType::None)
+        {
+            qFatal("qtorm: %s has been called but the result contains an "
+                   "error: %s",
+                   function,
+                   qPrintable(Base::error().text()));
+        }
+    }
+
     template<typename From, typename To>
     static QVector<To*> convertVector(const QVector<From*>& from)
     {
