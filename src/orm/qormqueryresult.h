@@ -171,17 +171,20 @@ public:
         return !m_result.isEmpty() ? m_result.last() : nullptr;
     }
 
-    [[nodiscard]] iterator begin() const
+    [[nodiscard]] iterator begin()
     {
         checkError(__FUNCTION__);
         return std::begin(m_result);
     }
 
-    [[nodiscard]] iterator end() const
+    [[nodiscard]] iterator end()
     {
         checkError(__FUNCTION__);
         return std::end(m_result);
     }
+
+    [[nodiscard]] const_iterator begin() const { return cbegin(); }
+    [[nodiscard]] const_iterator end() const { return cend(); }
 
     [[nodiscard]] const_iterator cbegin() const
     {
