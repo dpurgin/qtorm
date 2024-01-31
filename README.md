@@ -310,6 +310,7 @@ namespace Classifier
         Vienna
     }
 }
+Q_DECLARE_METATYPE(Classifier::FederalProvince);
 
 class Community : public QObject
 {
@@ -318,7 +319,7 @@ class Community : public QObject
     Q_PROPERTY(long id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(CommunitySize communitySize READ communitySize WRITE setCommunitySize NOTIFY communitySizeChanged)
-    Q_PROPERTY(Clasifier::FederalProvince province READ province WRITE setProvince NOTIFY provinceChanged)
+    Q_PROPERTY(Classifier::FederalProvince province READ province WRITE setProvince NOTIFY provinceChanged)
 
 public:
     Q_INVOKABLE Community(QObject* parent = nullptr);
