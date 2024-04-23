@@ -61,3 +61,17 @@ void WithEnum::setMyEnumClass(MyNamespace::MyEnumClass myEnumClass)
         emit myEnumClassChanged();
     }
 }
+
+MyNamespace::WithNamespace* WithEnum::myNamespacedClass() const
+{
+    return m_myNamespacedClass;
+}
+
+void WithEnum::setMyNamespacedClass(MyNamespace::WithNamespace* myNamespacedClass)
+{
+    if (m_myNamespacedClass != myNamespacedClass)
+    {
+        m_myNamespacedClass = myNamespacedClass;
+        emit myNamespacedClassChanged();
+    }
+}

@@ -20,6 +20,28 @@
 
 #include "withenum.h"
 
+namespace MyNamespace
+{
+    void WithNamespace::setId(int id)
+    {
+        if (m_id != id)
+        {
+            m_id = id;
+            emit idChanged();
+        }
+    }
+
+    void WithNamespace::setValue(QString value)
+    {
+        if (m_value != value)
+        {
+            m_value = value;
+            emit valueChanged();
+        }
+    }
+
+} // namespace MyNamespace
+
 int WithEnum::id() const
 {
     return m_id;

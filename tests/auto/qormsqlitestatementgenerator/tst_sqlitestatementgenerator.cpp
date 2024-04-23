@@ -47,6 +47,8 @@ private slots:
     void testInsertWithManyToOne();
     void testInsertWithOneToMany();
     void testInsertWithOneToManyNullReference();
+    void testInsertForCustomizedEntity();
+    void testInsertWithNamespace();
 
     void testFilterWithReference();
     void testFilterWithReferenceIsNull();
@@ -67,11 +69,13 @@ private slots:
     void testCreateTableForCustomizedEntity();
     void testCreateTableWithQVariant();
     void testCreateTableWithEnum();
+    void testCreateTableWithNamespace();
 
     void testAlterTableAddColumn();
     void testAlterTableAddColumnWithReference();
 
     void testSelectWithLimitOffset();
+    void testSelectWithNamespace();
     void testLimitOffset();
     void testLimitOffset_data();
 };
@@ -93,7 +97,7 @@ void SqliteStatementGenerator::testInsertWithManyToOne()
                                                           upperAustria.get(),
                                                           boundParameters);
 
-    QCOMPARE(statement, "INSERT INTO Province(name) VALUES(:name)");
+    QCOMPARE(statement, R"(INSERT INTO "Province"("name") VALUES(:name))");
     QCOMPARE(boundParameters[":name"], "Oberösterreich");
 }
 
@@ -109,7 +113,7 @@ void SqliteStatementGenerator::testInsertWithOneToMany()
     QString statement =
         generator.generateInsertStatement(cache.get<Town>(), hagenberg.get(), boundParameters);
 
-    QCOMPARE(statement, "INSERT INTO Town(name,province_id) VALUES(:name,:province_id)");
+    QCOMPARE(statement, R"(INSERT INTO "Town"("name","province_id") VALUES(:name,:province_id))");
     QCOMPARE(boundParameters[":name"], "Hagenberg");
     QCOMPARE(boundParameters[":province_id"], 1);
 }
@@ -125,9 +129,46 @@ void SqliteStatementGenerator::testInsertWithOneToManyNullReference()
     QString statement =
         generator.generateInsertStatement(cache.get<Town>(), hagenberg.get(), boundParameters);
 
-    QCOMPARE(statement, "INSERT INTO Town(name,province_id) VALUES(:name,:province_id)");
+    QCOMPARE(statement, R"(INSERT INTO "Town"("name","province_id") VALUES(:name,:province_id))");
     QCOMPARE(boundParameters[":name"], "Hagenberg");
     QCOMPARE(boundParameters[":province_id"], QVariant::fromValue(nullptr));
+}
+
+void SqliteStatementGenerator::testInsertForCustomizedEntity()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    QScopedPointer<Community> hagenberg{new Community};
+    hagenberg->setCommunityId(4232);
+    hagenberg->setName("Hagenberg");
+    hagenberg->setPopulation(4000);
+
+    QVariantMap boundParameters;
+    QString statement =
+        generator.generateInsertStatement(cache.get<Community>(), hagenberg.get(), boundParameters);
+
+    QCOMPARE(
+        statement,
+        R"(INSERT INTO "communities"("community_id","name","population","province_id") VALUES(:community_id,:name,:population,:province_id))");
+    QCOMPARE(boundParameters[":community_id"], 4232);
+    QCOMPARE(boundParameters[":name"], "Hagenberg");
+    QCOMPARE(boundParameters[":population"], 4000);
+    QCOMPARE(boundParameters[":province_id"], QVariant::fromValue(nullptr));
+}
+
+void SqliteStatementGenerator::testInsertWithNamespace()
+{
+    QOrmSqliteStatementGenerator generator;
+    QOrmMetadataCache cache;
+
+    QScopedPointer<MyNamespace::WithNamespace> entity{new MyNamespace::WithNamespace{}};
+
+    QVariantMap boundParameters;
+    QString statement = generator.generateInsertStatement(cache.get<MyNamespace::WithNamespace>(),
+                                                          entity.get(),
+                                                          boundParameters);
+    QCOMPARE(statement, R"(INSERT INTO "MyNamespace_WithNamespace"("value") VALUES(:value))");
 }
 
 void SqliteStatementGenerator::testFilterWithReference()
@@ -309,7 +350,7 @@ void SqliteStatementGenerator::testDeleteWhere()
     QString statement =
         generator.generateDeleteStatement(cache.get<Town>(), filter, boundParameters);
 
-    QCOMPARE(statement, R"(DELETE FROM Town WHERE "id" = :id)");
+    QCOMPARE(statement, R"(DELETE FROM "Town" WHERE "id" = :id)");
     QCOMPARE(boundParameters.size(), 1);
     QCOMPARE(boundParameters[":id"], 1);
 }
@@ -326,7 +367,7 @@ void SqliteStatementGenerator::testDeleteWhereWithReturning()
     QString statement =
         generator.generateDeleteStatement(cache.get<Town>(), filter, boundParameters);
 
-    QCOMPARE(statement, R"(DELETE FROM Town WHERE "id" = :id RETURNING "Town"."id" AS "id")");
+    QCOMPARE(statement, R"(DELETE FROM "Town" WHERE "id" = :id RETURNING "Town"."id" AS "id")");
     QCOMPARE(boundParameters.size(), 1);
     QCOMPARE(boundParameters[":id"], 1);
 }
@@ -337,7 +378,7 @@ void SqliteStatementGenerator::testCreateTableWithReference()
 
     QCOMPARE(
         QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<Town>()),
-        "CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,province_id INTEGER)");
+        R"(CREATE TABLE "Town"("id" INTEGER PRIMARY KEY AUTOINCREMENT,"name" TEXT,"province_id" INTEGER))");
 }
 
 void SqliteStatementGenerator::testCreateTableWithManyToOne()
@@ -345,37 +386,46 @@ void SqliteStatementGenerator::testCreateTableWithManyToOne()
     QOrmMetadataCache cache;
 
     QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<Province>()),
-             "CREATE TABLE Province(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT)");
+             R"(CREATE TABLE "Province"("id" INTEGER PRIMARY KEY AUTOINCREMENT,"name" TEXT))");
 }
 
 void SqliteStatementGenerator::testCreateTableWithLong()
 {
     QOrmMetadataCache cache;
     QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<Person>()),
-             "CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT)");
+             R"(CREATE TABLE "Person"("id" INTEGER PRIMARY KEY AUTOINCREMENT,"name" TEXT))");
 }
 
 void SqliteStatementGenerator::testCreateTableForCustomizedEntity()
 {
     QOrmMetadataCache cache;
-    QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<Community>()),
-             "CREATE TABLE communities(community_id INTEGER PRIMARY KEY,name TEXT,population "
-             "INTEGER,province_id INTEGER)");
+    QCOMPARE(
+        QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<Community>()),
+        R"(CREATE TABLE "communities"("community_id" INTEGER PRIMARY KEY,"name" TEXT,"population" INTEGER,"province_id" INTEGER))");
 }
 
 void SqliteStatementGenerator::testCreateTableWithQVariant()
 {
     QOrmMetadataCache cache;
     QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<WithQVariant>()),
-             "CREATE TABLE WithQVariant(id INTEGER PRIMARY KEY AUTOINCREMENT,data TEXT)");
+             R"(CREATE TABLE "WithQVariant"("id" INTEGER PRIMARY KEY AUTOINCREMENT,"data" TEXT))");
 }
 
 void SqliteStatementGenerator::testCreateTableWithEnum()
 {
     QOrmMetadataCache cache;
-    QCOMPARE(QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<WithEnum>()),
-             "CREATE TABLE WithEnum(id INTEGER PRIMARY KEY AUTOINCREMENT,myenum "
-             "INTEGER,myenumclass INTEGER)");
+    QCOMPARE(
+        QOrmSqliteStatementGenerator{}.generateCreateTableStatement(cache.get<WithEnum>()),
+        R"(CREATE TABLE "WithEnum"("id" INTEGER PRIMARY KEY AUTOINCREMENT,"myenum" INTEGER,"myenumclass" INTEGER))");
+}
+
+void SqliteStatementGenerator::testCreateTableWithNamespace()
+{
+    QOrmMetadataCache cache;
+    QCOMPARE(
+        QOrmSqliteStatementGenerator{}.generateCreateTableStatement(
+            cache.get<MyNamespace::WithNamespace>()),
+        R"(CREATE TABLE "MyNamespace_WithNamespace"("id" INTEGER PRIMARY KEY AUTOINCREMENT,"value" TEXT))");
 }
 
 void SqliteStatementGenerator::testAlterTableAddColumn()
@@ -419,11 +469,32 @@ void SqliteStatementGenerator::testSelectWithLimitOffset()
     QVariantMap boundParameters;
     QString actual =
         QOrmSqliteStatementGenerator{}.generateSelectStatement(query, boundParameters).simplified();
-    QString expected{R"(SELECT * FROM Town WHERE "id" > :id LIMIT :limit OFFSET :offset)"};
+    QString expected{R"(SELECT * FROM "Town" WHERE "id" > :id LIMIT :limit OFFSET :offset)"};
 
     QCOMPARE(actual, expected);
     QCOMPARE(boundParameters.value(":limit", 0), 10);
     QCOMPARE(boundParameters.value(":offset", 0), 20);
+}
+
+void SqliteStatementGenerator::testSelectWithNamespace()
+{
+    QOrmMetadataCache cache;
+    QOrmRelation relation{cache.get<MyNamespace::WithNamespace>()};
+    QOrmMetadata projection{cache.get<MyNamespace::WithNamespace>()};
+
+    QOrmQuery query{QOrm::Operation::Read,
+                    relation,
+                    projection,
+                    std::nullopt,
+                    std::nullopt,
+                    {},
+                    QOrm::QueryFlags::None};
+
+    QVariantMap boundParameters;
+    QString actual{QOrmSqliteStatementGenerator{}
+                       .generateSelectStatement(query, boundParameters)
+                       .simplified()};
+    QCOMPARE(actual, R"(SELECT * FROM "MyNamespace_WithNamespace")");
 }
 
 void SqliteStatementGenerator::testLimitOffset()
