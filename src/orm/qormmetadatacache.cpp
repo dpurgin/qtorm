@@ -409,9 +409,10 @@ void QOrmMetadataCachePrivate::initialize(const QByteArray& className,
     }
 
     // initialize the private part of the cached object
+    QString defaultTableName = QString::fromUtf8(qMetaObject.className()).replace("::", "_");
+
     data->m_className = QString::fromUtf8(qMetaObject.className());
-    data->m_tableName =
-        ormClassInfo.value(QOrm::Keyword::Table, QVariant::fromValue(data->m_className)).toString();
+    data->m_tableName = ormClassInfo.value(QOrm::Keyword::Table, defaultTableName).toString();
     data->m_userMetadata = ormClassInfo;
 
     for (int i = 0; i < qMetaObject.propertyCount(); ++i)

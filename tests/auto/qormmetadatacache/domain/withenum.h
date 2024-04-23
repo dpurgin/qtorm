@@ -37,6 +37,28 @@ namespace MyNamespace
         MyEnumClassValue1,
         MyEnumClassValue2
     };
+
+    class WithNamespace : public QObject
+    {
+        Q_OBJECT
+
+        Q_PROPERTY(int id MEMBER m_id NOTIFY idChanged)
+        Q_PROPERTY(QString value MEMBER m_value NOTIFY valueChanged)
+
+    public:
+        Q_INVOKABLE WithNamespace(QObject* parent = nullptr)
+            : QObject{parent}
+        {
+        }
+
+    signals:
+        void idChanged();
+        void valueChanged();
+
+    private:
+        int m_id;
+        QString m_value;
+    };
 }
 
 Q_DECLARE_METATYPE(MyNamespace::MyEnum);
@@ -49,6 +71,8 @@ class WithEnum : public QObject
     Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(MyNamespace::MyEnum myEnum READ myEnum WRITE setMyEnum NOTIFY myEnumChanged)
     Q_PROPERTY(MyNamespace::MyEnumClass myEnumClass READ myEnumClass WRITE setMyEnumClass NOTIFY myEnumClassChanged)
+    Q_PROPERTY(MyNamespace::WithNamespace* myNamespacedClass READ myNamespacedClass WRITE
+                   setMyNamespacedClass NOTIFY myNamespacedClassChanged)
 
 public:
     Q_INVOKABLE WithEnum(QObject* parent = nullptr)
@@ -65,13 +89,18 @@ public:
     [[nodiscard]] MyNamespace::MyEnumClass myEnumClass() const;
     void setMyEnumClass(MyNamespace::MyEnumClass myEnumClass);
 
+    [[nodiscard]] MyNamespace::WithNamespace* myNamespacedClass() const;
+    void setMyNamespacedClass(MyNamespace::WithNamespace* myNamespacedClass);
+
 signals:
     void idChanged();
     void myEnumChanged();
     void myEnumClassChanged();
+    void myNamespacedClassChanged();
 
 private:
     int m_id{0};
     MyNamespace::MyEnum m_myEnum{MyNamespace::MyEnumValue0};
     MyNamespace::MyEnumClass m_myEnumClass{MyNamespace::MyEnumClass::MyEnumClassValue0};
+    MyNamespace::WithNamespace* m_myNamespacedClass{nullptr};
 };

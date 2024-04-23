@@ -37,6 +37,34 @@ namespace MyNamespace
         MyEnumClassValue1,
         MyEnumClassValue2
     };
+
+    class WithNamespace : public QObject
+    {
+        Q_OBJECT
+
+        Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
+        Q_PROPERTY(QString value READ value WRITE setValue NOTIFY valueChanged)
+
+    public:
+        Q_INVOKABLE WithNamespace(QObject* parent = nullptr)
+            : QObject{parent}
+        {
+        }
+
+        [[nodiscard]] int id() const { return m_id; }
+        void setId(int id);
+
+        [[nodiscard]] QString value() { return m_value; }
+        void setValue(QString value);
+
+    signals:
+        void idChanged();
+        void valueChanged();
+
+    private:
+        int m_id;
+        QString m_value;
+    };
 }
 
 Q_DECLARE_METATYPE(MyNamespace::MyEnum);

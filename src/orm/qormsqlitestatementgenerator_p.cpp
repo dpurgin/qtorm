@@ -144,7 +144,7 @@ QString QOrmSqliteStatementGenerator::generateInsertStatement(const QOrmMetadata
         QString valueStr =
             insertParameter(boundParameters, propertyMapping.tableFieldName(), propertyValue);
 
-        fieldsList.push_back(propertyMapping.tableFieldName());
+        fieldsList.push_back(escapeIdentifier(propertyMapping.tableFieldName()));
         valuesList.push_back(valueStr);
     }
 
@@ -152,7 +152,7 @@ QString QOrmSqliteStatementGenerator::generateInsertStatement(const QOrmMetadata
     QString valuesStr = valuesList.join(',');
 
     QString statement = QStringLiteral("INSERT INTO %1(%2) VALUES(%3)")
-                            .arg(relation.tableName(), fieldsStr, valuesStr);
+                            .arg(escapeIdentifier(relation.tableName()), fieldsStr, valuesStr);
 
     return statement;
 }
@@ -260,7 +260,7 @@ QString QOrmSqliteStatementGenerator::generateFromClause(const QOrmRelation& rel
     switch (relation.type())
     {
         case QOrm::RelationType::Mapping:
-            return QString{"FROM %1"}.arg(relation.mapping()->tableName());
+            return QString{"FROM %1"}.arg(escapeIdentifier(relation.mapping()->tableName()));
 
         case QOrm::RelationType::Query:
             Q_ASSERT(relation.query()->operation() == QOrm::Operation::Read);
@@ -510,12 +510,13 @@ QString QOrmSqliteStatementGenerator::generateCreateTableStatement(
         {
             Q_ASSERT(mapping.referencedEntity()->objectIdMapping() != nullptr);
 
-            columnDefs += {mapping.tableFieldName(),
+            columnDefs += {escapeIdentifier(mapping.tableFieldName()),
                            toSqliteType(mapping.referencedEntity()->objectIdMapping()->dataType())};
         }
         else
         {
-            columnDefs += {mapping.tableFieldName(), toSqliteType(mapping.dataType())};
+            columnDefs +=
+                {escapeIdentifier(mapping.tableFieldName()), toSqliteType(mapping.dataType())};
 
             if (mapping.isObjectId())
                 columnDefs.push_back(QStringLiteral("PRIMARY KEY"));
@@ -530,7 +531,7 @@ QString QOrmSqliteStatementGenerator::generateCreateTableStatement(
     QString fieldsStr = fields.join(',');
 
     Q_ASSERT(!overrideTableName.has_value() || !overrideTableName->isEmpty());
-    QString effectiveTableName = overrideTableName.value_or(entity.tableName());
+    QString effectiveTableName{overrideTableName.value_or(escapeIdentifier(entity.tableName()))};
 
     return QStringLiteral("CREATE TABLE %1(%2)").arg(effectiveTableName, fieldsStr);
 }
