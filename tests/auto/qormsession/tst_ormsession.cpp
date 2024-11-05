@@ -63,6 +63,7 @@ private slots:
     void testSelectFromNestedSelect();
     void testSelectWithListFilter();
     void testSelectWithLimitOffset();
+    void testSelectWithOverwriteCachedInstances();
 
     void testMergeFailsWithInconsistentReferences();
     void testMergeOfExistingUncachedEntitiesWithExplicitIdsUpdates();
@@ -522,6 +523,24 @@ void SqliteSessionTest::testSelectWithLimitOffset()
         QCOMPARE(result.at(1)->id(), 4);
         QCOMPARE(result.at(2)->id(), 5);
     }
+}
+
+void SqliteSessionTest::testSelectWithOverwriteCachedInstances()
+{
+    QOrmSession session;
+
+    Province* upperAustria = new Province(QString::fromUtf8("Oberösterreich"));
+
+    QVERIFY(session.merge(upperAustria));
+
+    upperAustria->setName("Oberoesterreich");
+
+    QVERIFY(session.entityInstanceCache()->isModified(upperAustria));
+
+    std::ignore =
+        session.from<Province>().select(QOrm::QueryFlags::OverwriteCachedInstances).toVector();
+    QCOMPARE(upperAustria->name(), QString::fromUtf8("Oberösterreich"));
+    QVERIFY(!session.entityInstanceCache()->isModified(upperAustria));
 }
 
 void SqliteSessionTest::testMergeFailsWithInconsistentReferences()

@@ -812,9 +812,10 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(
 
                     if (error != QOrm::ErrorType::None)
                     {
-                        entityInstanceCache.markUnmodified(cachedInstance);
                         return QOrmQueryResult<QObject>{error};
                     }
+
+                    entityInstanceCache.markUnmodified(cachedInstance);
                 }
 
                 resultSet.push_back(cachedInstance);
