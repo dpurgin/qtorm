@@ -540,6 +540,21 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
                     << relation.mapping()->className() << "::" << mapping->classPropertyName();
                 updateNeeded = true;
             }
+            else if (mapping->referencedEntity() != nullptr)
+            {
+                Q_ASSERT(mapping->referencedEntity()->objectIdMapping() != nullptr);
+                auto referencedType = mapping->referencedEntity()->objectIdMapping()->dataType();
+
+                if (!canConvertFromSqliteToQProperty(field.type(), referencedType))
+                {
+                    qCDebug(qtorm).noquote().nospace()
+                        << "updating table " << relation.mapping()->tableName()
+                        << ": data type of field " << field.name() << " is incompatible with its "
+                        << relation.mapping()->className() << "::" << mapping->classPropertyName()
+                        << " mapping.";
+                    updateNeeded = true;
+                }
+            }
             else if (!canConvertFromSqliteToQProperty(field.type(), mapping->dataType()))
             {
                 qCDebug(qtorm).noquote().nospace()
