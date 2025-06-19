@@ -20,6 +20,7 @@ jobs:
       uses: jurplel/install-qt-action@v3
       with: 
         version: ${{ matrix.qtversion }}
+        arch: ${{ matrix.arch }}
         archives: 'qtbase qtdeclarative qtquickcontrols2 icu'
    
     - name: Create Build Environment
