@@ -129,10 +129,12 @@ namespace QtOrmPrivate
     {
     };
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     template<typename T>
     struct IsList<QVector<T>> : std::true_type
     {
     };
+#endif
 
     template<typename T>
     struct IsList<QList<T>> : std::true_type

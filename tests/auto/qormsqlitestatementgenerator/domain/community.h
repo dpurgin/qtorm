@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 Dmitriy Purgin <dpurgin@gmail.com>
+ * Copyright (C) 2019-2025 Dmitriy Purgin <dpurgin@gmail.com>
  *
  * This file is part of QtOrm library.
  *
@@ -23,7 +23,7 @@
 
 #include <QtOrm/qormglobal.h>
 
-class Province;
+#include "province.h"
 
 class Community : public QObject
 {

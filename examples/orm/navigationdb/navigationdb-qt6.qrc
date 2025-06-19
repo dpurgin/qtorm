@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qtorm.json</file>
+        <file alias="main.qml">main-qt6.qml</file>
+        <file>marker.png</file>
+    </qresource>
+</RCC>

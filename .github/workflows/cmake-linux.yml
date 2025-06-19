@@ -5,7 +5,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        qtversion: [ '5.12.*', '5.15.*' ]
+        qtversion: [ '5.12.*', '5.15.*', '6.8.*' ]
         
     runs-on: ubuntu-latest
     

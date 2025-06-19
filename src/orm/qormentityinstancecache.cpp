@@ -45,6 +45,14 @@ private:
     QSet<const QObject*> m_modifiedInstances;    
 };
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+inline bool operator<(const QVariant& lhs, const QVariant& rhs)
+{
+    QPartialOrdering ordering = QVariant::compare(lhs, rhs);
+    return ordering == QPartialOrdering::Less;
+}
+#endif
+
 void QOrmEntityInstanceCachePrivate::onEntityInstanceChanged()
 {
     Q_ASSERT(m_cache.contains(sender()));

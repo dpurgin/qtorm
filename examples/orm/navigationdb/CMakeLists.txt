@@ -1,4 +1,10 @@
-find_package(Qt5 COMPONENTS Core Quick REQUIRED)
+find_package(Qt${QTORM_QT_VERSION_MAJOR} COMPONENTS Core Quick REQUIRED)
+
+if (QTORM_QT_VERSION_MAJOR EQUAL 6)
+    set(RESOURCES navigationdb-qt6.qrc)
+else()
+    set(RESOURCES navigationdb.qrc)
+endif()
 
 add_executable(navigationdb
     domain/province.h
@@ -8,7 +14,7 @@ add_executable(navigationdb
     domain/community.cpp
     main.cpp
 
-    navigationdb.qrc
+    ${RESOURCES}
 )
 
-target_link_libraries(navigationdb PUBLIC qtorm Qt5::Core Qt5::Quick)
+target_link_libraries(navigationdb PUBLIC qtorm Qt${QTORM_QT_VERSION_MAJOR}::Core Qt${QTORM_QT_VERSION_MAJOR}::Quick)

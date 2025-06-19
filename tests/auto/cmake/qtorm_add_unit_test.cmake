@@ -6,7 +6,7 @@ function(qtorm_add_unit_test)
     cmake_parse_arguments(QTORM_ADD_UNIT_TEST "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
 
     add_executable(${QTORM_ADD_UNIT_TEST_NAME} ${QTORM_ADD_UNIT_TEST_SOURCES})
-    target_link_libraries(${QTORM_ADD_UNIT_TEST_NAME} Qt5::Test qtorm ${QTORM_ADD_UNIT_TEST_LINK_LIBRARIES})
+    target_link_libraries(${QTORM_ADD_UNIT_TEST_NAME} Qt${QTORM_QT_VERSION_MAJOR}::Test qtorm ${QTORM_ADD_UNIT_TEST_LINK_LIBRARIES})
 
     add_test(NAME ${QTORM_ADD_UNIT_TEST_NAME} COMMAND ${QTORM_ADD_UNIT_TEST_NAME})
 

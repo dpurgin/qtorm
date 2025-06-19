@@ -47,3 +47,10 @@ compile_commands.json
 
 # QtCreator local machine specific files for imported projects
 *creator.user*
+
+# QtCreator 14+ build directory
+build/
+
+# CLion directories
+.idea/
+cmake-build*/

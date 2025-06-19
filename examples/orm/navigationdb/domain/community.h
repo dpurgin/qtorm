@@ -33,7 +33,7 @@
 
 #include <QObject>
 
-class Province;
+#include "province.h"
 
 class Community : public QObject
 {

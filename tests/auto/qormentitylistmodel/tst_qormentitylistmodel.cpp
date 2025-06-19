@@ -70,14 +70,16 @@ void EntityListModelTest::testQVectorTInData()
     // Province::id: UserRole
     // Province::name: UserRole+1
     // Province::rowns: UserRole+2
-    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole).type(), QVariant::Int);
+    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole).metaType().id(), QMetaType::Int);
     QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole).toInt(), 1);
 
-    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 1).type(), QVariant::String);
+    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 1).metaType().id(),
+             QMetaType::QString);
     QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 1).toString(),
              QString::fromUtf8("Oberösterreich"));
 
-    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 2).type(), QVariant::List);
+    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 2).metaType(),
+             QMetaType::fromType<QVariantList>());
 
     auto val = provinces.data(provinces.index(0), Qt::UserRole + 2).toList();
     QCOMPARE(val.size(), 2);

@@ -84,7 +84,7 @@ add_library(qtorm
     ${QTORM_GENERATED_HEADERS}
 )
 
-target_link_libraries(qtorm PUBLIC Qt5::Core PRIVATE Qt5::Sql)
+target_link_libraries(qtorm PUBLIC Qt${QTORM_QT_VERSION_MAJOR}::Core PRIVATE Qt${QTORM_QT_VERSION_MAJOR}::Sql)
 
 target_compile_definitions(qtorm PRIVATE QT_BUILD_ORM_LIB)
 target_include_directories(qtorm

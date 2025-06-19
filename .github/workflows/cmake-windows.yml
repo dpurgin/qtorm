@@ -10,6 +10,8 @@ jobs:
           arch: 'win64_msvc2019_64'
         - qtversion: '5.12.*'
           arch: 'win64_msvc2017_64'
+        - qtversoin: '6.8.*'
+          arch: 'win64_msvc2022_64'
         
     runs-on: windows-latest
     

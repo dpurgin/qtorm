@@ -71,9 +71,9 @@ class QOrmSqliteProviderPrivate
     QOrmSqliteProvider::SqliteCapabilities m_capabilities{QOrmSqliteProvider::NoCapabilities};
 
     Q_REQUIRED_RESULT
-    QString toSqlType(QVariant::Type type);
-    [[nodiscard]] bool canConvertFromSqliteToQProperty(QVariant::Type fromSqlType,
-                                                       QVariant::Type toQPropertyType);
+    QString toSqlType(QMetaType::Type type);
+    [[nodiscard]] bool canConvertFromSqliteToQProperty(QMetaType fromSqlType,
+                                                       QMetaType toQPropertyType);
 
     Q_REQUIRED_RESULT
     QOrmError lastDatabaseError() const;
@@ -116,23 +116,23 @@ class QOrmSqliteProviderPrivate
 // QVariant::canConvert() reports a false negative.
 //
 // See https://www.sqlite.org/datatype3.html
-bool QOrmSqliteProviderPrivate::canConvertFromSqliteToQProperty(QVariant::Type fromSqlType,
-                                                                QVariant::Type toQPropertyType)
+bool QOrmSqliteProviderPrivate::canConvertFromSqliteToQProperty(QMetaType fromSqlType,
+                                                                QMetaType toQPropertyType)
 {
-    if ((fromSqlType == QVariant::Double || //
-         fromSqlType == QVariant::Int ||    //
-         fromSqlType == QVariant::String) &&
-        toQPropertyType == QVariant::DateTime)
+    if ((fromSqlType == QMetaType{QMetaType::Double} || //
+         fromSqlType == QMetaType{QMetaType::Int} ||    //
+         fromSqlType == QMetaType{QMetaType::QString}) &&
+        toQPropertyType == QMetaType{QMetaType::QDateTime})
     {
         return true;
     }
     // If target type is QVariant, assume it is convertible.
-    else if (toQPropertyType == 41)
+    else if (toQPropertyType == QMetaType{QMetaType::QVariant})
     {
         return true;
     }
 
-    return QVariant{fromSqlType}.canConvert(toQPropertyType);
+    return QMetaType::canConvert(fromSqlType, toQPropertyType);
 }
 
 QOrmError QOrmSqliteProviderPrivate::lastDatabaseError() const
@@ -247,11 +247,15 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                 // dispatch according to declared property type
                 QVariant propertyValue;
 
-                if (mapping.dataTypeName().startsWith("QVector<", Qt::CaseInsensitive))
+                if (mapping.dataTypeName().startsWith("QList<"))
+                {
+                    propertyValue = QVariant::fromValue(result.toList());
+                }
+                else if (mapping.dataTypeName().startsWith("QVector<"))
                 {
                     propertyValue = QVariant::fromValue(result.toVector());
                 }
-                else if (mapping.dataTypeName().startsWith("QSet<", Qt::CaseInsensitive))
+                else if (mapping.dataTypeName().startsWith("QSet<"))
                 {
                     propertyValue = QVariant::fromValue(result.toSet());
                 }
@@ -540,7 +544,7 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
                     << relation.mapping()->className() << "::" << mapping->classPropertyName();
                 updateNeeded = true;
             }
-            else if (!canConvertFromSqliteToQProperty(field.type(), mapping->dataType()))
+            else if (!canConvertFromSqliteToQProperty(field.metaType(), mapping->dataType()))
             {
                 qCDebug(qtorm).noquote().nospace()
                     << "updating table " << relation.mapping()->tableName()
@@ -1006,7 +1010,7 @@ void QOrmSqliteProviderPrivate::detectSqliteCapabilities()
 
     QSqlQuery query = inMemoryDatabase.exec("SELECT sqlite_version() AS version");
 
-    if (query.lastError().text() != QSqlError::NoError)
+    if (query.lastError().type() != QSqlError::NoError)
     {
         if (query.next())
         {
