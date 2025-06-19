@@ -5,6 +5,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
+        include:
         - qtversion: '5.15.*'
           arch: 'gcc_64'
         - qtversion: '5.12.*'
