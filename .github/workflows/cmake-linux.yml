@@ -5,8 +5,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        qtversion: [ '5.12.*', '5.15.*', '6.8.*' ]
-        
+        - qtversion: '5.15.*'
+          arch: 'gcc_64'
+        - qtversion: '5.12.*'
+          arch: 'gcc_64'
+        - qtversion: '6.8.*'
+          arch: 'linux_gcc_64'        
     runs-on: ubuntu-latest
     
     steps:
