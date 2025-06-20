@@ -872,7 +872,7 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::read(
         resultSet.erase(it, std::end(resultSet));
     }
 
-    return QOrmQueryResult<QObject>{resultSet, resultSet.size()};
+    return QOrmQueryResult<QObject>{resultSet, static_cast<int>(resultSet.size())};
 }
 
 QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::merge(const QOrmQuery& query)

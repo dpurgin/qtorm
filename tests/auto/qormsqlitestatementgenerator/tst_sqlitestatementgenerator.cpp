@@ -263,9 +263,9 @@ void SqliteStatementGenerator::testFilterWithList()
     QOrmMetadataCache cache;
 
     {
-        QOrmFilter filter{
-            QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
-                                                  Q_ORM_CLASS_PROPERTY(id) == QVector{1, 3, 5})};
+        QOrmFilter filter{QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
+                                                                Q_ORM_CLASS_PROPERTY(id) ==
+                                                                    QVector<int>{1, 3, 5})};
 
         QVariantMap boundParameters;
         QString statement = generator.generateWhereClause(filter, boundParameters);
@@ -274,9 +274,9 @@ void SqliteStatementGenerator::testFilterWithList()
     }
 
     {
-        QOrmFilter filter{
-            QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
-                                                  Q_ORM_CLASS_PROPERTY(id) != QVector{1, 3, 5})};
+        QOrmFilter filter{QOrmPrivate::resolvedFilterExpression(QOrmRelation{cache.get<Town>()},
+                                                                Q_ORM_CLASS_PROPERTY(id) !=
+                                                                    QVector<int>{1, 3, 5})};
 
         QVariantMap boundParameters;
         QString statement = generator.generateWhereClause(filter, boundParameters);
