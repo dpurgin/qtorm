@@ -354,7 +354,7 @@ QString QOrmSqliteStatementGenerator::generateCondition(
         {
             value = QOrmPrivate::objectIdPropertyValue(referencedInstance, *referencedEntity);
         }
-        else if (predicate.value().type() == referencedEntity->objectIdMapping()->dataType().id())
+        else if (predicate.value().type() == referencedEntity->objectIdMapping()->dataType())
         {
             value = predicate.value();
         }
@@ -594,10 +594,10 @@ QString QOrmSqliteStatementGenerator::generateLimitOffsetClause(std::optional<in
     return {};
 }
 
-QString QOrmSqliteStatementGenerator::toSqliteType(QMetaType type)
+QString QOrmSqliteStatementGenerator::toSqliteType(QMetaType::Type type)
 {
     // SQLite data types: https://sqlite.org/datatype3.html
-    switch (type.id())
+    switch (type)
     {
         case QMetaType::Int:
         case QMetaType::UInt:

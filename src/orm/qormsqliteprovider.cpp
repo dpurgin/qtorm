@@ -72,8 +72,8 @@ class QOrmSqliteProviderPrivate
 
     Q_REQUIRED_RESULT
     QString toSqlType(QMetaType::Type type);
-    [[nodiscard]] bool canConvertFromSqliteToQProperty(QMetaType fromSqlType,
-                                                       QMetaType toQPropertyType);
+    [[nodiscard]] bool canConvertFromSqliteToQProperty(QMetaType::Type fromSqlType,
+                                                       QMetaType::Type toQPropertyType);
 
     Q_REQUIRED_RESULT
     QOrmError lastDatabaseError() const;
@@ -116,23 +116,28 @@ class QOrmSqliteProviderPrivate
 // QVariant::canConvert() reports a false negative.
 //
 // See https://www.sqlite.org/datatype3.html
-bool QOrmSqliteProviderPrivate::canConvertFromSqliteToQProperty(QMetaType fromSqlType,
-                                                                QMetaType toQPropertyType)
+bool QOrmSqliteProviderPrivate::canConvertFromSqliteToQProperty(QMetaType::Type fromSqlType,
+                                                                QMetaType::Type toQPropertyType)
 {
-    if ((fromSqlType == QMetaType{QMetaType::Double} || //
-         fromSqlType == QMetaType{QMetaType::Int} ||    //
-         fromSqlType == QMetaType{QMetaType::QString}) &&
-        toQPropertyType == QMetaType{QMetaType::QDateTime})
+    if ((fromSqlType == QMetaType::Double || //
+         fromSqlType == QMetaType::Int ||    //
+         fromSqlType == QMetaType::QString) &&
+        toQPropertyType == QMetaType::QDateTime)
     {
         return true;
     }
     // If target type is QVariant, assume it is convertible.
-    else if (toQPropertyType == QMetaType{QMetaType::QVariant})
+    else if (toQPropertyType == QMetaType::QVariant)
     {
         return true;
     }
 
-    return QMetaType::canConvert(fromSqlType, toQPropertyType);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    auto fromVariantSqlType = static_cast<QVariant::Type>(fromSqlType);
+    return QVariant{fromVariantSqlType}.canConvert(toQPropertyType);
+#else
+    return QMetaType::canConvert(QMetaType{fromSqlType}, QMetaType{toQPropertyType});
+#endif
 }
 
 QOrmError QOrmSqliteProviderPrivate::lastDatabaseError() const
@@ -544,7 +549,13 @@ QOrmError QOrmSqliteProviderPrivate::updateSchema(const QOrmRelation& relation)
                     << relation.mapping()->className() << "::" << mapping->classPropertyName();
                 updateNeeded = true;
             }
-            else if (!canConvertFromSqliteToQProperty(field.metaType(), mapping->dataType()))
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+            else if (!canConvertFromSqliteToQProperty(static_cast<QMetaType::Type>(field.type()),
+                                                      mapping->dataType()))
+#else
+            else if (!canConvertFromSqliteToQProperty(
+                         static_cast<QMetaType::Type>(field.metaType().id()), mapping->dataType()))
+#endif
             {
                 qCDebug(qtorm).noquote().nospace()
                     << "updating table " << relation.mapping()->tableName()
