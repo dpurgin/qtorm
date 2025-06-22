@@ -2,17 +2,17 @@
 
 QtOrm is an unofficial object-relational mapping module for the Qt Framework (http://qt.io).
 
-The current version is a prototype and a proof-of-concept. 
+QtOrm is targeted for small to medium-sized databases and data sets like embedded systems. Empirical evidence suggests it works well with several thousand rows in a table. 
 
 Refer to qws19.pdf for more examples.
 
 ## License
 
-Copyright (C) 2019-2024 Dmitriy Purgin <dpurgin@gmail.com>
+Copyright (C) 2019-2025 Dmitriy Purgin <dpurgin@gmail.com>
 
-Copyright (C) 2019-2024 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+Copyright (C) 2019-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
 
-Copyright (C) 2019-2024 sequality software engineering e.U. <office@sequality.at>
+Copyright (C) 2019-2025 sequality software engineering e.U. <office@sequality.at>
 
 QtOrm is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser 
 General Public License as published by the Free Software Foundation, either version 3 of the 
@@ -27,28 +27,22 @@ along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
 
 ## Prerequisites
 
-The QtOrm library is being built on top of Qt 5.12 LTS and requires a C++17-compliant compiler with C++
+The QtOrm library supports Qt 5.12, 5.15, and 6.8. It requires a C++17-compliant compiler with C++
  standard library support. QtOrm depends on QtCore and QtSql. 
 
-The library is currently being developed and tested on the following platforms: 
+The library is being used and tested on the following platforms: 
  * MinGW 7 on x86_64
  * GCC 8 on ARM32
  * GCC 9 on x86_64
  * GCC 11 on AARCH64
  
-Other compilers and platforms might be supported but not guaranteed.
+Other compilers, platforms and Qt versions might be supported.
 
-## Using in a CMake project 
+## Using in a CMake project
 
-Clone the project from github and its directory to the project as follows:
+### Using FetchContent
 
-```
-add_subdirectory(../qtorm qtorm.build)  
-
-target_link_libraries(mytarget PUBLIC qtorm)
-```
-
-Alternatively, add the dependency using FetchContent: 
+The recommended way of using QtOrm is to add the dependency using FetchContent: 
 
 ```
 FetchContent_Declare(qtorm
@@ -58,14 +52,24 @@ FetchContent_Declare(qtorm
 FetchContent_MakeAvailable(qtorm)
 ```
 
-## Installation as a Qt module 
+### Using subdirectory 
+
+Alternatively, you can clone the project from github to a subdirectory and add it to the project as follows:
+
+```
+add_subdirectory(../qtorm qtorm.build)  
+
+target_link_libraries(mytarget PUBLIC qtorm)
+```
+
+## Installation as a Qt module (Qt 5 only, deprecated)
 
 * Open qtorm.pro with Qt Creator
 * Configure with the required Qt kit (Qt 5.12 at least, C++17-compliant compiler)
 * Build 
 * Deploy to the Qt installation folder with `make install`
 
-## Using as a qmake subproject
+## Using as a qmake subproject (Qt 5 only, deprecated)
 
 * Copy qtorm repo into your project 
 * Add `SUBDIRS += qtorm`
