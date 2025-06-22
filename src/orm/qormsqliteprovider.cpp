@@ -983,9 +983,9 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::remove(
 
 bool QOrmSqliteProviderPrivate::foreignKeysEnabled()
 {
-    QSqlQuery query = m_database.exec("PRAGMA foreign_keys");
+    QSqlQuery query{m_database};
 
-    if (query.next())
+    if (query.exec("PRAGMA foreign_keys") && query.next())
     {
         return query.value("foreign_keys").toBool();
     }
@@ -995,10 +995,11 @@ bool QOrmSqliteProviderPrivate::foreignKeysEnabled()
 
 QOrmError QOrmSqliteProviderPrivate::setForeignKeysEnabled(bool enabled)
 {
-    QSqlQuery query = enabled ? m_database.exec("PRAGMA foreign_keys=ON")
-                              : m_database.exec("PRAGMA foreign_keys=OFF");
+    QString queryText = enabled ? "PRAGMA foreign_keys=ON" : "PRAGMA foreign_keys=OFF";
+    QSqlQuery query{m_database};
 
-    if (query.lastError().type() != QSqlError::NoError)
+    bool result = query.exec(queryText);
+    if (!result)
     {
         return {QOrm::ErrorType::Provider, query.lastError().text()};
     }
@@ -1040,9 +1041,9 @@ void QOrmSqliteProviderPrivate::detectSqliteCapabilities()
                qUtf8Printable(inMemoryDatabase.lastError().text()));
     }
 
-    QSqlQuery query = inMemoryDatabase.exec("SELECT sqlite_version() AS version");
+    QSqlQuery query{inMemoryDatabase};
 
-    if (query.lastError().type() != QSqlError::NoError)
+    if (query.exec("SELECT sqlite_version() AS version"))
     {
         if (query.next())
         {

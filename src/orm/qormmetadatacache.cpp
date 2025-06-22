@@ -535,11 +535,15 @@ QOrmMetadataCachePrivate::MappingDescriptor QOrmMetadataCachePrivate::mappingDes
     // Check if this is one-to-many or many-to-one relation.
     // One-to-many relation will have a container in type. If so, extract the contained
     // type.
-    if (property.type() == QVariant::UserType)
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    if (property.type() >= QMetaType::User)
+#else
+    if (property.metaType().id() >= QMetaType::User)
+#endif
     {
         auto typeName = QByteArray{property.typeName()};
 
-        static auto aggregatePrefixes = QVector<QByteArray>{"QList<", "QVector<", "QSet<"};
+        static const auto aggregatePrefixes = QVector<QByteArray>{"QList<", "QVector<", "QSet<"};
 
         for (const auto& prefix : aggregatePrefixes)
         {
@@ -581,7 +585,11 @@ QOrmMetadataCachePrivate::MappingDescriptor QOrmMetadataCachePrivate::mappingDes
                    typeName.data());
         }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         QMetaType::TypeFlags flags = QMetaType::typeFlags(QMetaType::type(typeName));
+#else
+        QMetaType::TypeFlags flags = QMetaType::fromName(typeName).flags();
+#endif
 
         if (flags.testFlag(QMetaType::PointerToQObject))
         {
@@ -590,8 +598,12 @@ QOrmMetadataCachePrivate::MappingDescriptor QOrmMetadataCachePrivate::mappingDes
                 descriptor.tableFieldName += "_id";
             }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
             const QMetaObject* referencedMeta =
                 QMetaType::metaObjectForType(QMetaType::type(typeName));
+#else
+            const QMetaObject* referencedMeta = QMetaType::fromName(typeName).metaObject();
+#endif
 
             if (referencedMeta == nullptr)
             {
