@@ -535,11 +535,7 @@ QOrmMetadataCachePrivate::MappingDescriptor QOrmMetadataCachePrivate::mappingDes
     // Check if this is one-to-many or many-to-one relation.
     // One-to-many relation will have a container in type. If so, extract the contained
     // type.
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    if (property.type() >= QMetaType::User)
-#else
-    if (property.metaType().id() >= QMetaType::User)
-#endif
+    if (descriptor.dataType >= QMetaType::User)
     {
         auto typeName = QByteArray{property.typeName()};
 

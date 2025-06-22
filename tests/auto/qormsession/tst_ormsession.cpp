@@ -797,7 +797,7 @@ void SqliteSessionTest::testSchemaUpdateCreatesTablesAndAddsColumns()
 
         for (const QString& statement : statements)
         {
-            qDebug() << "Executing statement";
+            qDebug() << "Executing" << statement;
             QSqlQuery query{db};
             QVERIFY(query.exec(statement));
             QCOMPARE(query.lastError().type(), QSqlError::NoError);

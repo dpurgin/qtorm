@@ -354,7 +354,12 @@ QString QOrmSqliteStatementGenerator::generateCondition(
         {
             value = QOrmPrivate::objectIdPropertyValue(referencedInstance, *referencedEntity);
         }
-        else if (predicate.value().type() == referencedEntity->objectIdMapping()->dataType())
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        else if (predicate.value().type() ==
+                 static_cast<QVariant::Type>(referencedEntity->objectIdMapping()->dataType()))
+#else
+        else if (predicate.value().typeId() == referencedEntity->objectIdMapping()->dataType())
+#endif
         {
             value = predicate.value();
         }
