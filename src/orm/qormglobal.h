@@ -156,7 +156,10 @@ namespace QOrm
         Transient,
         Schema
     };
-    inline uint qHash(Keyword value) { return ::qHash(static_cast<int>(value)); }
+    inline auto qHash(Keyword value)
+    {
+        return ::qHash(static_cast<int>(value));
+    }
 } // namespace QOrm
 
 namespace QOrmPrivate

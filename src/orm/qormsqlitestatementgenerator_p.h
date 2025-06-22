@@ -122,7 +122,7 @@ public:
                                                     std::optional<int> offset,
                                                     QVariantMap& boundParameters);
 
-    [[nodiscard]] QString toSqliteType(QVariant::Type type);
+    [[nodiscard]] QString toSqliteType(QMetaType::Type type);
 
     [[nodiscard]] QString escapeIdentifier(const QString& identifier);
 

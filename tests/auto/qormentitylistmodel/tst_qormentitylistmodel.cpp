@@ -70,14 +70,29 @@ void EntityListModelTest::testQVectorTInData()
     // Province::id: UserRole
     // Province::name: UserRole+1
     // Province::rowns: UserRole+2
-    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole).type(), QVariant::Int);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole).type(), QMetaType::Int);
+#else
+    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole).metaType().id(), QMetaType::Int);
+#endif
     QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole).toInt(), 1);
 
-    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 1).type(), QVariant::String);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 1).type(), QMetaType::QString);
+#else
+    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 1).metaType().id(),
+             QMetaType::QString);
+#endif
     QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 1).toString(),
              QString::fromUtf8("Oberösterreich"));
 
-    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 2).type(), QVariant::List);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 2).type(), QMetaType::QVariantList);
+
+#else
+    QCOMPARE(provinces.data(provinces.index(0), Qt::UserRole + 2).metaType(),
+             QMetaType::fromType<QVariantList>());
+#endif
 
     auto val = provinces.data(provinces.index(0), Qt::UserRole + 2).toList();
     QCOMPARE(val.size(), 2);

@@ -11,6 +11,6 @@ qtorm_add_unit_test(NAME tst_ormsession SOURCES
 
     ormsession.qrc
 
-    LINK_LIBRARIES Qt5::Sql
+    LINK_LIBRARIES Qt${QTORM_QT_VERSION_MAJOR}::Sql
 )
 

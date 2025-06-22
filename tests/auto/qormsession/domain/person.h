@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Dmitriy Purgin <dpurgin@gmail.com>
+ * Copyright (C) 2021-2025 Dmitriy Purgin <dpurgin@gmail.com>
  * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
  * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
  *
@@ -24,7 +24,8 @@
 #include <QObject>
 #include <QVector>
 
-class Town;
+#include "person.h"
+#include "town.h"
 
 class Person : public QObject
 {

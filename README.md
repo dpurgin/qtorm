@@ -1,18 +1,18 @@
 # QtOrm
 
-QtOrm is an unofficial object-relational mapping module for the Qt Framework (http://qt.io).
+QtOrm is an unofficial object-relational mapping (ORM) module for the Qt Framework (http://qt.io).
 
-The current version is a prototype and a proof-of-concept. 
+QtOrm is designed for small to medium-sized databases and datasets, such as those used in embedded systems. In practice, it performs well with tables containing several thousand rows.
 
-Refer to qws19.pdf for more examples.
+See qws19.pdf for more examples.
 
 ## License
 
-Copyright (C) 2019-2024 Dmitriy Purgin <dpurgin@gmail.com>
+Copyright (C) 2019-2025 Dmitriy Purgin <dpurgin@gmail.com>
 
-Copyright (C) 2019-2024 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+Copyright (C) 2019-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
 
-Copyright (C) 2019-2024 sequality software engineering e.U. <office@sequality.at>
+Copyright (C) 2019-2025 sequality software engineering e.U. <office@sequality.at>
 
 QtOrm is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser 
 General Public License as published by the Free Software Foundation, either version 3 of the 
@@ -27,28 +27,21 @@ along with QtOrm.  If not, see <https://www.gnu.org/licenses/>.
 
 ## Prerequisites
 
-The QtOrm library is being built on top of Qt 5.12 LTS and requires a C++17-compliant compiler with C++
- standard library support. QtOrm depends on QtCore and QtSql. 
+QtOrm supports Qt 5.12, 5.15, and 6.8. It requires a C++17-compliant compiler with standard library support. QtOrm depends on QtCore and QtSql.
 
-The library is currently being developed and tested on the following platforms: 
+The library has been used and tested on the following platforms:
  * MinGW 7 on x86_64
  * GCC 8 on ARM32
  * GCC 9 on x86_64
  * GCC 11 on AARCH64
  
-Other compilers and platforms might be supported but not guaranteed.
+Other compilers, platforms, and Qt versions may also be supported.
 
-## Using in a CMake project 
+## Using in a CMake Project
 
-Clone the project from github and its directory to the project as follows:
+### Using FetchContent
 
-```
-add_subdirectory(../qtorm qtorm.build)  
-
-target_link_libraries(mytarget PUBLIC qtorm)
-```
-
-Alternatively, add the dependency using FetchContent: 
+The recommended way to use QtOrm is to add it as a dependency with FetchContent: 
 
 ```
 FetchContent_Declare(qtorm
@@ -58,18 +51,37 @@ FetchContent_Declare(qtorm
 FetchContent_MakeAvailable(qtorm)
 ```
 
-## Installation as a Qt module 
+### Using as a Subdirectory
+
+Alternatively, you can clone the project from GitHub into a subdirectory and add it to your project like this:
+
+```
+add_subdirectory(../qtorm qtorm.build)  
+
+target_link_libraries(mytarget PUBLIC qtorm)
+```
+
+### Build Options and Parameters
+
+The following CMake options are available:
+
+* `QTORM_BUILD_EXAMPLES` – Build the example applications included with QtOrm. Defaults to `OFF` if a parent CMakeLists file is detected.
+* `QTORM_BUILD_TESTS` – Build unit tests. Also defaults to `OFF` if a parent CMakeLists file is detected.
+* `QTORM_BUILD_SHARED_LIBS` – Build the library as a shared library (the default, to comply with LGPLv3). If set to `OFF`, the library is built as a static library, which may require you to fulfill additional obligations under LGPLv3.
+* `QTORM_QT_VERSION_HINT` – Specify the major Qt version to use. Possible values: `auto`, `5`, or `6`. The default is `auto`, which tries to find Qt 6 first.
+
+## Installing as a Qt Module (Qt 5 Only, Deprecated)
 
 * Open qtorm.pro with Qt Creator
-* Configure with the required Qt kit (Qt 5.12 at least, C++17-compliant compiler)
-* Build 
+* Configure with the required Qt kit (Qt 5.12 or later, C++17-compliant compiler)
+* Build
 * Deploy to the Qt installation folder with `make install`
 
-## Using as a qmake subproject
+## Using as a qmake Subproject (Qt 5 Only, Deprecated)
 
-* Copy qtorm repo into your project 
+* Copy the qtorm repo into your project 
 * Add `SUBDIRS += qtorm`
-* Provide `INCLUDEPATH` and linker flags explicitly. The libraries will have the common `bin`, `lib`, `include` structure in the build folder. 
+* Provide `INCLUDEPATH` and linker flags explicitly. The libraries will have the common `bin`, `lib`, and `include` structure in the build folder. 
 
 For example, with the following project structure: 
 
@@ -83,7 +95,7 @@ For example, with the following project structure:
  |----- main.cpp
 ```
 
-The contents of `myproject.pro` should be as follows: 
+The contents of `myproject.pro` should be:
 
 ```qmake
 TEMPLATE = subdirs
@@ -91,7 +103,7 @@ SUBDIRS = qtorm src
 src.depends = qtorm
 ```
 
-The contents of `src.pro` should be as follows: 
+The contents of `src.pro` should be:
 
 ```qmake
 TEMPLATE = app
@@ -112,36 +124,32 @@ INCLUDEPATH += \
 }
 ```
 
-Note that the runtime library (`libQt5Orm.so` on Linux or `Qt5Orm.dll` on Windows) should be available unter `LD_LIBRARY_PATH` (Linux) or `PATH` (Windows) when running the application.
+Note: The runtime library (`libQt5Orm.so` on Linux or `Qt5Orm.dll` on Windows) should be available under `LD_LIBRARY_PATH` (Linux) or `PATH` (Windows) when running the application.
 
 ## Current Status
 
-QtOrm currently supports SQLite backend with the following operations:
+QtOrm currently supports the SQLite backend with the following features:
 
-* Creating or updating database schema according to the registered entities in the OR-mapper
-* Reading data from a table, optionally filtered and ordered
+* Creating or updating the database schema according to the registered entities in the ORM
+* Reading data from a table, with optional filtering and ordering
 * Inserting and/or updating rows
-* Removing single rows or a set of rows according to filters
+* Removing single rows or sets of rows using filters
 * Transaction support
-* 1:n, n:1 relations support 
+* 1:n and n:1 relationship support 
 
 ## Usage
 
-### Domain classes 
+### Domain Classes 
 
-Domain classes representing table entities must be derived from `QObject`. By default, class names will be mapped 
-to database tables with the same name. All properties declared with `Q_PROPERTY()` will be mapped 
-to database columns with the same names.
+Domain classes representing table entities must inherit from `QObject`. By default, class names are mapped to database tables with the same name. All properties declared with `Q_PROPERTY()` are mapped to database columns with the same names.
 
 All non-transient properties must be readable, writable, and notifyable. 
 
-Every entity must have an identity property. By default, the property `id` is considered to be identity. This property 
-will be set to primary key and autogenerated by the SQLite backend. 
+Every entity must have an identity property. By default, the property `id` is considered the identity. This property will be set as the primary key and autogenerated by the SQLite backend. 
 
-Every entity must have a default constructor declared with Q_INVOKABLE, otherwise the OR mapper will 
-not be able to instantiate it when fetching data. 
+Every entity must have a default constructor declared with Q_INVOKABLE, otherwise the ORM will not be able to instantiate it when fetching data. 
 
-A minimal entity declaration with all-default settings is as follows: 
+A minimal entity declaration with all-default settings looks like this: 
 
 ```cpp
 class Community : public QObject
@@ -186,7 +194,7 @@ private:
 
 This entity is mapped using the following SQLite statement: `CREATE TABLE Community(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)`.
 
-All entities must be registered at most once before the first `QOrmSession` instantiation: 
+All entities must be registered (at most once) before the first `QOrmSession` is created: 
 
 ```cpp
 qRegisterOrmEntity<Community, Province, Town, ...>();
@@ -194,7 +202,7 @@ qRegisterOrmEntity<Community, Province, Town, ...>();
 
 #### Mapping Customization
 
-The mapping defaults can be overriden by using `Q_ORM_CLASS()` and `Q_ORM_PROPERTY()`:
+You can override the default mapping using `Q_ORM_CLASS()` and `Q_ORM_PROPERTY()`:
 
 ```cpp
 class Community : public QObject
@@ -230,7 +238,7 @@ Possible customizations:
   * `SCHEMA <recreate|update|bypass|append>`: override schema mode for this entity 
 * `Q_ORM_CLASS(<propertyName> ...)`:
   * `COLUMN <columnName>`: override the column name 
-  * `IDENTITY [true|false]`: mark the property as identity
+  * `IDENTITY [true|false]`: mark the property as the identity
   * `AUTOGENERATED [true|false]`: mark the property as autogenerated by the database backend
   * `TRANSIENT [true|false]`: mark the property as transient
 
@@ -239,11 +247,11 @@ Restrictions and requirements:
 * There can be only one `IDENTITY` 
 * `IDENTITY` is required for `AUTOGENERATED` 
 * `TRANSIENT` cannot be combined with `IDENTITY`
-* Renaming columns and tables to anything containing one of the QtOrm keywords (`IDENTITY`, `COLUMN`, `TRANSIENT`, ...) is not supported.
+* Renaming columns and tables to names containing QtOrm keywords (`IDENTITY`, `COLUMN`, `TRANSIENT`, etc.) is not supported.
 
-#### Relations 
+#### Relationships 
 
-A 1:n relation can be created by declaring a `QVector` of related entities as follows: 
+A 1:n relationship can be created by declaring a `QVector` of related entities as follows: 
 
 ```cpp
 class Town;
@@ -255,17 +263,13 @@ class Province : public QObject
     Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(QVector<Town*> towns READ towns WRITE setTowns NOTIFY townsChanged)
     
-    // the rest of the class skipped
+    // ...rest of the class...
 };
 ```
 
-In this case the property `towns` will be transient and will not be mapped to a database column.
-This requires that there is an n:1 back-reference to `Province` in the `Town` entity. When updating 
-the reference, keep in mind that change is required on both sides. For example, when adding a Town 
-to a Province, add this object to the vector `towns` and set the back-reference of Town to the 
-corresponding Province.
+In this case, the `towns` property will be transient and not mapped to a database column. This requires an n:1 back-reference to `Province` in the `Town` entity. When updating the reference, remember to update both sides. For example, when adding a Town to a Province, add the object to the `towns` vector and set the Town's back-reference to the corresponding Province.
 
-An n:1 relation can be created by declaring a pointer to the referenced entity as follows: 
+An n:1 relationship can be created by declaring a pointer to the referenced entity as follows: 
 
 ```cpp
 class Province; 
@@ -277,16 +281,15 @@ class Town : public QObject
     Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(Province* province READ province WRITE setProvince NOTIFY provinceChanged)
     
-    // the rest of the class skipped
+    // ...rest of the class...
 };
 ```
 
-The SQLite provider maps the property `province` to a database column `province_id` with the column 
-type set to the mapped type of `Province::id`. Back-reference in Province is optional. 
+The SQLite provider maps the `province` property to a database column `province_id`, with the column type set to the mapped type of `Province::id`. The back-reference in Province is optional. 
 
 ### Enums in Properties
 
-It is possible to use enumerations as property type. Both `enum` and `enum class` are possible. The enumeration type must be registered with `Q_DECLARE_METATYPE()` and `qRegisterOrmEnum()` and its type must be fully qualified when used in `Q_PROPERTY()`. The helper function `qRegisterOrmEnum()` registers converters from/to `QString` and `int`. If custom converters are provided, there is no need to call this function. 
+You can use enumerations as property types. Both `enum` and `enum class` are supported. The enumeration type must be registered with `Q_DECLARE_METATYPE()` and `qRegisterOrmEnum()`, and its type must be fully qualified in `Q_PROPERTY()`. The helper function `qRegisterOrmEnum()` registers converters from/to `QString` and `int`. If you provide custom converters, you do not need to call this function.
 
 ```cpp
 enum class CommunitySize
@@ -338,13 +341,9 @@ int main()
 
 ### `QOrmSession` 
 
-An instance of `QOrmSession` is the entry point to the OR mapper. All database operations should be 
-performed using a single instance of a `QOrmSession`. It is advisable to have a single instance of 
-`QOrmSession` throughout the application.
+A `QOrmSession` instance is the entry point to the ORM. All database operations should be performed using a single `QOrmSession` instance. It is recommended to have only one `QOrmSession` in your application.
 
-An instance of QOrmSession can be configured either by using an instance of `QOrmSessionConfiguration`
-or automatically from `qtorm.json` file located either in resources root, working directory, or 
-the application executable directory.
+A `QOrmSession` can be configured either with a `QOrmSessionConfiguration` instance or automatically from a `qtorm.json` file located in the resources root, working directory, or the application executable directory.
 
 #### `qtorm.json` Example
 
@@ -366,21 +365,18 @@ Any other JSON keys are silently ignored.
 
 ### Schema Mode 
 
-When an entity is first accessed, QtOrm processes its database schema. The property 
-`QOrmSessionConfiguration::schemaMode` specifies the default processing mode: 
+When an entity is first accessed, QtOrm processes its database schema. The `QOrmSessionConfiguration::schemaMode` property specifies the default processing mode: 
  
- * `recreate`: drop the table in the database if it exists, and create a new one
- * `bypass`: do not modify and do not verify the schema. This may result in errors when using `QOrmSession`
- * `update`: if the corresponding table does not exist, create it. Otherwise, if columns do not correspond in names 
-    or data types, update the schema preserving the existing data if possible. For SQLite backend, 
-    [the generalized 12-step ALTER TABLE procedure](https://sqlite.org/lang_altertable.html#otheralter) is used. 
- * `append`: add new columns to existing tables and create tables if they don't exist. 
+ * `recreate`: Drop the table in the database if it exists, and create a new one
+ * `bypass`: Do not modify or verify the schema. This may result in errors when using `QOrmSession`
+ * `update`: If the table does not exist, create it. Otherwise, if columns do not match in names or data types, update the schema while preserving existing data if possible. For the SQLite backend, the [generalized 12-step ALTER TABLE procedure](https://sqlite.org/lang_altertable.html#otheralter) is used.
+ * `append`: Add new columns to existing tables and create tables if they don't exist. 
  
-The default processing mode can be overriden for each entity individually by using the `Q_ORM_CLASS(SCHEMA ...)` declaration. 
+The default processing mode can be overridden for each entity individually using the `Q_ORM_CLASS(SCHEMA ...)` declaration. 
 
 ### Inserting or Updating
 
-Both insert and update are covered by `QOrmSession::merge()`. Considering the domain classes above:
+Both insert and update operations are handled by `QOrmSession::merge()`. For example:
 
 ```c++
 QOrmSession session;
@@ -389,20 +385,20 @@ Community* hagenberg = new Community{};
 hagenberg->setName("Hagenber");
 
 // An entry will be inserted as it is not in the session cache yet.
-// The session object will take the ownership of the entity.
-// The id of the entity will be changed to the one generated by the database.
+// The session object will take ownership of the entity.
+// The entity's id will be set to the one generated by the database.
 session.merge(hagenberg);
 
 hagenberg->setName("Hagenberg");
-// The entity will be updated, as it is in the session cache already.
+// The entity will be updated, as it is already in the session cache.
 session.merge(hagenberg);
 ```
 
-The entry will be inserted if it has not been read from the database before. Otherwise, it will be updated. Reasoning: currently, there is no way to detect if the entity already exists in the database. One could query the database by `id` first, but since the datatype of the `id` property is most likely a primitive integral data type, there is no safe "default" value to rely on. It could be the case that the initial value of the `id` property of a new entity corresponds unintentionally to an existing database row.
+The entry will be inserted if it has not been read from the database before. Otherwise, it will be updated. Note: There is currently no way to detect if the entity already exists in the database. One could query the database by `id` first, but since the `id` property is usually a primitive integral type, there is no safe default value to rely on. It is possible that the initial value of the `id` property of a new entity unintentionally matches an existing database row.
 
 ### Querying Data
 
-A data query is similar to .NET LINQ. Considering the domain classes above:
+Data queries are similar to .NET LINQ. For example:
 
 ```c++
 QOrmSession session;
@@ -412,7 +408,7 @@ QOrmSession session;
     QOrmQueryResult result = session.from<Community>().select();
 
     QVector<Community*> communities = result.toVector();
-    // The entities are owned by QOrmSession, do not delete.
+    // The entities are owned by QOrmSession; do not delete them.
 }
 
 // Select with filter
@@ -422,9 +418,9 @@ QOrmSession session;
                                     .select();
 }
 
-// The usual logical and comparison operators are supported in filters.
+// Logical and comparison operators are supported in filters.
 //
-// Note that comparison to a list equals to the following: 
+// Note: Comparison to a list is equivalent to:
 //   (Q_ORM_CLASS_PROPERTY(name) == cities[0] || 
 //    Q_ORM_CLASS_PROPERTY(name) == cities[1] || 
 //    Q_ORM_CLASS_PROPERTY(name) == cities[2])
@@ -438,10 +434,10 @@ QOrmSession session;
 }
 ```
 
-Data can be limited by using the `limit` and/or `offset` methods:
+You can limit data using the `limit` and/or `offset` methods:
 
 ```c++
-// Query the first ten communitites, sorted by name.
+// Query the first ten communities, sorted by name.
 QOrmQueryResult result = session.from<Community>()
                                 .order(Q_ORM_CLASS_PROPERTY(name))
                                 .limit(10)
@@ -460,7 +456,7 @@ QOrmQueryResult result = session.from<Community>()
 
 ### Removing a Single Entity
 
-A single existing entity can be removed using the `remove()` method of `QOrmSession`. The method removes the corresponding row from the database and returns the ownership of the entity to the caller wrapped, in a `std::unique_ptr`:
+You can remove a single existing entity using the `remove()` method of `QOrmSession`. This method removes the corresponding row from the database and returns ownership of the entity to the caller, wrapped in a `std::unique_ptr`:
 
 ```c++
 QOrmSession session;
@@ -471,16 +467,16 @@ QOrmQueryResult result = session.from<Community>()
 
 if (!result.hasError())
 {
-    // Note that the ownership of the entity is returned in a smart pointer.
+    // Ownership of the entity is returned in a smart pointer.
     std::unique_ptr<Community> hagenberg = session.remove(result.first());
     
     qDebug() << "Removed entity:" << hagenberg->name();
 }
 ```
 
-### Removing With a Query
+### Removing with a Query
 
-The following remove query works using SQLite >= 3.35:
+The following remove query works with SQLite >= 3.35:
 
 ```c++
 QOrmSession session;
@@ -491,10 +487,10 @@ QOrmQueryResult result = session.from<Community>()
 
 if (!result.hasError())
 {
-    // The ownership of the entities is returned to the caller.
+    // Ownership of the entities is returned to the caller.
     qDeleteAll(result.toVector());    
 }
 ```
 
-The ownership of the removed entities is returned to the caller, the entities in the query result must be freed using `delete`. 
+Ownership of the removed entities is returned to the caller. The entities in the query result must be deleted using `delete`.
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2020-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
  * Copyright (C) 2020 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
@@ -23,6 +23,7 @@
 
 #include <QtCore/qabstractitemmodel.h>
 #include <QtCore/qbytearray.h>
+#include <QtCore/qdebug.h>
 #include <QtCore/qhash.h>
 #include <QtCore/qvariant.h>
 #include <QtCore/qvector.h>
@@ -34,8 +35,6 @@
 #include <QtOrm/qormorder.h>
 #include <QtOrm/qormqueryresult.h>
 #include <QtOrm/qormsession.h>
-
-#include <QDebug>
 
 QT_BEGIN_NAMESPACE
 
@@ -258,8 +257,8 @@ public:
             QVariant propertyValue =
                 m_data[index.row()]->property(propertyMapping.classPropertyName().toUtf8().data());
 
-            if (propertyValue.type() == QVariant::UserType &&
-                QString{propertyValue.typeName()}.startsWith("QVector<") &&
+            if ((QString{propertyValue.typeName()}.startsWith("QList<") ||
+                 QString{propertyValue.typeName()}.startsWith("QVector<")) &&
                 QString{propertyValue.typeName()}.endsWith("*>"))
             {
                 QVariantList list;

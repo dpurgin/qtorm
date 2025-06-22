@@ -594,44 +594,33 @@ QString QOrmSqliteStatementGenerator::generateLimitOffsetClause(std::optional<in
     return {};
 }
 
-QString QOrmSqliteStatementGenerator::toSqliteType(QVariant::Type type)
+QString QOrmSqliteStatementGenerator::toSqliteType(QMetaType::Type type)
 {
     // SQLite data types: https://sqlite.org/datatype3.html
     switch (type)
     {
-        case QVariant::Int:
-        case QVariant::UInt:
-        case QVariant::LongLong:
-        case QVariant::ULongLong:
+        case QMetaType::Int:
+        case QMetaType::UInt:
+        case QMetaType::Long:
+        case QMetaType::LongLong:
+        case QMetaType::ULongLong:
             return QStringLiteral("INTEGER");
 
-        case QVariant::Double:
+        case QMetaType::Double:
             return QStringLiteral("REAL");
 
-        case QVariant::Bool:
-        case QVariant::Date:
-        case QVariant::Time:
-        case QVariant::DateTime:
+        case QMetaType::Bool:
+        case QMetaType::QDate:
+        case QMetaType::QTime:
+        case QMetaType::QDateTime:
             return QStringLiteral("NUMERIC");
 
-        case QVariant::Char:
-        case QVariant::String:
+        case QMetaType::Char:
+        case QMetaType::QString:
+        case QMetaType::QVariant:
             return QStringLiteral("TEXT");
 
         default:
-            // Additional checks for types not present in QVariant.
-            //
-            // E.g., there is no QVariant::Long but the type returned for long properties is
-            // QMetaType::Long which is 32.
-            if (static_cast<QMetaType::Type>(type) == QMetaType::Long)
-            {
-                return QStringLiteral("INTEGER");
-            }
-            else if (static_cast<QMetaType::Type>(type) == QMetaType::QVariant)
-            {
-                return QStringLiteral("TEXT");
-            }
-
             return QStringLiteral("BLOB");
     }
 }

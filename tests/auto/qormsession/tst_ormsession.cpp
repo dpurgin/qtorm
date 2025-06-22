@@ -714,18 +714,19 @@ void SqliteSessionTest::testSchemaAppendCreatesTablesAndAddsColumns()
         db.setDatabaseName("testdb.db");
         QVERIFY(db.open());
 
-        QSqlQuery query =
-            db.exec("CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT, population INTEGER)");
-        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+        static const QStringList statements{
+            "CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT, population INTEGER)",
+            "INSERT INTO Town(id, population) VALUES(1, 1000)",
+            "INSERT INTO Town(id, population) VALUES(2, 20000)",
+            "CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT)"};
 
-        query = db.exec("INSERT INTO Town(id, population) VALUES(1, 1000)");
-        QCOMPARE(query.lastError().type(), QSqlError::NoError);
-
-        query = db.exec("INSERT INTO Town(id, population) VALUES(2, 20000)");
-        QCOMPARE(query.lastError().type(), QSqlError::NoError);
-
-        query = db.exec("CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT)");
-        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+        for (const QString& statement : statements)
+        {
+            qDebug() << "Executing" << statement;
+            QSqlQuery query{db};
+            QVERIFY(query.exec(statement));
+            QCOMPARE(query.lastError().type(), QSqlError::NoError);
+        }
 
         db.close();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
@@ -788,17 +789,19 @@ void SqliteSessionTest::testSchemaUpdateCreatesTablesAndAddsColumns()
         db.setDatabaseName("testdb.db");
         QVERIFY(db.open());
 
-        QSqlQuery query = db.exec("CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT)");
-        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+        static const QStringList statements{
+            "CREATE TABLE Town(id INTEGER PRIMARY KEY AUTOINCREMENT)",
+            "INSERT INTO Town(id) VALUES(1)",
+            "INSERT INTO Town(id) VALUES(2)",
+            "CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT)"};
 
-        query = db.exec("INSERT INTO Town(id) VALUES(1)");
-        QCOMPARE(query.lastError().type(), QSqlError::NoError);
-
-        query = db.exec("INSERT INTO Town(id) VALUES(2)");
-        QCOMPARE(query.lastError().type(), QSqlError::NoError);
-
-        query = db.exec("CREATE TABLE Person(id INTEGER PRIMARY KEY AUTOINCREMENT)");
-        QCOMPARE(query.lastError().type(), QSqlError::NoError);
+        for (const QString& statement : statements)
+        {
+            qDebug() << "Executing statement";
+            QSqlQuery query{db};
+            QVERIFY(query.exec(statement));
+            QCOMPARE(query.lastError().type(), QSqlError::NoError);
+        }
 
         db.close();
         QSqlDatabase::removeDatabase(QSqlDatabase::defaultConnection);
@@ -875,7 +878,8 @@ void SqliteSessionTest::testSchemaUpdateRemovesColumns()
 
         for (const QString& statement : statements)
         {
-            QSqlQuery query = db.exec(statement);
+            QSqlQuery query{db};
+            QVERIFY(query.exec(statement));
             QCOMPARE(query.lastError().type(), QSqlError::NoError);
         }
 
