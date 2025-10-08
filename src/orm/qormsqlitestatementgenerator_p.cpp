@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2025 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -102,6 +102,7 @@ QString QOrmSqliteStatementGenerator::generate(const QOrmQuery& query, QVariantM
                                            boundParameters);
 
         case QOrm::Operation::Read:
+        case QOrm::Operation::Count:
             return generateSelectStatement(query, boundParameters);
 
         case QOrm::Operation::Delete:
@@ -211,9 +212,17 @@ QString QOrmSqliteStatementGenerator::generateUpdateStatement(const QOrmMetadata
 QString QOrmSqliteStatementGenerator::generateSelectStatement(const QOrmQuery& query,
                                                               QVariantMap& boundParameters)
 {
-    Q_ASSERT(query.operation() == QOrm::Operation::Read);
+    Q_ASSERT(query.operation() == QOrm::Operation::Read ||
+             query.operation() == QOrm::Operation::Count);
 
-    QStringList parts = {"SELECT *", generateFromClause(query.relation(), boundParameters)};
+    QString projection = query.operation() == QOrm::Operation::Read
+                             ? QString{"*"}
+                             : QString{"COUNT(*) AS %1"}.arg(escapeIdentifier("count"));
+    ;
+
+    QStringList parts = {"SELECT",
+                         projection,
+                         generateFromClause(query.relation(), boundParameters)};
 
     if (query.expressionFilter().has_value())
         parts += generateWhereClause(*query.expressionFilter(), boundParameters);

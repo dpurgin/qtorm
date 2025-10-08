@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2025 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -78,6 +78,8 @@ private slots:
     void testSelectWithNamespace();
     void testLimitOffset();
     void testLimitOffset_data();
+
+    void testCount();
 };
 
 void SqliteStatementGenerator::init()
@@ -548,6 +550,28 @@ void SqliteStatementGenerator::testLimitOffset_data()
         << QVariant{10} << QVariant{20} << "LIMIT :limit OFFSET :offset";
     QTest::addRow("no limit, offset 42")
         << QVariant{} << QVariant{42} << "LIMIT :limit OFFSET :offset";
+}
+
+void SqliteStatementGenerator::testCount()
+{
+    QOrmMetadataCache cache;
+
+    QOrmRelation relation{cache.get<Town>()};
+    QOrmMetadata projection{cache.get<Town>()};
+
+    QOrmQuery query{QOrm::Operation::Count,
+                    relation,
+                    projection,
+                    std::nullopt,
+                    std::nullopt,
+                    {},
+                    QOrm::QueryFlags::None};
+    QMap<QString, QVariant> boundParameters;
+    QString actual = QOrmSqliteStatementGenerator{}.generate(query, boundParameters).simplified();
+    QString expected{R"(SELECT COUNT(*) AS "count" FROM "Town")"};
+
+    QCOMPARE(actual, expected);
+    QVERIFY(boundParameters.empty());
 }
 
 QTEST_APPLESS_MAIN(SqliteStatementGenerator)

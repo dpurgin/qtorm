@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2021 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019-2022 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019-2022 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2025 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -64,6 +64,9 @@ private slots:
     void testSelectWithListFilter();
     void testSelectWithLimitOffset();
     void testSelectWithOverwriteCachedInstances();
+
+    void testCount();
+    void testCountWithFilter();
 
     void testMergeFailsWithInconsistentReferences();
     void testMergeOfExistingUncachedEntitiesWithExplicitIdsUpdates();
@@ -543,6 +546,33 @@ void SqliteSessionTest::testSelectWithOverwriteCachedInstances()
     QVERIFY(!session.entityInstanceCache()->isModified(upperAustria));
 }
 
+void SqliteSessionTest::testCount()
+{
+    QOrmSession session;
+    session.merge(new Province(QString::fromUtf8("Oberösterreich")),
+                  new Province(QString::fromUtf8("Niederösterreich")),
+                  new Province(QString::fromUtf8("Salzburg")));
+
+    auto result = session.from<Province>().count();
+
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(result.value(), 3);
+}
+
+void SqliteSessionTest::testCountWithFilter()
+{
+    QOrmSession session;
+    session.merge(new Province(QString::fromUtf8("Oberösterreich")),
+                  new Province(QString::fromUtf8("Niederösterreich")),
+                  new Province(QString::fromUtf8("Salzburg")));
+
+    auto result =
+        session.from<Province>().filter(Q_ORM_CLASS_PROPERTY(name).contains("österreich")).count();
+
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(result.value(), 2);
+}
+
 void SqliteSessionTest::testMergeFailsWithInconsistentReferences()
 {
     QOrmSession session;
@@ -953,7 +983,7 @@ void SqliteSessionTest::testRemoveInstance()
     Province* upperAustria = new Province{QString::fromUtf8("Oberösterreich")};
     QVERIFY(session.merge(upperAustria));
     QVERIFY(session.remove(upperAustria));
-    QVERIFY(session.from<Province>().select().toVector().empty());    
+    QVERIFY(session.from<Province>().select().toVector().empty());
 }
 
 void SqliteSessionTest::testRemoveWithFilter()

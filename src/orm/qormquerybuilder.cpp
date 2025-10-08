@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2025 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -119,11 +119,11 @@ namespace QOrmPrivate
     {
     }
 
-    QueryBuilderHelper::QueryBuilderHelper(QueryBuilderHelper&&) = default;
+    QueryBuilderHelper::QueryBuilderHelper(QueryBuilderHelper&&) noexcept = default;
 
     QueryBuilderHelper::~QueryBuilderHelper() = default;
 
-    QueryBuilderHelper& QueryBuilderHelper::operator=(QueryBuilderHelper&&) = default;
+    QueryBuilderHelper& QueryBuilderHelper::operator=(QueryBuilderHelper&&) noexcept = default;
 
     void QueryBuilderHelper::setInstance(const QMetaObject& qMetaObject, QObject* instance)
     {
@@ -169,7 +169,8 @@ namespace QOrmPrivate
 
             return QOrmQuery{operation, *d->m_relation.mapping(), d->m_entityInstance};
         }
-        else if (operation == QOrm::Operation::Read || operation == QOrm::Operation::Delete)
+        else if (operation == QOrm::Operation::Read || operation == QOrm::Operation::Delete ||
+                 operation == QOrm::Operation::Count)
         {
             FoldedFilters filters = foldFilters(d->m_relation, d->m_filters);
             QOrmQuery query = QOrmQuery{operation,
@@ -195,6 +196,19 @@ namespace QOrmPrivate
     QOrmQueryResult<QObject> QueryBuilderHelper::remove() const
     {
         return d->m_session->execute(build(QOrm::Operation::Delete, QOrm::QueryFlags::None));
+    }
+
+    QOrmQueryResult<int> QueryBuilderHelper::count() const
+    {
+        QOrmQueryResult<QObject> result =
+            d->m_session->execute(build(QOrm::Operation::Count, QOrm::QueryFlags::None));
+
+        if (result.hasError())
+        {
+            return QOrmQueryResult<int>{result.error(), result.numRowsAffected()};
+        }
+
+        return QOrmQueryResult<int>{result.numRowsAffected()};
     }
 } // namespace QOrmPrivate
 

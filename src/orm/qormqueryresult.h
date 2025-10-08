@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2025 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -238,6 +238,29 @@ public:
         : Base{other.error(), other.lastInsertedId(), other.numRowsAffected()}
     {
     }
+};
+
+template<>
+class QOrmQueryResult<int> : public QtOrmPrivate::QOrmQueryResultBase<int>
+{
+    using Base = QOrmQueryResultBase<int>;
+
+public:
+    explicit QOrmQueryResult(int value)
+        : Base{QOrmError{QOrm::ErrorType::None, QString{}}, QVariant{}, 0}
+        , m_value{value}
+    {
+    }
+
+    explicit QOrmQueryResult(const QOrmError& error, int numRowsAffected)
+        : Base{error, QVariant{}, numRowsAffected}
+    {
+    }
+
+    [[nodiscard]] int value() const { return m_value; }
+
+private:
+    int m_value{0};
 };
 
 QT_END_NAMESPACE

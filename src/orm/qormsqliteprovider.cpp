@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2020-2024 Dmitriy Purgin <dpurgin@gmail.com>
- * Copyright (C) 2019-2024 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019-2024 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2025 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -103,6 +103,7 @@ class QOrmSqliteProviderPrivate
     QOrmQueryResult<QObject> merge(const QOrmQuery& query);
     QOrmQueryResult<QObject> remove(const QOrmQuery& query,
                                     QOrmEntityInstanceCache& entityInstanceCache);
+    QOrmQueryResult<QObject> count(const QOrmQuery& query);
 
     [[nodiscard]] bool foreignKeysEnabled();
     [[nodiscard]] QOrmError setForeignKeysEnabled(bool enabled);
@@ -981,6 +982,26 @@ QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::remove(
     return QOrmQueryResult<QObject>{resultSet, sqlQuery.numRowsAffected()};
 }
 
+QOrmQueryResult<QObject> QOrmSqliteProviderPrivate::count(const QOrmQuery& query)
+{
+    Q_ASSERT(query.operation() == QOrm::Operation::Count);
+
+    auto [statement, boundParameters] = m_statementGenerator.generate(query);
+
+    QSqlQuery sqlQuery = prepareAndExecute(statement, boundParameters);
+
+    if (sqlQuery.lastError().type() != QSqlError::NoError || !sqlQuery.next())
+    {
+        return QOrmQueryResult<QObject>{QOrmError{QOrm::ErrorType::Provider,
+                                                  sqlQuery.lastError().text()},
+                                        sqlQuery.numRowsAffected()};
+    }
+
+    int count = sqlQuery.value(0).toInt();
+
+    return QOrmQueryResult{QVector<QObject*>{}, count};
+}
+
 bool QOrmSqliteProviderPrivate::foreignKeysEnabled()
 {
     QSqlQuery query{m_database};
@@ -1207,6 +1228,9 @@ QOrmQueryResult<QObject> QOrmSqliteProvider::execute(const QOrmQuery& query,
 
         case QOrm::Operation::Delete:
             return d->remove(query, entityInstanceCache);
+
+        case QOrm::Operation::Count:
+            return d->count(query);
 
         case QOrm::Operation::Merge:
             Q_ORM_UNEXPECTED_STATE;

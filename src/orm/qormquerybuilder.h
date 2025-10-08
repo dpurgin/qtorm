@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2019 Dmitriy Purgin <dmitriy.purgin@sequality.at>
- * Copyright (C) 2019 sequality software engineering e.U. <office@sequality.at>
+ * Copyright (C) 2019-2025 Dmitriy Purgin <dmitriy.purgin@sequality.at>
+ * Copyright (C) 2019-2025 sequality software engineering e.U. <office@sequality.at>
  *
  * This file is part of QtOrm library.
  *
@@ -51,11 +51,11 @@ namespace QOrmPrivate
     public:
         QueryBuilderHelper(QOrmSession* session, const QOrmRelation& relation);
         QueryBuilderHelper(const QueryBuilderHelper&) = delete;
-        QueryBuilderHelper(QueryBuilderHelper&&);
+        QueryBuilderHelper(QueryBuilderHelper&&) noexcept;
         ~QueryBuilderHelper();
 
         QueryBuilderHelper& operator=(const QueryBuilderHelper&) = delete;
-        QueryBuilderHelper& operator=(QueryBuilderHelper&&);
+        QueryBuilderHelper& operator=(QueryBuilderHelper&&) noexcept;
 
         void setInstance(const QMetaObject& qMetaObject, QObject* instance);
         void addFilter(const QOrmFilter& filter);
@@ -66,10 +66,9 @@ namespace QOrmPrivate
         Q_REQUIRED_RESULT
         QOrmQuery build(QOrm::Operation operation, QOrm::QueryFlags flags) const;
 
-        Q_REQUIRED_RESULT
-        QOrmQueryResult<QObject> select(QOrm::QueryFlags flags) const;
-
+        [[nodiscard]] QOrmQueryResult<QObject> select(QOrm::QueryFlags flags) const;
         [[nodiscard]] QOrmQueryResult<QObject> remove() const;
+        [[nodiscard]] QOrmQueryResult<int> count() const;
 
     private:
         std::unique_ptr<QueryBuilderHelperPrivate> d;
@@ -149,6 +148,8 @@ public:
     }
 
     [[nodiscard]] QOrmQueryResult<Projection> remove() { return m_helper.remove(); }
+
+    [[nodiscard]] QOrmQueryResult<int> count() const { return m_helper.count(); }
 
     Q_REQUIRED_RESULT
     QOrmQuery build(QOrm::Operation operation, QOrm::QueryFlags flags = QOrm::QueryFlags::None) const { return m_helper.build(operation, flags); }
