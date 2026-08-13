@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 
 project(QtOrm LANGUAGES CXX)
 
+set(QTORM_VERSION_MAJOR 1)
+set(QTORM_VERSION_MINOR 0)
+set(QTORM_VERSION_PATCH 1)
+
 # https://stackoverflow.com/questions/25199677/how-to-detect-if-current-scope-has-a-parent-in-cmake
 get_directory_property(hasParent PARENT_DIRECTORY)
 
@@ -21,11 +25,21 @@ if (QTORM_QT_VERSION_HINT STREQUAL "auto")
 
     if (Qt6_FOUND)
         set(QTORM_QT_VERSION_MAJOR 6)
+        set(QTORM_QT_SUFFIX -qt6)
+        set(QTORM_PKGCONFIG_DEPS "Qt6Core")
     else()
         set(QTORM_QT_VERSION_MAJOR 5)
+        set(QTORM_QT_SUFFIX "")
+        set(QTORM_PKGCONFIG_DEPS "Qt5Core")
     endif()
+elseif (QTORM_QT_VERSION_HINT STREQUAL "5")
+    set(QTORM_QT_VERSION_MAJOR 5)
+    set(QTORM_QT_SUFFIX "")
+    set(QTORM_PKGCONFIG_DEPS "Qt5Core")
 else()
-    set(QTORM_QT_VERSION_MAJOR ${QTORM_QT_VERSION_HINT})
+    set(QTORM_QT_VERSION_MAJOR 6)
+    set(QTORM_QT_SUFFIX -qt6)
+    set(QTORM_PKGCONFIG_DEPS "Qt6Core")
 endif()
 
 message("QtOrm Configuration:")

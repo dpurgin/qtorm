@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/include
+
+Name: @CMAKE_PROJECT_NAME@
+Description: object-relational mapping for the Qt framework
+Version: @QTORM_VERSION_MAJOR@.@QTORM_VERSION_MINOR@.@QTORM_VERSION_PATCH@
+
+Cflags: -I${includedir}
+Libs: -L${libdir} -lqtorm@QTORM_QT_SUFFIX@
+Requires: @QTORM_PKGCONFIG_DEPS@

@@ -77,14 +77,27 @@ set(QTORM_SOURCES
 
 set(BUILD_SHARED_LIBS ${QTORM_BUILD_SHARED_LIBS})
 
-add_library(qtorm
+add_library(qtorm SHARED
     ${QTORM_PUBLIC_HEADERS}
     ${QTORM_PRIVATE_HEADERS}
     ${QTORM_SOURCES}
     ${QTORM_GENERATED_HEADERS}
 )
 
-target_link_libraries(qtorm PUBLIC Qt${QTORM_QT_VERSION_MAJOR}::Core PRIVATE Qt${QTORM_QT_VERSION_MAJOR}::Sql)
+target_link_libraries(
+    qtorm PUBLIC
+    Qt::Core PRIVATE
+    Qt::Sql
+)
+
+set_target_properties(
+      qtorm PROPERTIES
+      VERSION ${QTORM_VERSION_MAJOR}.${QTORM_VERSION_MINOR}.${QTORM_VERSION_PATCH}
+      SOVERSION ${QTORM_VERSION_MAJOR}
+      OUTPUT_NAME qtorm${QTORM_QT_SUFFIX}
+      EXPORT_NAME qtorm${QTORM_QT_SUFFIX}
+      PUBLIC_HEADER "${QTORM_PUBLIC_HEADERS}"
+)
 
 target_compile_definitions(qtorm PRIVATE QT_BUILD_ORM_LIB)
 target_include_directories(qtorm
@@ -98,3 +111,17 @@ target_compile_features(qtorm PUBLIC cxx_std_17)
 if (MSVC)
     target_compile_definitions(qtorm PRIVATE __PRETTY_FUNCTION__=__FUNCTION__)
 endif()
+
+install(
+	TARGETS qtorm
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_PREFIX}/include/libqtorm${QTORM_QT_SUFFIX}-${QTORM_VERSION_MAJOR}/QtOrm"
+)
+
+set(LIBQTORM_PC "${CMAKE_CURRENT_BINARY_DIR}/libqtorm${QTORM_QT_SUFFIX}-${QTORM_VERSION_MAJOR}.pc")
+configure_file("libqtorm.pc.in" "${LIBQTORM_PC}" @ONLY)
+
+install(
+    FILES "${LIBQTORM_PC}"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig"
+)
