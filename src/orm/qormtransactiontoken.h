@@ -23,8 +23,6 @@
 
 #include <QtOrm/qormglobal.h>
 
-#include <memory>
-
 QT_BEGIN_NAMESPACE
 
 class QOrmSession;
@@ -32,6 +30,8 @@ class QOrmTransactionTokenPrivate;
 
 class Q_ORM_EXPORT QOrmTransactionToken
 {
+    Q_DECLARE_PRIVATE(QOrmTransactionToken)
+
 public:
     QOrmTransactionToken(QOrmSession* session, QOrm::TransactionAction finalAction);
     QOrmTransactionToken(const QOrmTransactionToken&) = delete;
@@ -39,7 +39,8 @@ public:
     ~QOrmTransactionToken();
 
     QOrmTransactionToken& operator=(const QOrmTransactionToken&) = delete;
-    QOrmTransactionToken& operator=(QOrmTransactionToken&&);
+    // A token guards the transaction of its scope and cannot be reassigned
+    QOrmTransactionToken& operator=(QOrmTransactionToken&&) = delete;
 
     Q_REQUIRED_RESULT bool isEngaged() const;
     void disengage();
@@ -48,7 +49,7 @@ public:
     bool rollback();
 
 private:
-    std::unique_ptr<QOrmTransactionTokenPrivate> d;
+    QOrmTransactionTokenPrivate* d_ptr{nullptr};
 };
 
 QT_END_NAMESPACE

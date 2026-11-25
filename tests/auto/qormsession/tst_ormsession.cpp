@@ -103,7 +103,6 @@ private slots:
     void testReadWithModifiedReferencedInstanceReturnsError();
     void testReadWithDanglingReferenceReturnsError();
     void testTransactionTokenMoveConstruction();
-    void testTransactionTokenMoveAssignment();
 
     void testForeignKeysEnabled();
 };
@@ -1591,23 +1590,9 @@ void SqliteSessionTest::testTransactionTokenMoveConstruction()
     QVERIFY(!session.isTransactionActive());
 }
 
-// Assigning a token over an engaged one must finalize the transaction of the old token.
-void SqliteSessionTest::testTransactionTokenMoveAssignment()
-{
-    QOrmSession session;
-
-    {
-        QOrmTransactionToken token =
-            session.declareTransaction(QOrm::TransactionPropagation::Require,
-                                       QOrm::TransactionAction::Commit);
-
-        token = session.declareTransaction(QOrm::TransactionPropagation::Require,
-                                           QOrm::TransactionAction::Commit);
-        QVERIFY(token.isEngaged());
-    }
-
-    QVERIFY(!session.isTransactionActive());
-}
+// A token guards the transaction of its scope: reassigning it is not supported.
+static_assert(!std::is_move_assignable_v<QOrmTransactionToken>);
+static_assert(!std::is_copy_assignable_v<QOrmTransactionToken>);
 
 void SqliteSessionTest::testForeignKeysEnabled()
 {
