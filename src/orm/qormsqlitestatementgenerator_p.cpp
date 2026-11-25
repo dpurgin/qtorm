@@ -317,10 +317,10 @@ QString QOrmSqliteStatementGenerator::generateOrderClause(const std::vector<QOrm
 // https://www.sqlite.org/lang_returning.html
 QString QOrmSqliteStatementGenerator::generateReturningIdClause(const QOrmMetadata& relation)
 {
-    return QString{R"(RETURNING %1.%2 AS %3)"}
-        .arg(escapeIdentifier(relation.tableName()))
-        .arg(escapeIdentifier(relation.objectIdMapping()->tableFieldName()))
-        .arg(escapeIdentifier(relation.objectIdMapping()->classPropertyName()));
+    return QString{R"(RETURNING %1.%2 AS %3)"}.arg(
+        escapeIdentifier(relation.tableName()),
+        escapeIdentifier(relation.objectIdMapping()->tableFieldName()),
+        escapeIdentifier(relation.objectIdMapping()->classPropertyName()));
 }
 
 QString QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterExpression& expression,
