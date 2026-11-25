@@ -22,6 +22,8 @@
 
 #include <QOrmSession>
 
+#include <utility>
+
 class QOrmTransactionTokenPrivate
 {
     friend class QOrmTransactionToken;
@@ -38,16 +40,23 @@ class QOrmTransactionTokenPrivate
 };
 
 QOrmTransactionToken::QOrmTransactionToken(QOrmSession* session, QOrm::TransactionAction action)
-    : d{new QOrmTransactionTokenPrivate{session, action}}
+    : d_ptr{new QOrmTransactionTokenPrivate{session, action}}
 {
 }
 
-QOrmTransactionToken::QOrmTransactionToken(QOrmTransactionToken&&) = default;
-
-QOrmTransactionToken& QOrmTransactionToken::operator=(QOrmTransactionToken&&) = default;
+QOrmTransactionToken::QOrmTransactionToken(QOrmTransactionToken&& other)
+    : d_ptr{std::exchange(other.d_ptr, nullptr)}
+{
+}
 
 QOrmTransactionToken::~QOrmTransactionToken()
 {
+    // A moved-from token has no private part.
+    if (d_ptr == nullptr)
+        return;
+
+    Q_D(QOrmTransactionToken);
+
     if (d->m_engaged)
     {
         if (d->m_action == QOrm::TransactionAction::Commit)
@@ -55,26 +64,34 @@ QOrmTransactionToken::~QOrmTransactionToken()
         else
             d->m_session->rollbackTransaction();
     }
+
+    delete d_ptr;
 }
 
 bool QOrmTransactionToken::isEngaged() const
 {
+    Q_D(const QOrmTransactionToken);
     return d->m_engaged;
 }
 
 void QOrmTransactionToken::disengage()
 {
+    Q_D(QOrmTransactionToken);
     d->m_engaged = false;
 }
 
 bool QOrmTransactionToken::commit()
 {
+    Q_D(QOrmTransactionToken);
+
     disengage();
     return d->m_session->commitTransaction();
 }
 
 bool QOrmTransactionToken::rollback()
 {
+    Q_D(QOrmTransactionToken);
+
     disengage();
     return d->m_session->rollbackTransaction();
 }

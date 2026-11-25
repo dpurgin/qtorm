@@ -62,7 +62,7 @@ private:
     QString m_connectOptions;
     QString m_databaseName;
     bool m_verbose{false};
-    SchemaMode m_schemaMode;
+    SchemaMode m_schemaMode{SchemaMode::Validate};
     bool m_foreignKeysEnabled{false};
 };
 

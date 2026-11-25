@@ -28,7 +28,7 @@ class Person : public QObject
     Q_PROPERTY(long id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 
-    long m_id;
+    long m_id{0};
     QString m_name;
 
 public:

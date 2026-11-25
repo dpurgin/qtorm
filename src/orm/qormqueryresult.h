@@ -82,7 +82,9 @@ public:
         : QtOrmPrivate::QOrmQueryResultBase<T>{other.error(),
                                                other.lastInsertedId(),
                                                other.numRowsAffected()}
-        , m_result{convertVector<U, T>(other.toVector())}
+        , m_result{other.error().type() == QOrm::ErrorType::None
+                       ? convertVector<U, T>(other.toVector())
+                       : QVector<T*>{}}
     {
     }
 

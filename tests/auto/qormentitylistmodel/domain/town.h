@@ -33,7 +33,7 @@ class Town : public QObject
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(Province* province READ province WRITE setProvince NOTIFY provinceChanged)
 
-    int m_id;
+    int m_id{0};
     QString m_name;
     Province* m_province = nullptr;
 

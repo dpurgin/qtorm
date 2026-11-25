@@ -56,7 +56,7 @@ namespace MyNamespace
         void valueChanged();
 
     private:
-        int m_id;
+        int m_id{0};
         QString m_value;
     };
 }

@@ -196,7 +196,8 @@ QString QOrmSqliteStatementGenerator::generateUpdateStatement(const QOrmMetadata
 
         QString parameterName =
             insertParameter(boundParameters, propertyMapping.tableFieldName(), propertyValue);
-        setList.push_back(QString{"%1 = %2"}.arg(propertyMapping.tableFieldName(), parameterName));
+        setList.push_back(QString{"%1 = %2"}.arg(escapeIdentifier(propertyMapping.tableFieldName()),
+                                                 parameterName));
     }
 
     QVariant objectId = QOrmPrivate::objectIdPropertyValue(entityInstance, relation);
@@ -304,9 +305,9 @@ QString QOrmSqliteStatementGenerator::generateOrderClause(const std::vector<QOrm
 
     for (const QOrmOrder& element : order)
     {
-        parts += element.mapping().tableFieldName() % (element.direction() == Qt::AscendingOrder
-                                                           ? QStringLiteral(" ASC")
-                                                           : QStringLiteral(" DESC"));
+        parts += escapeIdentifier(element.mapping().tableFieldName()) %
+                 (element.direction() == Qt::AscendingOrder ? QStringLiteral(" ASC")
+                                                            : QStringLiteral(" DESC"));
     }
 
     return parts.empty() ? QString{} : QStringLiteral("ORDER BY ") % parts.join(',');
@@ -316,10 +317,10 @@ QString QOrmSqliteStatementGenerator::generateOrderClause(const std::vector<QOrm
 // https://www.sqlite.org/lang_returning.html
 QString QOrmSqliteStatementGenerator::generateReturningIdClause(const QOrmMetadata& relation)
 {
-    return QString{R"(RETURNING %1.%2 AS %3)"}
-        .arg(escapeIdentifier(relation.tableName()))
-        .arg(escapeIdentifier(relation.objectIdMapping()->tableFieldName()))
-        .arg(escapeIdentifier(relation.objectIdMapping()->classPropertyName()));
+    return QString{R"(RETURNING %1.%2 AS %3)"}.arg(
+        escapeIdentifier(relation.tableName()),
+        escapeIdentifier(relation.objectIdMapping()->tableFieldName()),
+        escapeIdentifier(relation.objectIdMapping()->classPropertyName()));
 }
 
 QString QOrmSqliteStatementGenerator::generateCondition(const QOrmFilterExpression& expression,
@@ -633,8 +634,6 @@ QString QOrmSqliteStatementGenerator::generateLimitOffsetClause(std::optional<in
                                                                 std::optional<int> offset,
                                                                 QVariantMap& boundParameters)
 {
-    QStringList parts;
-
     if (offset.has_value())
     {
         QString limitKey = insertParameter(boundParameters, "limit", limit.value_or(-1));

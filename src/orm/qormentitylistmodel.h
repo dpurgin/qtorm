@@ -244,11 +244,11 @@ public:
         Q_EMIT endResetModel();
     }
 
-    int rowCount(const QModelIndex& = QModelIndex{}) const { return m_data.size(); }
+    int rowCount(const QModelIndex& = QModelIndex{}) const override { return m_data.size(); }
 
-    QHash<int, QByteArray> roleNames() const { return m_roleNames; }
+    QHash<int, QByteArray> roleNames() const override { return m_roleNames; }
 
-    QVariant data(const QModelIndex& index, int role) const
+    QVariant data(const QModelIndex& index, int role) const override
     {
         if (index.row() >= 0 && index.row() < m_data.size())
         {
@@ -262,8 +262,9 @@ public:
                 QString{propertyValue.typeName()}.endsWith("*>"))
             {
                 QVariantList list;
+                const auto objects = propertyValue.value<QVector<QObject*>>();
 
-                for (QObject* o : propertyValue.value<QVector<QObject*>>())
+                for (QObject* o : objects)
                 {
                     list.push_back(QVariant::fromValue(o));
                 }
@@ -284,7 +285,6 @@ private:
     void readData() override
     {
         std::optional<QOrmFilterExpression> filterExpression;
-        std::vector<QOrmOrder> order;
 
         for (auto it = std::begin(m_filter); it != std::end(m_filter); ++it)
         {
@@ -307,9 +307,9 @@ private:
             query.filter(*filterExpression);
         }
 
-        for (const QVariant& orderItem : m_order)
+        for (const QVariant& orderItem : std::as_const(m_order))
         {
-            if (orderItem.type() == QVariant::Map)
+            if (orderItem.userType() == QMetaType::QVariantMap)
             {
                 QVariantMap orderItemMap = orderItem.toMap();
 
@@ -319,7 +319,7 @@ private:
                                 it.value().value<Qt::SortOrder>());
                 }
             }
-            else if (orderItem.type() == QVariant::String)
+            else if (orderItem.userType() == QMetaType::QString)
             {
                 query.order(QOrmClassProperty{orderItem.toString().toUtf8().data()},
                             Qt::AscendingOrder);

@@ -57,6 +57,10 @@ namespace QOrm
             case Operation::Merge:
                 dbg << "Merge";
                 break;
+
+            case Operation::Count:
+                dbg << "Count";
+                break;
         }
 
         return dbg;
