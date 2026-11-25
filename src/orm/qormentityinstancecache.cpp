@@ -102,9 +102,20 @@ void QOrmEntityInstanceCache::insert(const QOrmMetadata& metadata, QObject* inst
 
 QObject* QOrmEntityInstanceCache::take(QObject* instance)
 {
-    d->m_byObjectId.remove(d->m_cache[instance]);
+    Q_ASSERT(instance != nullptr);
+
+    auto it = d->m_cache.find(instance);
+
+    if (it != d->m_cache.end())
+    {
+        d->m_byObjectId.remove(it.value());
+        d->m_cache.erase(it);
+    }
+
     d->m_modifiedInstances.remove(instance);
-    d->m_cache.remove(instance);
+
+    // Stop tracking changes made by the new owner (connected in finalize())
+    instance->disconnect(d.get());
 
     return instance;
 }
