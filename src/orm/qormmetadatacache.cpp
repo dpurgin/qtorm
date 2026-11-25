@@ -712,7 +712,7 @@ void QOrmMetadataCachePrivate::validateConstructor(const QMetaObject& qMetaObjec
         QMetaMethod ctor = qMetaObject.constructor(i);
 
         hasError = (ctor.access() != QMetaMethod::Public) || (ctor.parameterCount() > 1) ||
-                   (ctor.parameterCount() == 1 && ctor.parameterTypes().front() != "QObject*");
+                   (ctor.parameterCount() == 1 && ctor.parameterTypes().constFirst() != "QObject*");
     }
 
     if (hasError)
