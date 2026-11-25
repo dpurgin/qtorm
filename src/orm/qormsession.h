@@ -47,6 +47,7 @@ class QOrmQueryBuilder;
 class Q_ORM_EXPORT QOrmSession
 {
     Q_DECLARE_PRIVATE(QOrmSession)
+    Q_DISABLE_COPY(QOrmSession)
 
 public:
     explicit QOrmSession(

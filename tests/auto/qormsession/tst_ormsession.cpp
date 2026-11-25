@@ -1600,6 +1600,10 @@ void SqliteSessionTest::testTransactionTokenMoveConstruction()
     QVERIFY(!session.isTransactionActive());
 }
 
+// A session owns its caches and provider connection and cannot be copied.
+static_assert(!std::is_copy_constructible_v<QOrmSession>);
+static_assert(!std::is_copy_assignable_v<QOrmSession>);
+
 // A token guards the transaction of its scope: reassigning it is not supported.
 static_assert(!std::is_move_assignable_v<QOrmTransactionToken>);
 static_assert(!std::is_copy_assignable_v<QOrmTransactionToken>);
