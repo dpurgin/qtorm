@@ -209,7 +209,7 @@ namespace QOrmPrivate
                     Q_ORM_NOT_IMPLEMENTED;
                 }
 
-                QVector<QObject*> referencedInstances =
+                const QVector<QObject*> referencedInstances =
                     propertyValue(entityInstance, mapping).value<QVector<QObject*>>();
 
                 for (const QObject* referencedInstance : referencedInstances)

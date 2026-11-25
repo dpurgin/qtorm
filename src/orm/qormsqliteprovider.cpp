@@ -710,7 +710,7 @@ std::optional<QString> QOrmSqliteProviderPrivate::uniqueConstraintMismatch(
         column.remove('!');
 
     // Every column in the index must belong to the same unique group...
-    for (const QString& column : columnsInIndex)
+    for (const QString& column : std::as_const(columnsInIndex))
     {
         const QOrmPropertyMapping* columnMapping = entity.tableFieldMapping(column);
 
