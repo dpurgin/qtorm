@@ -100,7 +100,7 @@ private slots:
     void testUpdateAndOrderByKeywordColumn();
     void testRemovedInstanceIsNotTracked();
     void testRollbackEvictsCreatedInstances();
-    void testReadWithModifiedReferencedInstanceReturnsError();
+    void testReadWithModifiedReferencedInstanceLinksCachedInstance();
     void testReadWithDanglingReferenceReturnsError();
     void testTransactionTokenMoveConstruction();
 
@@ -1519,12 +1519,10 @@ void SqliteSessionTest::testRollbackEvictsCreatedInstances()
     QCOMPARE(queryValue(session, "SELECT COUNT(*) FROM Province").toInt(), 1);
 }
 
-// Reading an entity that references a cached instance with unsaved changes must return an error
-// like reading the referenced entity directly does, instead of aborting.
-void SqliteSessionTest::testReadWithModifiedReferencedInstanceReturnsError()
+// Reading an entity that references a cached instance with unsaved changes links that instance as
+// is: only its object ID is needed to resolve the reference.
+void SqliteSessionTest::testReadWithModifiedReferencedInstanceLinksCachedInstance()
 {
-    QSKIP("Aborting on a modified referenced instance is intended for now; to be revisited");
-
     {
         QOrmSession session;
 
@@ -1541,10 +1539,17 @@ void SqliteSessionTest::testReadWithModifiedReferencedInstanceReturnsError()
     QCOMPARE(towns.error().type(), QOrm::ErrorType::None);
     QCOMPARE(towns.toVector().size(), 1);
 
-    towns.toVector().front()->setName(QString::fromUtf8("Hagenberg im Mühlkreis"));
+    Town* hagenberg = towns.toVector().front();
+    hagenberg->setName(QString::fromUtf8("Hagenberg im Mühlkreis"));
 
     auto persons = session.from<Person>().select();
-    QCOMPARE(persons.error().type(), QOrm::ErrorType::UnsynchronizedEntity);
+    QCOMPARE(persons.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(persons.toVector().size(), 1);
+
+    Person* franzHuber = persons.toVector().front();
+    QCOMPARE(franzHuber->town(), hagenberg);
+    QCOMPARE(hagenberg->name(), QString::fromUtf8("Hagenberg im Mühlkreis"));
+    QVERIFY(session.entityInstanceCache()->isModified(hagenberg));
 }
 
 // A reference to a non-existing row must result in an error instead of aborting.

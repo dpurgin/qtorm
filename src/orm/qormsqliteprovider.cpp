@@ -352,16 +352,11 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                 QObject* referencedEntityInstance =
                     entityInstanceCache.get(*mapping.referencedEntity(), referencedObjectId);
 
-                // referenced instance is in cache: check that it wasn't modified and assign to the
-                // corresponding property
+                // referenced instance is in cache: assign it to the corresponding property as is.
+                // Only its object ID is needed to resolve the reference, so its unsaved changes
+                // (if any) do not conflict with the data read from the database.
                 if (referencedEntityInstance != nullptr)
                 {
-                    if (entityInstanceCache.isModified(referencedEntityInstance) &&
-                        !queryFlags.testFlag(QOrm::QueryFlags::OverwriteCachedInstances))
-                    {
-                        Q_ORM_UNEXPECTED_STATE;
-                    }
-
                     if (!QOrmPrivate::setPropertyValue(entityInstance,
                                                        mapping.classPropertyName(),
                                                        QVariant::fromValue(
