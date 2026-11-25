@@ -235,7 +235,7 @@ Possible customizations:
 
 * `Q_ORM_CLASS(...)`:
   * `TABLE <tableName>`: override table name 
-  * `SCHEMA <recreate|update|bypass|append>`: override schema mode for this entity 
+  * `SCHEMA <validate|recreate|update|bypass|append>`: override schema mode for this entity 
 * `Q_ORM_CLASS(<propertyName> ...)`:
   * `COLUMN <columnName>`: override the column name 
   * `IDENTITY [true|false]`: mark the property as the identity
@@ -363,17 +363,18 @@ A `QOrmSession` can be configured either with a `QOrmSessionConfiguration` insta
 }
 ```
 
-Possible values for `schemaMode`: `recreate`, `bypass`, `update`, `append`.
+Possible values for `schemaMode`: `validate` (default), `recreate`, `bypass`, `update`, `append`.
 
 Any other JSON keys are silently ignored.
 
 ### Schema Mode 
 
-When an entity is first accessed, QtOrm processes its database schema. The `QOrmSessionConfiguration::schemaMode` property specifies the default processing mode: 
+When an entity is first accessed, QtOrm processes its database schema. The `QOrmSqliteConfiguration::schemaMode` property specifies the default processing mode: 
  
+ * `validate` (default): Do not modify the schema, but check that the table exists and matches the entity in column names, data types, nullability, uniqueness, and foreign keys. If it does not, accessing the entity fails with `QOrm::ErrorType::UnsynchronizedSchema`
  * `recreate`: Drop the table in the database if it exists, and create a new one
  * `bypass`: Do not modify or verify the schema. This may result in errors when using `QOrmSession`
- * `update`: If the table does not exist, create it. Otherwise, if columns do not match in names or data types, update the schema while preserving existing data if possible. For the SQLite backend, the [generalized 12-step ALTER TABLE procedure](https://sqlite.org/lang_altertable.html#otheralter) is used.
+ * `update`: If the table does not exist, create it. Otherwise, if columns do not match in names or data types, update the schema while preserving existing data if possible. For the SQLite backend, the [generalized 12-step ALTER TABLE procedure](https://sqlite.org/lang_altertable.html#otheralter) is used. If foreign keys are enabled, the update requires disabling them, which SQLite does not allow inside a transaction: an update that would happen inside an active transaction fails with `QOrm::ErrorType::UnsynchronizedSchema`.
  * `append`: Add new columns to existing tables and create tables if they don't exist. 
  
 The default processing mode can be overridden for each entity individually using the `Q_ORM_CLASS(SCHEMA ...)` declaration. 

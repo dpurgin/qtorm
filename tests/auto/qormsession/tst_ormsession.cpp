@@ -105,6 +105,11 @@ private slots:
     void testTransactionTokenMoveConstruction();
 
     void testForeignKeysEnabled();
+    void testSqliteConfigurationDefaultSchemaMode();
+    void testSchemaValidateIsDefaultInConfigurationFile();
+    void testSchemaValidateAcceptsMatchingTable();
+    void testSchemaValidateRejectsMissingTable();
+    void testSchemaValidateRejectsMismatchingTable();
 };
 
 SqliteSessionTest::SqliteSessionTest()
@@ -1615,6 +1620,74 @@ void SqliteSessionTest::testForeignKeysEnabled()
 
     QVERIFY(query.exec("PRAGMA foreign_keys") && query.next());
     QCOMPARE(query.value("foreign_keys").toBool(), true);
+}
+
+void SqliteSessionTest::testSqliteConfigurationDefaultSchemaMode()
+{
+    // Default-initialized (not value-initialized) to catch an uninitialized member
+    QOrmSqliteConfiguration sqliteConfiguration;
+    QCOMPARE(sqliteConfiguration.schemaMode(), QOrmSqliteConfiguration::SchemaMode::Validate);
+}
+
+void SqliteSessionTest::testSchemaValidateIsDefaultInConfigurationFile()
+{
+    QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_default_schema.json")};
+
+    auto* provider = static_cast<QOrmSqliteProvider*>(session.configuration().provider());
+    QCOMPARE(provider->configuration().schemaMode(),
+             QOrmSqliteConfiguration::SchemaMode::Validate);
+}
+
+void SqliteSessionTest::testSchemaValidateAcceptsMatchingTable()
+{
+    // Unquoted table name: validation must not recreate the table
+    static const QString createStatement{
+        "CREATE TABLE WithNotNull(id INTEGER PRIMARY KEY AUTOINCREMENT, data INTEGER NOT NULL)"};
+
+    QVERIFY(executeOnTestDatabase({createStatement,
+                                   "INSERT INTO WithNotNull(id, data) VALUES(1, 2)"}));
+
+    QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_default_schema.json")};
+
+    auto result = session.from<WithNotNull>().select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(result.toVector().size(), 1);
+
+    QCOMPARE(queryValue(session, "SELECT sql FROM sqlite_master WHERE name = 'WithNotNull'"),
+             QVariant{createStatement});
+}
+
+void SqliteSessionTest::testSchemaValidateRejectsMissingTable()
+{
+    QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_default_schema.json")};
+
+    auto result = session.from<WithNotNull>().select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::UnsynchronizedSchema);
+
+    // The table is not created
+    QCOMPARE(queryValue(session,
+                        "SELECT COUNT(*) FROM sqlite_master WHERE name = 'WithNotNull'")
+                 .toInt(),
+             0);
+}
+
+void SqliteSessionTest::testSchemaValidateRejectsMismatchingTable()
+{
+    // data is nullable, but mapped as NOT NULL
+    static const QString createStatement{
+        "CREATE TABLE WithNotNull(id INTEGER PRIMARY KEY AUTOINCREMENT, data INTEGER)"};
+
+    QVERIFY(executeOnTestDatabase({createStatement,
+                                   "INSERT INTO WithNotNull(id, data) VALUES(1, 2)"}));
+
+    QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_default_schema.json")};
+
+    auto result = session.from<WithNotNull>().select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::UnsynchronizedSchema);
+
+    // The table is left as it is
+    QCOMPARE(queryValue(session, "SELECT sql FROM sqlite_master WHERE name = 'WithNotNull'"),
+             QVariant{createStatement});
 }
 
 QTEST_GUILESS_MAIN(SqliteSessionTest)

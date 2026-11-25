@@ -877,11 +877,30 @@ QOrmError QOrmSqliteProviderPrivate::executeSchemaStatement(const QString& state
     return {QOrm::ErrorType::None, {}};
 }
 
+// Checks that the table matches the entity without modifying the database.
 QOrmError QOrmSqliteProviderPrivate::validateSchema(const QOrmRelation& relation)
 {
-    Q_UNUSED(relation)
-    Q_ORM_NOT_IMPLEMENTED;
-    return {QOrm::ErrorType::Other, "Not implemented"};
+    Q_ASSERT(m_database.isOpen());
+    Q_ASSERT(relation.type() == QOrm::RelationType::Mapping);
+    Q_ASSERT(relation.mapping() != nullptr);
+
+    const QOrmMetadata& entity = *relation.mapping();
+
+    if (!m_database.tables().contains(entity.tableName()))
+    {
+        return {QOrm::ErrorType::UnsynchronizedSchema,
+                QStringLiteral("Schema validation failed for %1: table %2 does not exist")
+                    .arg(entity.className(), entity.tableName())};
+    }
+
+    if (std::optional<QString> reason = schemaMismatch(entity))
+    {
+        return {QOrm::ErrorType::UnsynchronizedSchema,
+                QStringLiteral("Schema validation failed for %1 <-> %2: %3")
+                    .arg(entity.className(), entity.tableName(), *reason)};
+    }
+
+    return {QOrm::ErrorType::None, {}};
 }
 
 QOrmError QOrmSqliteProviderPrivate::appendSchema(const QOrmRelation& relation)
