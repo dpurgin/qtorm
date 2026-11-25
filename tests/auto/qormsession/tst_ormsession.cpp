@@ -90,12 +90,66 @@ private slots:
     void testSchemaUpdateUpdatesForeignKey();
     void testSchemaUpdateUpdatesUnique();
     void testSchemaUpdateUpdatesUniqueMulti();
+    void testSchemaUpdateKeepsUnchangedTable();
+    void testSchemaUpdateKeepsTransactionsWorking();
+    void testSchemaUpdateFailureRestoresForeignKeys();
+    void testSchemaUpdateDetectsForeignKeyViolations();
+    void testSchemaUpdateInActiveTransactionFails();
 
     void testForeignKeysEnabled();
 };
 
 SqliteSessionTest::SqliteSessionTest()
 {
+}
+
+// Executes the statements on testdb.db using a separate connection. Returns false on the first
+// failing statement.
+[[nodiscard]] static bool executeOnTestDatabase(const QStringList& statements)
+{
+    static const QString connectionName{"SqliteSessionTest"};
+    bool success = true;
+
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+        db.setDatabaseName("testdb.db");
+
+        if (!db.open())
+        {
+            qWarning() << db.lastError();
+            success = false;
+        }
+
+        for (int i = 0; success && i < statements.size(); ++i)
+        {
+            QSqlQuery query{db};
+
+            if (!query.exec(statements[i]))
+            {
+                qWarning() << statements[i] << query.lastError();
+                success = false;
+            }
+        }
+
+        db.close();
+    }
+
+    QSqlDatabase::removeDatabase(connectionName);
+    return success;
+}
+
+[[nodiscard]] static QVariant queryValue(QOrmSession& session, const QString& statement)
+{
+    auto* provider = static_cast<QOrmSqliteProvider*>(session.configuration().provider());
+    QSqlQuery query{provider->database()};
+
+    if (!query.exec(statement) || !query.next())
+    {
+        qWarning() << statement << query.lastError();
+        return {};
+    }
+
+    return query.value(0);
 }
 
 SqliteSessionTest::~SqliteSessionTest()
@@ -1260,6 +1314,116 @@ void SqliteSessionTest::testRemoveWithFilter()
         QVERIFY(removedInstances.contains(linz));
         qDeleteAll(query.toVector());
     }
+}
+
+void SqliteSessionTest::testSchemaUpdateKeepsUnchangedTable()
+{
+    // Unquoted table name: a migration would recreate the table with a quoted one.
+    static const QString createStatement{
+        "CREATE TABLE WithNotNull(id INTEGER PRIMARY KEY AUTOINCREMENT, data INTEGER NOT NULL)"};
+
+    QVERIFY(executeOnTestDatabase({createStatement,
+                                   "INSERT INTO WithNotNull(id, data) VALUES(1, 2)"}));
+
+    QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_update_schema.json")};
+
+    auto result = session.from<WithNotNull>().select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(result.toVector().size(), 1);
+
+    QCOMPARE(queryValue(session, "SELECT sql FROM sqlite_master WHERE name = 'WithNotNull'"),
+             QVariant{createStatement});
+}
+
+void SqliteSessionTest::testSchemaUpdateKeepsTransactionsWorking()
+{
+    // data is nullable: the schema update makes it NOT NULL
+    QVERIFY(executeOnTestDatabase(
+        {"CREATE TABLE WithNotNull(id INTEGER PRIMARY KEY AUTOINCREMENT, data INTEGER)",
+         "INSERT INTO WithNotNull(id, data) VALUES(1, 2)"}));
+
+    QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_update_schema.json")};
+
+    auto result = session.from<WithNotNull>().select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(result.toVector().size(), 1);
+    WithNotNull* entity = result.toVector().front();
+
+    {
+        auto token = session.declareTransaction(QOrm::TransactionPropagation::Require,
+                                                QOrm::TransactionAction::Rollback);
+
+        entity->setData(42);
+        QVERIFY(session.merge(entity));
+    }
+
+    QVERIFY(!session.isTransactionActive());
+    QCOMPARE(queryValue(session, "SELECT data FROM WithNotNull WHERE id = 1").toInt(), 2);
+    QCOMPARE(entity->data(), 2);
+}
+
+void SqliteSessionTest::testSchemaUpdateFailureRestoresForeignKeys()
+{
+    // A NULL value prevents copying the data into the new table with a NOT NULL column.
+    QVERIFY(executeOnTestDatabase(
+        {"CREATE TABLE WithNotNull(id INTEGER PRIMARY KEY AUTOINCREMENT, data INTEGER)",
+         "INSERT INTO WithNotNull(id, data) VALUES(1, NULL)"}));
+
+    QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_update_schema.json")};
+
+    auto result = session.from<WithNotNull>().select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::UnsynchronizedSchema);
+
+    QCOMPARE(queryValue(session, "PRAGMA foreign_keys").toBool(), true);
+    QVERIFY(!session.isTransactionActive());
+
+    // The old table is left intact
+    QCOMPARE(queryValue(session, "SELECT COUNT(*) FROM WithNotNull").toInt(), 1);
+}
+
+void SqliteSessionTest::testSchemaUpdateDetectsForeignKeyViolations()
+{
+    // data_id = 99 does not exist in WithNotNull: adding the foreign key must fail.
+    QVERIFY(executeOnTestDatabase(
+        {"CREATE TABLE WithNotNull(id INTEGER PRIMARY KEY AUTOINCREMENT, data INTEGER NOT NULL)",
+         "INSERT INTO WithNotNull(id, data) VALUES(1, 2)",
+         "CREATE TABLE WithForeignKey(id INTEGER PRIMARY KEY AUTOINCREMENT, data_id INTEGER)",
+         "INSERT INTO WithForeignKey(id, data_id) VALUES(1, 99)"}));
+
+    QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_update_schema.json")};
+
+    auto result = session.from<WithForeignKey>().select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::UnsynchronizedSchema);
+
+    // The migration was rolled back: still no foreign key
+    QCOMPARE(queryValue(session,
+                        "SELECT COUNT(*) FROM pragma_foreign_key_list('WithForeignKey')")
+                 .toInt(),
+             0);
+    QCOMPARE(queryValue(session, "PRAGMA foreign_keys").toBool(), true);
+}
+
+void SqliteSessionTest::testSchemaUpdateInActiveTransactionFails()
+{
+    QVERIFY(executeOnTestDatabase(
+        {"CREATE TABLE WithNotNull(id INTEGER PRIMARY KEY AUTOINCREMENT, data INTEGER)",
+         "INSERT INTO WithNotNull(id, data) VALUES(1, 2)"}));
+
+    QOrmSession session{QOrmSessionConfiguration::fromFile(":/qtorm_update_schema.json")};
+
+    QVERIFY(session.beginTransaction());
+
+    auto result = session.from<WithNotNull>().select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::UnsynchronizedSchema);
+
+    QVERIFY(session.rollbackTransaction());
+    QVERIFY(!session.isTransactionActive());
+    QCOMPARE(queryValue(session, "PRAGMA foreign_keys").toBool(), true);
+
+    // Outside of a transaction, the schema update succeeds
+    result = session.from<WithNotNull>().select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(result.toVector().size(), 1);
 }
 
 void SqliteSessionTest::testForeignKeysEnabled()
