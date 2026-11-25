@@ -6,14 +6,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        # Qt 5 headers use stdext::make_checked_array_iterator, which the
+        # Visual Studio 2026 STL no longer provides. Keep Qt 5 on VS 2022.
         - qtversion: '5.15.*'
           arch: 'win64_msvc2019_64'
+          os: 'windows-2022'
         - qtversion: '5.12.*'
           arch: 'win64_msvc2017_64'
+          os: 'windows-2022'
         - qtversion: '6.8.*'
           arch: 'win64_msvc2022_64'
+          os: 'windows-latest'
         
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     
     steps:
     - uses: actions/checkout@v2
