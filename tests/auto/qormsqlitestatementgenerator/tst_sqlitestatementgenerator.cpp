@@ -301,7 +301,7 @@ void SqliteStatementGenerator::testUpdateWithManyToOne()
                                                           upperAustria.get(),
                                                           boundParameters);
 
-    QCOMPARE(statement, R"(UPDATE "Province" SET name = :name WHERE "id" = :id)");
+    QCOMPARE(statement, R"(UPDATE "Province" SET "name" = :name WHERE "id" = :id)");
     QCOMPARE(boundParameters[":name"], QString::fromUtf8("Oberösterreich"));
     QCOMPARE(boundParameters[":id"], 1);
 }
@@ -319,7 +319,7 @@ void SqliteStatementGenerator::testUpdateWithOneToMany()
         generator.generateUpdateStatement(cache.get<Town>(), hagenberg.get(), boundParameters);
 
     QCOMPARE(statement,
-             R"(UPDATE "Town" SET name = :name,province_id = :province_id WHERE "id" = :id)");
+             R"(UPDATE "Town" SET "name" = :name,"province_id" = :province_id WHERE "id" = :id)");
     QCOMPARE(boundParameters[":name"], QString::fromUtf8("Hagenberg"));
     QCOMPARE(boundParameters[":province_id"], 1);
     QCOMPARE(boundParameters[":id"], 2);
@@ -337,7 +337,7 @@ void SqliteStatementGenerator::testUpdateWithOneToManyNullReference()
         generator.generateUpdateStatement(cache.get<Town>(), hagenberg.get(), boundParameters);
 
     QCOMPARE(statement,
-             R"(UPDATE "Town" SET name = :name,province_id = :province_id WHERE "id" = :id)");
+             R"(UPDATE "Town" SET "name" = :name,"province_id" = :province_id WHERE "id" = :id)");
     QCOMPARE(boundParameters[":name"], QString::fromUtf8("Hagenberg"));
     QCOMPARE(boundParameters[":province_id"], QVariant::fromValue(nullptr));
     QCOMPARE(boundParameters[":id"], 2);

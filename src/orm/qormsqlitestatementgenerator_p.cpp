@@ -196,7 +196,8 @@ QString QOrmSqliteStatementGenerator::generateUpdateStatement(const QOrmMetadata
 
         QString parameterName =
             insertParameter(boundParameters, propertyMapping.tableFieldName(), propertyValue);
-        setList.push_back(QString{"%1 = %2"}.arg(propertyMapping.tableFieldName(), parameterName));
+        setList.push_back(QString{"%1 = %2"}.arg(escapeIdentifier(propertyMapping.tableFieldName()),
+                                                 parameterName));
     }
 
     QVariant objectId = QOrmPrivate::objectIdPropertyValue(entityInstance, relation);
@@ -304,9 +305,9 @@ QString QOrmSqliteStatementGenerator::generateOrderClause(const std::vector<QOrm
 
     for (const QOrmOrder& element : order)
     {
-        parts += element.mapping().tableFieldName() % (element.direction() == Qt::AscendingOrder
-                                                           ? QStringLiteral(" ASC")
-                                                           : QStringLiteral(" DESC"));
+        parts += escapeIdentifier(element.mapping().tableFieldName()) %
+                 (element.direction() == Qt::AscendingOrder ? QStringLiteral(" ASC")
+                                                            : QStringLiteral(" DESC"));
     }
 
     return parts.empty() ? QString{} : QStringLiteral("ORDER BY ") % parts.join(',');
