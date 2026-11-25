@@ -252,7 +252,13 @@ QOrmPrivate::Expected<QObject*, QOrmError> QOrmSqliteProviderPrivate::makeEntity
         entityMetadata, entityInstance, record, entityInstanceCache, QOrm::QueryFlags::None);
 
     if (fillError != QOrm::ErrorType::None)
+    {
+        // Do not leave a partially filled instance in the cache: later reads would return it as
+        // if it was valid. It is not deleted because instances read while filling it may already
+        // reference it.
+        entityInstanceCache.take(entityInstance);
         return QOrmPrivate::makeUnexpected(fillError);
+    }
 
     entityInstanceCache.finalize(entityMetadata, entityInstance);
 
@@ -390,15 +396,17 @@ QOrmError QOrmSqliteProviderPrivate::fillEntityInstance(
                     // returned
                     if (result.toVector().size() != 1)
                     {
-                        qCCritical(qtorm) << "Database inconsistency detected: a row in table"
-                                          << mapping.enclosingEntity().tableName() << "references"
-                                          << mapping.referencedEntity()->tableName() << "in column"
-                                          << mapping.tableFieldName()
-                                          << "using a non-existing object ID" << referencedObjectId
-                                          << ", or there are multiple rows in the referenced table "
-                                             "with this value";
+                        QString errorText;
+                        QDebug{&errorText}
+                            << "Database inconsistency detected: a row in table"
+                            << mapping.enclosingEntity().tableName() << "references"
+                            << mapping.referencedEntity()->tableName() << "in column"
+                            << mapping.tableFieldName() << "using a non-existing object ID"
+                            << referencedObjectId
+                            << ", or there are multiple rows in the referenced table with this "
+                               "value";
 
-                        Q_ORM_UNEXPECTED_STATE;
+                        return QOrmError{QOrm::ErrorType::Provider, errorText};
                     }
 
                     if (!QOrmPrivate::setPropertyValue(entityInstance,

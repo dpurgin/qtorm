@@ -1562,7 +1562,11 @@ void SqliteSessionTest::testReadWithDanglingReferenceReturnsError()
     QOrmSession session{sessionConfiguration(QOrmSqliteConfiguration::SchemaMode::Bypass)};
 
     auto persons = session.from<Person>().select();
-    QVERIFY(persons.error().type() != QOrm::ErrorType::None);
+    QCOMPARE(persons.error().type(), QOrm::ErrorType::Provider);
+
+    // The partially read instance must not be returned from the cache
+    persons = session.from<Person>().select();
+    QCOMPARE(persons.error().type(), QOrm::ErrorType::Provider);
 }
 
 // A moved-from token must not finalize the transaction; the moved-to token must.
