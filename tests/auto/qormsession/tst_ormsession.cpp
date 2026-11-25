@@ -1513,6 +1513,7 @@ void SqliteSessionTest::testRollbackEvictsCreatedInstances()
 
     QCOMPARE(queryValue(session, "SELECT COUNT(*) FROM Province").toInt(), 0);
     QVERIFY(!session.entityInstanceCache()->contains(upperAustria));
+    QCOMPARE(upperAustria->id(), 0);
 
     upperAustria->setName(QString::fromUtf8("Upper Austria"));
     QVERIFY(session.merge(upperAustria));
