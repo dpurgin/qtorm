@@ -634,8 +634,6 @@ QString QOrmSqliteStatementGenerator::generateLimitOffsetClause(std::optional<in
                                                                 std::optional<int> offset,
                                                                 QVariantMap& boundParameters)
 {
-    QStringList parts;
-
     if (offset.has_value())
     {
         QString limitKey = insertParameter(boundParameters, "limit", limit.value_or(-1));

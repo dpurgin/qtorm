@@ -64,5 +64,5 @@ signals:
 
 private:
     int m_id{0};
-    int m_data;
+    int m_data{0};
 };

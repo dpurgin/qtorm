@@ -29,7 +29,7 @@ class Province : public QObject
     Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 
-    int m_id;
+    int m_id{0};
     QString m_name;
 
 public:

@@ -47,7 +47,7 @@ class Community : public QObject
     Q_PROPERTY(qreal latitude READ latitude WRITE setLatitude NOTIFY latitudeChanged)
     Q_PROPERTY(qreal longitude READ longitude WRITE setLongitude NOTIFY longitudeChanged)
 
-    int m_id;
+    int m_id{0};
     QString m_name;
     Province* m_province{nullptr};
     QString m_postCode;

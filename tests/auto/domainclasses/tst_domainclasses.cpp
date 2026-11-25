@@ -330,7 +330,7 @@ class TownN : public QObject
 public:
     Q_INVOKABLE TownN() = default;
 
-    int m_id;
+    int m_id{0};
     ProvinceN* m_province{nullptr};
 
 signals:
@@ -410,7 +410,7 @@ class Town1 : public QObject
 public:
     Q_INVOKABLE Town1() = default;
 
-    int m_id;
+    int m_id{0};
     QString m_name;
 
 signals:

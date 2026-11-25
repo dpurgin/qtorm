@@ -40,7 +40,7 @@ class Person : public QObject
     Q_PROPERTY(QVector<Person*> personChildren READ personChildren WRITE setPersonChildren NOTIFY
                    personChildrenChanged)
 
-    int m_id;
+    int m_id{0};
     QString m_firstName;
     QString m_lastName;
     Town* m_town{nullptr};

@@ -45,7 +45,7 @@ class Province : public QObject
     Q_PROPERTY(QVector<Community*> communityList READ communityList WRITE setCommunityList NOTIFY
                    communityListChanged)
 
-    int m_id;
+    int m_id{0};
     QString m_name;
     QVector<Community*> m_communityList;
 

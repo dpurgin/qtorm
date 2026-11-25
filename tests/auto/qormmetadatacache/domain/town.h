@@ -34,7 +34,7 @@ class Town : public QObject
     Q_PROPERTY(
         QVector<Person*> population READ population WRITE setPopulation NOTIFY populationChanged)
 
-    int m_id;
+    int m_id{0};
     QString m_name;
     QVector<Person*> m_population;
 

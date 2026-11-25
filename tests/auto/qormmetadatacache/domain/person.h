@@ -32,7 +32,7 @@ class Person : public QObject
     Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
     Q_PROPERTY(Town* town READ town WRITE setTown NOTIFY townChanged)
 
-    int m_id;
+    int m_id{0};
     QString m_name;
     Town* m_town{nullptr};
 

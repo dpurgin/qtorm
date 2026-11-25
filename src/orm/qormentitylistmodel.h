@@ -284,7 +284,6 @@ private:
     void readData() override
     {
         std::optional<QOrmFilterExpression> filterExpression;
-        std::vector<QOrmOrder> order;
 
         for (auto it = std::begin(m_filter); it != std::end(m_filter); ++it)
         {
