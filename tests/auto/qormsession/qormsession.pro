@@ -11,6 +11,7 @@ SOURCES +=  tst_ormsession.cpp \
     domain/withnotnull.cpp \
     domain/withforeignkey.cpp \
     domain/withunique.cpp \
+    domain/withkeyword.cpp \
 
 HEADERS += \
     domain/province.h \
@@ -19,5 +20,6 @@ HEADERS += \
     domain/withnotnull.h \
     domain/withforeignkey.h \
     domain/withunique.h \
+    domain/withkeyword.h \
 
 RESOURCES += ormsession.qrc

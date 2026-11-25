@@ -39,6 +39,7 @@
 #include "domain/withnotnull.h"
 #include "domain/withforeignkey.h"
 #include "domain/withunique.h"
+#include "domain/withkeyword.h"
 
 #include "private/qormglobal_p.h"
 
@@ -96,6 +97,14 @@ private slots:
     void testSchemaUpdateDetectsForeignKeyViolations();
     void testSchemaUpdateInActiveTransactionFails();
 
+    void testUpdateAndOrderByKeywordColumn();
+    void testRemovedInstanceIsNotTracked();
+    void testRollbackEvictsCreatedInstances();
+    void testReadWithModifiedReferencedInstanceReturnsError();
+    void testReadWithDanglingReferenceReturnsError();
+    void testTransactionTokenMoveConstruction();
+    void testTransactionTokenMoveAssignment();
+
     void testForeignKeysEnabled();
 };
 
@@ -138,6 +147,17 @@ SqliteSessionTest::SqliteSessionTest()
     return success;
 }
 
+[[nodiscard]] static QOrmSessionConfiguration sessionConfiguration(
+    QOrmSqliteConfiguration::SchemaMode schemaMode)
+{
+    QOrmSqliteConfiguration sqliteConfiguration;
+    sqliteConfiguration.setVerbose(true);
+    sqliteConfiguration.setSchemaMode(schemaMode);
+    sqliteConfiguration.setDatabaseName(QStringLiteral("testdb.db"));
+
+    return QOrmSessionConfiguration{new QOrmSqliteProvider{sqliteConfiguration}, true};
+}
+
 [[nodiscard]] static QVariant queryValue(QOrmSession& session, const QString& statement)
 {
     auto* provider = static_cast<QOrmSqliteProvider*>(session.configuration().provider());
@@ -163,7 +183,13 @@ void SqliteSessionTest::init()
     if (db.exists())
         QVERIFY(db.remove());
 
-    qRegisterOrmEntity<Town, Province, Person, WithNotNull, WithForeignKey, WithUnique>();
+    qRegisterOrmEntity<Town,
+                       Province,
+                       Person,
+                       WithNotNull,
+                       WithForeignKey,
+                       WithUnique,
+                       WithKeyword>();
 }
 
 void SqliteSessionTest::cleanup()
@@ -1424,6 +1450,158 @@ void SqliteSessionTest::testSchemaUpdateInActiveTransactionFails()
     result = session.from<WithNotNull>().select();
     QCOMPARE(result.error().type(), QOrm::ErrorType::None);
     QCOMPARE(result.toVector().size(), 1);
+}
+
+// UPDATE and ORDER BY must escape column names that are SQL keywords.
+void SqliteSessionTest::testUpdateAndOrderByKeywordColumn()
+{
+    QOrmSession session;
+
+    auto* first = new WithKeyword;
+    first->setOrder(2);
+    auto* second = new WithKeyword;
+    second->setOrder(1);
+
+    QVERIFY(session.merge(first, second));
+
+    first->setOrder(3);
+    QVERIFY(session.merge(first));
+    QCOMPARE(queryValue(session,
+                        QStringLiteral(R"(SELECT "order" FROM WithKeyword WHERE id = %1)")
+                            .arg(first->id()))
+                 .toInt(),
+             3);
+
+    auto result = session.from<WithKeyword>().order(Q_ORM_CLASS_PROPERTY(order)).select();
+    QCOMPARE(result.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(result.toVector().size(), 2);
+    QCOMPARE(result.toVector()[0], second);
+    QCOMPARE(result.toVector()[1], first);
+}
+
+// An instance returned by remove() is no longer owned by the session and must not be tracked.
+void SqliteSessionTest::testRemovedInstanceIsNotTracked()
+{
+    QOrmSession session;
+
+    auto* upperAustria = new Province{QString::fromUtf8("Oberösterreich")};
+    QVERIFY(session.merge(upperAustria));
+
+    std::unique_ptr<Province> removed = session.remove(upperAustria);
+    QVERIFY(removed != nullptr);
+    QVERIFY(!session.entityInstanceCache()->contains(removed.get()));
+
+    // Used to trigger Q_ASSERT in QOrmEntityInstanceCachePrivate::onEntityInstanceChanged()
+    removed->setName(QString::fromUtf8("Upper Austria"));
+    QVERIFY(!session.entityInstanceCache()->isModified(removed.get()));
+}
+
+// An instance created in a rolled back transaction does not exist in the database. It must not
+// remain in the cache, otherwise the next merge() tries to update a non-existing row.
+void SqliteSessionTest::testRollbackEvictsCreatedInstances()
+{
+    QOrmSession session;
+
+    // Make sure the schema exists before the transaction
+    QVERIFY(session.from<Province>().select().toVector().empty());
+
+    auto* upperAustria = new Province{QString::fromUtf8("Oberösterreich")};
+
+    QVERIFY(session.beginTransaction());
+    QVERIFY(session.merge(upperAustria));
+    QVERIFY(session.rollbackTransaction());
+
+    QCOMPARE(queryValue(session, "SELECT COUNT(*) FROM Province").toInt(), 0);
+    QVERIFY(!session.entityInstanceCache()->contains(upperAustria));
+
+    upperAustria->setName(QString::fromUtf8("Upper Austria"));
+    QVERIFY(session.merge(upperAustria));
+    QCOMPARE(queryValue(session, "SELECT COUNT(*) FROM Province").toInt(), 1);
+}
+
+// Reading an entity that references a cached instance with unsaved changes must return an error
+// like reading the referenced entity directly does, instead of aborting.
+void SqliteSessionTest::testReadWithModifiedReferencedInstanceReturnsError()
+{
+    QSKIP("Aborting on a modified referenced instance is intended for now; to be revisited");
+
+    {
+        QOrmSession session;
+
+        auto* hagenberg = new Town{QString::fromUtf8("Hagenberg"), nullptr};
+        auto* franzHuber =
+            new Person{QString::fromUtf8("Franz"), QString::fromUtf8("Huber"), hagenberg};
+
+        QVERIFY(session.merge(hagenberg, franzHuber));
+    }
+
+    QOrmSession session{sessionConfiguration(QOrmSqliteConfiguration::SchemaMode::Bypass)};
+
+    auto towns = session.from<Town>().select();
+    QCOMPARE(towns.error().type(), QOrm::ErrorType::None);
+    QCOMPARE(towns.toVector().size(), 1);
+
+    towns.toVector().front()->setName(QString::fromUtf8("Hagenberg im Mühlkreis"));
+
+    auto persons = session.from<Person>().select();
+    QCOMPARE(persons.error().type(), QOrm::ErrorType::UnsynchronizedEntity);
+}
+
+// A reference to a non-existing row must result in an error instead of aborting.
+void SqliteSessionTest::testReadWithDanglingReferenceReturnsError()
+{
+    {
+        QOrmSession session;
+        QVERIFY(session.merge(
+            new Person{QString::fromUtf8("Franz"), QString::fromUtf8("Huber"), nullptr}));
+    }
+
+    QVERIFY(executeOnTestDatabase({"UPDATE Person SET town_id = 999"}));
+
+    QOrmSession session{sessionConfiguration(QOrmSqliteConfiguration::SchemaMode::Bypass)};
+
+    auto persons = session.from<Person>().select();
+    QVERIFY(persons.error().type() != QOrm::ErrorType::None);
+}
+
+// A moved-from token must not finalize the transaction; the moved-to token must.
+void SqliteSessionTest::testTransactionTokenMoveConstruction()
+{
+    QOrmSession session;
+
+    {
+        QOrmTransactionToken token =
+            session.declareTransaction(QOrm::TransactionPropagation::Require,
+                                       QOrm::TransactionAction::Commit);
+        QVERIFY(session.isTransactionActive());
+
+        {
+            QOrmTransactionToken movedToken{std::move(token)};
+            QVERIFY(movedToken.isEngaged());
+        }
+
+        QVERIFY(!session.isTransactionActive());
+    }
+
+    QVERIFY(!session.isTransactionActive());
+}
+
+// Assigning a token over an engaged one must finalize the transaction of the old token.
+void SqliteSessionTest::testTransactionTokenMoveAssignment()
+{
+    QOrmSession session;
+
+    {
+        QOrmTransactionToken token =
+            session.declareTransaction(QOrm::TransactionPropagation::Require,
+                                       QOrm::TransactionAction::Commit);
+
+        token = session.declareTransaction(QOrm::TransactionPropagation::Require,
+                                           QOrm::TransactionAction::Commit);
+        QVERIFY(token.isEngaged());
+    }
+
+    QVERIFY(!session.isTransactionActive());
 }
 
 void SqliteSessionTest::testForeignKeysEnabled()
